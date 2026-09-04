@@ -8,23 +8,36 @@ from models.payments import CheckoutRequest, PortalBuyerRequest
 
 class PaymentService:
     def __init__(self):
-        # AzamPay Sandbox API Gateway Endpoints
+        # Use explicit endpoint overrides first, then the sandbox bases from .env.
+        auth_base_url = os.getenv(
+            "AUTHENTICATOR_SANDBOX_BASE_URL",
+            os.getenv("Authenticator_Sandbox_Base_Url", "https://authenticator-sandbox.azampay.co.tz"),
+        ).rstrip("/")
+        checkout_base_url = os.getenv(
+            "AZAMPAY_SANDBOX_CHECKOUT_BASE_URL",
+            os.getenv("Azampay_Sandbox_Checkout_Base_Url", "https://sandbox.azampay.co.tz"),
+        ).rstrip("/")
         self.auth_url = os.getenv(
             "AZAMPAY_AUTH_URL",
-            "https://authenticator.azampay.co.tz/AppRegistration/GenerateToken",
+            f"{auth_base_url}/AppRegistration/GenerateToken",
         )
         self.checkout_url = os.getenv(
             "AZAMPAY_CHECKOUT_URL",
-            "https://checkout.azampay.co.tz/api/azampay/mno/checkout",
+            f"{checkout_base_url}/api/azampay/mno/checkout",
         )
         
         # Pull parameters dynamically from your central environment (.env)
-        self.app_name = os.getenv("AZAMPAY_APP_NAME", "NETKITONGA_APP")
-        self.client_id = os.getenv("AZAMPAY_CLIENT_ID", "your_client_id_here")
-        self.client_secret = os.getenv("AZAMPAY_CLIENT_SECRET", "your_client_secret_here")
+        self.app_name = os.getenv("AZAMPAY_APP_NAME")
+        self.client_id = os.getenv("AZAMPAY_CLIENT_ID")
+        self.client_secret = os.getenv("AZAMPAY_CLIENT_SECRET")
+
+    def _validate_configuration(self) -> None:
+        if not all((self.app_name, self.client_id, self.client_secret)):
+            raise HTTPException(status_code=500, detail="AzamPay credentials are not configured on the server.")
 
     def _get_bearer_token(self) -> str:
         """Requests a fresh OAuth authorization token from AzamPay security servers."""
+        self._validate_configuration()
         payload = {
             "appName": self.app_name,
             "clientId": self.client_id,
@@ -34,7 +47,10 @@ class PaymentService:
         try:
             response = requests.post(self.auth_url, json=payload, headers=headers, timeout=10)
             if response.status_code == 200:
-                return response.json().get("token", "")
+                token = response.json().get("token", "")
+                if token:
+                    return token
+                raise HTTPException(status_code=502, detail="AzamPay returned no authorization token.")
             raise HTTPException(status_code=502, detail="AzamPay credentials rejected or token generation flatlined.")
         except requests.exceptions.RequestException as err:
             raise HTTPException(status_code=502, detail=f"Failed to dial AzamPay security layers: {str(err)}")
