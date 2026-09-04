@@ -26,10 +26,14 @@ class RouterService:
         setup parameters so the tenant can copy-paste straight into their device.
         """
         # Pull your central server values directly from the environment variables
-        system_domain = os.getenv("SYSTEM_DOMAIN") or os.getenv("SYSTEM_SERVER_IP")
-        if not system_domain:
-            raise ValueError("SYSTEM_SERVER_IP or SYSTEM_DOMAIN must be configured")
+        system_domain = (
+            os.getenv("SYSTEM_DOMAIN")
+            or os.getenv("SYSTEM_SERVER_IP")
+            or "netkitonga.onrender.com"
+        )
         system_ip = os.getenv("SYSTEM_SERVER_IP") or system_domain
+        api_scheme = "https" if system_domain.endswith(".onrender.com") else "http"
+        api_port = "" if api_scheme == "https" else ":8000"
         
         # 1. Standard structural database payload mapping
         router_payload = {
@@ -48,7 +52,7 @@ class RouterService:
 
         # 2. AUTOMATED SCRIPT GENERATION FOR MIKROTIK (RADIUS AAA PATH)
         if driver_type == "radius_aaa" or driver_type == "mikrotik_radius":
-            api_url = f"http://{system_domain}:8000/routers/mikrotik/ping"
+            api_url = f"{api_scheme}://{system_domain}{api_port}/routers/mikrotik/ping"
             
             # Generate a 100% automated copy-paste terminal script for MikroTik WinBox
             automated_script = (
@@ -74,7 +78,7 @@ class RouterService:
 
         # 3. AUTOMATED PARAMETERS FOR RUIJIE / OPENWRT / TP-LINK (WIFIDOG HTTP PATH)
         elif driver_type == "wifidog_http" or driver_type == "ruijie_wifidog":
-            api_url = f"http://{system_domain}:8000/routers/wifidog/ping"
+            api_url = f"{api_scheme}://{system_domain}{api_port}/routers/wifidog/ping"
             
             return {
                 "url": api_url,
