@@ -36,7 +36,7 @@ app.add_middleware(
         "http://127.0.0.1:5174",
         "https://net-kitonga.vercel.app",
     ],
-    allow_origin_regex=r"(?:https://[a-z0-9-]+\.onrender\.com|https?://(?:localhost|127\.0\.0\.1|10\.\d{1,3}\.\d{1,3}\.\d{1,3}|192\.168\.\d{1,3}\.\d{1,3}|172\.(?:1[6-9]|2\d|3[0-1])\.\d{1,3}\.\d{1,3}):(?:5173|5174))$",
+    allow_origin_regex=r"(?:https://(?:net-kitonga\.vercel\.app|[a-z0-9-]+\.onrender\.com)|https?://(?:localhost|127\.0\.0\.1|10\.\d{1,3}\.\d{1,3}\.\d{1,3}|192\.168\.\d{1,3}\.\d{1,3}|172\.(?:1[6-9]|2\d|3[0-1])\.\d{1,3}\.\d{1,3}):(?:5173|5174))$",
     allow_credentials=True,
     allow_methods=["*"],
     allow_headers=["*"],
