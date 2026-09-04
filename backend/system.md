@@ -14,3 +14,7 @@
 /system script run CloudPing
 
 /system scheduler add name="Run_CloudPing" interval=1m start-time=startup on-event="/system script run CloudPing",
+
+postgres:pg_restore --no-owner --no-privileges -d "" local_backup.dump
+
+pg_restore --no-owner --no-privileges -d "YOUR_RENDER_EXTERNAL_DATABASE_URL" local_backup.dump
