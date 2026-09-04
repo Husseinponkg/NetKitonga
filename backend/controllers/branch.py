@@ -1,21 +1,43 @@
 from config.db import connection
 from psycopg.rows import dict_row
+from psycopg.errors import ForeignKeyViolation, UniqueViolation, NotNullViolation
+from fastapi import HTTPException
 
 
 class BranchController:
     async def create_branch(self, tenant_id: int, branch_name: str, branch_location: str, branch_email: str, branch_phone: str, branch_manager: str):
         if tenant_id <= 0:
-            return {"message": "Invalid tenant_id"}
+            raise HTTPException(status_code=400, detail="Invalid tenant ID. Please log in again.")
+
+        required_fields = {
+            "branch name": branch_name,
+            "branch location": branch_location,
+            "branch email": branch_email,
+            "branch phone": branch_phone,
+        }
+        missing_field = next((name for name, value in required_fields.items() if not value or not value.strip()), None)
+        if missing_field:
+            raise HTTPException(status_code=400, detail=f"{missing_field.capitalize()} is required.")
 
         conn = await connection()
         try:
             async with conn.cursor(row_factory=dict_row) as cursor:
-                await cursor.execute(
-                    "INSERT INTO branches (tenant_id, branch_name, branch_location, branch_email, branch_phone, branch_manager) VALUES (%s, %s, %s, %s, %s, %s)",
-                    (tenant_id, branch_name, branch_location, branch_email, branch_phone, branch_manager)
-                )
+                try:
+                    await cursor.execute(
+                        "INSERT INTO branches (tenant_id, branch_name, branch_location, branch_email, branch_phone, branch_manager) VALUES (%s, %s, %s, %s, %s, %s)",
+                        (tenant_id, branch_name.strip(), branch_location.strip(), branch_email.strip(), branch_phone.strip(), branch_manager.strip() if branch_manager else None)
+                    )
+                except ForeignKeyViolation:
+                    raise HTTPException(status_code=400, detail="The logged-in tenant does not exist. Please log in again.")
+                except UniqueViolation:
+                    raise HTTPException(status_code=409, detail="A branch with this email already exists.")
+                except NotNullViolation:
+                    raise HTTPException(status_code=400, detail="Please complete all required branch fields.")
             await conn.commit()
             return {"message": "Branch created successfully"}
+        except HTTPException:
+            await conn.rollback()
+            raise
         finally:
             await conn.close()
 
