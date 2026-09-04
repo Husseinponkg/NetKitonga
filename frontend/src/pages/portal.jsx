@@ -16,9 +16,9 @@ function Portal() {
     const API_BASE_URL = API_ROOT;
 
     const queryParams = new URLSearchParams(window.location.search);
-    const tenantId = queryParams.get("tenant_id") || "1";
-    const branchId = queryParams.get("branch_id") || "1";
-    const routerId = queryParams.get("router_id") || "1";
+    const tenantId = queryParams.get("tenant_id");
+    const branchId = queryParams.get("branch_id");
+    const routerId = queryParams.get("router_id");
     const buyerMac = queryParams.get("mac") || "unknown-device";
 
     const getTenantId = () => {
@@ -59,12 +59,18 @@ function Portal() {
             return;
         }
 
+        if (!tenantId || !branchId || !routerId) {
+            setUiMessage("This payment portal is missing the tenant, branch, or router configuration.");
+            setIsLoading(false);
+            return;
+        }
+
         try {
             const buyerResponse = await fetch(`${API_BASE_URL}/api/payments/portal/buyer`, {
                 method: "POST",
                 headers: { "Content-Type": "application/json" },
                 body: JSON.stringify({
-                    tenant_id: parseInt(tenantId),
+                    tenant_id: Number(tenantId),
                     buyer_mac: buyerMac,
                     phone_number: phoneNumber.trim()
                 })
@@ -73,9 +79,9 @@ function Portal() {
             if (!buyerResponse.ok) throw new Error(buyerResult.detail || "Could not register this device.");
 
             const checkoutPayload = {
-                tenant_id: parseInt(tenantId),
-                branch_id: parseInt(branchId),
-                router_id: parseInt(routerId),
+                tenant_id: Number(tenantId),
+                branch_id: Number(branchId),
+                router_id: Number(routerId),
                 package_id: parseInt(selectedPackageId),
                 buyer_id: buyerResult.buyer_id,
                 phone_number: phoneNumber.trim(),
