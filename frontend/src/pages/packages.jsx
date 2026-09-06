@@ -2,7 +2,6 @@ import React, { useState, useEffect } from "react";
 import { API_BASE_URL as API_ROOT } from "../api";
 
 function PackagesDashboard() {
-    // Form and Telemetry State Control Hooks
     const [packageName, setPackageName] = useState("");
     const [description, setDescription] = useState("");
     const [price, setPrice] = useState("");
@@ -12,20 +11,17 @@ function PackagesDashboard() {
     const [statusToggle, setStatusToggle] = useState("active");
     const [mikrotikRateLimit, setMikrotikRateLimit] = useState("5M/2M");
 
-    // UI tracking state hooks to manage items list grids and update processes
     const [catalogList, setCatalogList] = useState([]);
     const [uiMessage, setUiMessage] = useState("");
     const [editingPackageId, setEditingPackageId] = useState(null);
 
     const API_BASE_URL = `${API_ROOT}/packages`;
     
-    // Core tracking index key pulled straight from active context
     const getTenantId = () => {
         const user = JSON.parse(localStorage.getItem("tenantUser") || "{}");
         return user.id || 1;
     };
 
-    // 1. READ: Fetch all available packages according to tenant ID profile
     const fetchCatalog = async () => {
         try {
             const tenantId = getTenantId();
@@ -43,7 +39,6 @@ function PackagesDashboard() {
         fetchCatalog();
     }, []);
 
-    // 2. CREATE / UPDATE: Submits form context objects down to database layers
     const handleSubmitForm = async (e) => {
         e.preventDefault();
         setUiMessage("");
@@ -71,7 +66,6 @@ function PackagesDashboard() {
             let url = `${API_BASE_URL}/create?tenant_id=${tenantId}`;
             let method = "POST";
 
-            // If an active edit row is identified, flip routing destinations to PUT update endpoints
             if (editingPackageId) {
                 url = `${API_BASE_URL}/update?tenant_id=${tenantId}`;
                 method = "PUT";
@@ -96,7 +90,6 @@ function PackagesDashboard() {
         }
     };
 
-    // 3. DELETE: Purges a package profile template out of the product library
     const handleDeletePackage = async (id) => {
         if (!window.confirm("Are you sure you want to remove this bundle package option from your catalog?")) return;
         setUiMessage("");
@@ -118,7 +111,6 @@ function PackagesDashboard() {
         }
     };
 
-    // Populates input fields inline to handle edit operations safely
     const startEditing = (pkg) => {
         setEditingPackageId(pkg.id);
         setPackageName(pkg.package_name);
@@ -143,14 +135,12 @@ function PackagesDashboard() {
         setDurationUnit("hours");
     };
 
-    // Format bytes to human readable
     const formatBytes = (bytes) => {
         if (bytes === 0) return "Unlimited";
         const gb = bytes / (1024 ** 3);
         return gb >= 1 ? `${gb.toFixed(1)} GB` : `${(bytes / (1024 ** 2)).toFixed(1)} MB`;
     };
 
-    // Format seconds to human readable duration
     const formatDuration = (seconds) => {
         if (seconds >= 86400) {
             const days = seconds / 86400;
@@ -162,15 +152,22 @@ function PackagesDashboard() {
 
     return (
         <div style={{ 
-            padding: "clamp(12px, 3vw, 20px)", 
+            padding: "16px 20px", 
             fontFamily: "'Inter', 'Segoe UI', system-ui, -apple-system, sans-serif", 
-            background: "linear-gradient(135deg, #0f0f0f 0%, #1a1a1a 100%)",
+            background: "#141414",
             minHeight: "100vh",
-            color: "#ffffff"
+            color: "#ffffff",
+            margin: 0,
         }}>
             <style>{`
                 * {
                     box-sizing: border-box;
+                }
+
+                body {
+                    margin: 0;
+                    padding: 0;
+                    background: #141414;
                 }
 
                 @keyframes fadeIn {
@@ -184,6 +181,17 @@ function PackagesDashboard() {
                     }
                 }
 
+                @keyframes slideIn {
+                    from {
+                        opacity: 0;
+                        transform: translateX(-20px);
+                    }
+                    to {
+                        opacity: 1;
+                        transform: translateX(0);
+                    }
+                }
+
                 .packages-container {
                     max-width: 1400px;
                     margin: 0 auto;
@@ -191,98 +199,100 @@ function PackagesDashboard() {
                 }
 
                 .page-header {
-                    margin-bottom: clamp(20px, 4vw, 32px);
-                    animation: fadeIn 0.6s ease-out;
+                    margin-bottom: 24px;
+                    animation: slideIn 0.6s ease-out;
                 }
 
                 .page-header h1 {
-                    font-size: clamp(1.3rem, 4vw, 2rem);
+                    font-size: 1.6rem;
                     font-weight: 700;
                     color: #ffffff;
-                    margin: 0 0 8px 0;
+                    margin: 0 0 4px 0;
                     letter-spacing: -0.5px;
-                    word-wrap: break-word;
+                }
+
+                .page-header h1 span {
+                    color: #e50914;
                 }
 
                 .page-header p {
-                    font-size: clamp(0.85rem, 1.5vw, 0.95rem);
-                    color: #b3b3b3;
+                    font-size: 0.85rem;
+                    color: #808080;
                     margin: 0;
                 }
 
-                .success-message {
-                    padding: clamp(10px, 2vw, 12px) clamp(12px, 2vw, 16px);
-                    margin: 0 0 clamp(16px, 3vw, 24px) 0;
-                    background: rgba(76, 175, 80, 0.15);
-                    border: 1px solid rgba(76, 175, 80, 0.3);
-                    border-radius: 6px;
-                    color: #81c784;
+                .message-box {
+                    padding: 10px 14px;
+                    margin: 0 0 16px 0;
+                    border-radius: 4px;
                     font-weight: 500;
-                    font-size: clamp(0.8rem, 1.2vw, 0.9rem);
+                    font-size: 0.85rem;
                     animation: fadeIn 0.3s ease-out;
-                    word-wrap: break-word;
                 }
 
-                .error-message {
-                    padding: clamp(10px, 2vw, 12px) clamp(12px, 2vw, 16px);
-                    margin: 0 0 clamp(16px, 3vw, 24px) 0;
-                    background: rgba(229, 9, 20, 0.15);
-                    border: 1px solid rgba(229, 9, 20, 0.3);
-                    border-radius: 6px;
-                    color: #ff6b6b;
-                    font-weight: 500;
-                    font-size: clamp(0.8rem, 1.2vw, 0.9rem);
-                    animation: fadeIn 0.3s ease-out;
-                    word-wrap: break-word;
+                .message-success {
+                    background: rgba(76, 175, 80, 0.1);
+                    border: 1px solid rgba(76, 175, 80, 0.2);
+                    color: #81c784;
+                }
+
+                .message-error {
+                    background: rgba(229, 9, 20, 0.1);
+                    border: 1px solid rgba(229, 9, 20, 0.2);
+                    color: #ff5252;
                 }
 
                 .content-wrapper {
                     display: grid;
-                    grid-template-columns: minmax(280px, 350px) 1fr;
-                    gap: clamp(16px, 3vw, 24px);
+                    grid-template-columns: minmax(280px, 360px) 1fr;
+                    gap: 20px;
                     align-items: start;
                 }
 
                 .form-section {
                     background: rgba(30, 30, 30, 0.8);
-                    border: 1px solid rgba(255, 255, 255, 0.1);
-                    border-radius: 8px;
-                    padding: clamp(16px, 3vw, 24px);
+                    border: 1px solid rgba(255, 255, 255, 0.06);
+                    border-radius: 4px;
+                    padding: 20px;
                     animation: fadeIn 0.6s ease-out 0.1s both;
                     position: sticky;
                     top: 20px;
                 }
 
+                .form-section:hover {
+                    border-color: rgba(229, 9, 20, 0.15);
+                }
+
                 .form-section h3 {
-                    margin: 0 0 clamp(16px, 2.5vw, 20px) 0;
-                    font-size: clamp(1rem, 1.5vw, 1.1rem);
+                    margin: 0 0 16px 0;
+                    font-size: 1rem;
                     font-weight: 600;
                     color: #ffffff;
                 }
 
                 .form-group {
-                    margin-bottom: clamp(12px, 2vw, 16px);
+                    margin-bottom: 12px;
                 }
 
                 .form-group label {
                     display: block;
-                    font-size: clamp(0.7rem, 1vw, 0.8rem);
+                    font-size: 0.7rem;
                     font-weight: 600;
-                    color: #b3b3b3;
-                    margin-bottom: 6px;
+                    color: #808080;
+                    margin-bottom: 4px;
                     text-transform: uppercase;
-                    letter-spacing: 0.3px;
+                    letter-spacing: 0.5px;
                 }
 
                 .form-group input,
                 .form-group select {
                     width: 100%;
-                    padding: clamp(8px, 1.2vw, 10px) clamp(10px, 1.5vw, 12px);
-                    background: rgba(51, 51, 51, 0.8);
-                    border: 1px solid rgba(255, 255, 255, 0.1);
-                    border-radius: 6px;
+                    padding: 8px 12px;
+                    background: rgba(20, 20, 20, 0.9);
+                    border: 1px solid rgba(255, 255, 255, 0.06);
+                    border-radius: 4px;
                     color: #ffffff;
-                    font-size: clamp(0.8rem, 1.2vw, 0.9rem);
+                    font-size: 0.85rem;
                     font-family: inherit;
                     transition: all 0.2s ease;
                     -webkit-appearance: none;
@@ -291,14 +301,22 @@ function PackagesDashboard() {
 
                 .form-group input:focus,
                 .form-group select:focus {
-                    background: rgba(51, 51, 51, 1);
-                    border-color: rgba(229, 9, 20, 0.5);
+                    border-color: rgba(229, 9, 20, 0.4);
                     outline: none;
-                    box-shadow: 0 0 0 3px rgba(229, 9, 20, 0.1);
+                    box-shadow: 0 0 0 3px rgba(229, 9, 20, 0.08);
+                    background: rgba(30, 30, 30, 0.9);
                 }
 
                 .form-group input::placeholder {
-                    color: #666;
+                    color: #555;
+                }
+
+                .form-group select {
+                    background-image: url("data:image/svg+xml,%3Csvg xmlns='http://www.w3.org/2000/svg' width='12' height='12' viewBox='0 0 12 12'%3E%3Cpath fill='%23808080' d='M6 8L1 3h10z'/%3E%3C/svg%3E");
+                    background-repeat: no-repeat;
+                    background-position: right 12px center;
+                    padding-right: 36px;
+                    cursor: pointer;
                 }
 
                 .duration-group {
@@ -312,123 +330,141 @@ function PackagesDashboard() {
                 }
 
                 .duration-group select {
-                    flex: 0 0 clamp(100px, 15vw, 120px);
+                    flex: 0 0 100px;
                 }
 
                 .form-buttons {
                     display: flex;
                     gap: 8px;
-                    margin-top: clamp(16px, 2.5vw, 20px);
+                    margin-top: 16px;
                     flex-wrap: wrap;
                 }
 
                 .form-buttons button {
                     flex: 1;
-                    min-width: clamp(80px, 15vw, 100px);
-                    padding: clamp(8px, 1.2vw, 10px) clamp(10px, 1.5vw, 12px);
+                    min-width: 80px;
+                    padding: 8px 12px;
                     border: none;
-                    border-radius: 6px;
+                    border-radius: 4px;
                     font-weight: 600;
-                    font-size: clamp(0.8rem, 1.2vw, 0.9rem);
+                    font-size: 0.85rem;
                     cursor: pointer;
                     transition: all 0.3s ease;
                     font-family: inherit;
                 }
 
                 .submit-btn {
-                    background: linear-gradient(135deg, #e50914 0%, #c20812 100%);
+                    background: #e50914;
                     color: white;
                 }
 
                 .submit-btn:hover {
-                    transform: translateY(-2px);
-                    box-shadow: 0 8px 24px rgba(229, 9, 20, 0.35);
-                    background: linear-gradient(135deg, #f20916 0%, #d40a16 100%);
+                    background: #f40612;
+                    transform: scale(1.02);
+                    box-shadow: 0 4px 20px rgba(229, 9, 20, 0.3);
                 }
 
                 .submit-btn:active {
-                    transform: translateY(0px);
+                    transform: scale(0.98);
                 }
 
                 .cancel-btn {
-                    background: rgba(255, 255, 255, 0.1);
-                    color: #b3b3b3;
-                    border: 1px solid rgba(255, 255, 255, 0.2);
+                    background: rgba(255, 255, 255, 0.05);
+                    color: #808080;
+                    border: 1px solid rgba(255, 255, 255, 0.1);
                 }
 
                 .cancel-btn:hover {
-                    background: rgba(255, 255, 255, 0.15);
-                    border-color: rgba(255, 255, 255, 0.3);
+                    background: rgba(255, 255, 255, 0.1);
                 }
 
                 .table-section {
                     background: rgba(30, 30, 30, 0.8);
-                    border: 1px solid rgba(255, 255, 255, 0.1);
-                    border-radius: 8px;
-                    padding: clamp(16px, 3vw, 24px);
+                    border: 1px solid rgba(255, 255, 255, 0.06);
+                    border-radius: 4px;
+                    padding: 20px;
                     animation: fadeIn 0.8s ease-out 0.15s both;
                     overflow: hidden;
                     min-width: 0;
                 }
 
+                .table-section:hover {
+                    border-color: rgba(229, 9, 20, 0.15);
+                }
+
                 .table-section h3 {
-                    margin: 0 0 clamp(16px, 2.5vw, 20px) 0;
-                    font-size: clamp(1rem, 1.5vw, 1.1rem);
+                    margin: 0 0 16px 0;
+                    font-size: 1rem;
                     font-weight: 600;
                     color: #ffffff;
                 }
 
+                .count-badge {
+                    background: rgba(229, 9, 20, 0.15);
+                    color: #e50914;
+                    padding: 2px 10px;
+                    border-radius: 12px;
+                    font-size: 0.75rem;
+                    font-weight: 600;
+                    margin-left: 8px;
+                }
+
                 .empty-state {
                     text-align: center;
-                    padding: clamp(30px, 5vw, 40px) clamp(16px, 3vw, 20px);
-                    color: #b3b3b3;
+                    padding: 40px 20px;
+                    color: #808080;
                 }
 
                 .empty-state p {
                     margin: 0;
-                    font-size: clamp(0.85rem, 1.2vw, 0.95rem);
+                    font-size: 0.9rem;
+                }
+
+                .empty-sub {
+                    font-size: 0.75rem;
+                    margin: 4px 0 0 0;
+                    opacity: 0.5;
                 }
 
                 .table-wrapper {
                     overflow-x: auto;
-                    border-radius: 6px;
                     -webkit-overflow-scrolling: touch;
                 }
 
                 table {
                     width: 100%;
                     border-collapse: collapse;
-                    font-size: clamp(0.75rem, 1.2vw, 0.9rem);
-                    min-width: 600px;
+                    font-size: 0.85rem;
+                    min-width: 550px;
                 }
 
                 thead tr {
                     background: rgba(20, 20, 20, 0.6);
-                    border-bottom: 1px solid rgba(255, 255, 255, 0.1);
+                    border-bottom: 1px solid rgba(255, 255, 255, 0.06);
                 }
 
                 thead th {
-                    padding: clamp(8px, 1.2vw, 12px) clamp(10px, 1.5vw, 14px);
+                    padding: 8px 12px;
                     text-align: left;
                     font-weight: 600;
-                    color: #b3b3b3;
-                    font-size: clamp(0.65rem, 0.9vw, 0.75rem);
+                    color: #808080;
+                    font-size: 0.7rem;
                     text-transform: uppercase;
-                    letter-spacing: 0.3px;
+                    letter-spacing: 0.5px;
                     white-space: nowrap;
                 }
 
                 tbody tr {
-                    border-bottom: 1px solid rgba(255, 255, 255, 0.05);
+                    border-bottom: 1px solid rgba(255, 255, 255, 0.04);
                     transition: all 0.2s ease;
                 }
 
                 tbody tr:hover {
-                    background: rgba(30, 30, 30, 1);
+                    background: rgba(40, 40, 40, 0.8);
                 }
 
                 tbody td {
-                    padding: clamp(8px, 1.2vw, 12px) clamp(10px, 1.5vw, 14px);
+                    padding: 8px 12px;
                     color: #e5e5e5;
                     vertical-align: middle;
                 }
@@ -436,40 +472,37 @@ function PackagesDashboard() {
                 .pkg-name {
                     font-weight: 600;
                     color: #ffffff;
-                    word-break: break-word;
                 }
 
                 .pkg-desc {
-                    font-size: clamp(0.65rem, 0.9vw, 0.8rem);
-                    color: #b3b3b3;
+                    font-size: 0.7rem;
+                    color: #808080;
                     margin-top: 2px;
-                    word-break: break-word;
                 }
 
                 .price-value {
-                    font-weight: 600;
+                    font-weight: 700;
                     color: #e50914;
-                    white-space: nowrap;
                 }
 
                 .status-badge {
                     display: inline-block;
-                    padding: 2px clamp(6px, 1vw, 10px);
-                    border-radius: 4px;
-                    font-size: clamp(0.6rem, 0.8vw, 0.75rem);
+                    padding: 2px 10px;
+                    border-radius: 3px;
+                    font-size: 0.65rem;
                     font-weight: 600;
                     text-transform: uppercase;
-                    white-space: nowrap;
+                    letter-spacing: 0.3px;
                 }
 
                 .status-active {
-                    background: rgba(76, 175, 80, 0.15);
+                    background: rgba(76, 175, 80, 0.12);
                     color: #81c784;
                 }
 
                 .status-inactive {
-                    background: rgba(229, 9, 20, 0.15);
-                    color: #ff6b6b;
+                    background: rgba(229, 9, 20, 0.12);
+                    color: #ff5252;
                 }
 
                 .action-buttons {
@@ -479,55 +512,45 @@ function PackagesDashboard() {
                 }
 
                 .action-btn {
-                    padding: 4px clamp(6px, 1vw, 10px);
+                    padding: 4px 10px;
                     border: none;
-                    border-radius: 4px;
-                    font-size: clamp(0.6rem, 0.8vw, 0.75rem);
+                    border-radius: 3px;
+                    font-size: 0.7rem;
                     font-weight: 600;
                     cursor: pointer;
                     transition: all 0.2s ease;
                     white-space: nowrap;
-                    min-height: 28px;
+                    font-family: inherit;
                 }
 
                 .edit-btn {
-                    background: rgba(100, 149, 237, 0.2);
+                    background: rgba(100, 149, 237, 0.15);
                     color: #6495ed;
-                    border: 1px solid rgba(100, 149, 237, 0.3);
+                    border: 1px solid rgba(100, 149, 237, 0.2);
                 }
 
                 .edit-btn:hover {
-                    background: rgba(100, 149, 237, 0.3);
-                    border-color: rgba(100, 149, 237, 0.5);
-                }
-
-                .edit-btn:active {
-                    transform: scale(0.95);
+                    background: rgba(100, 149, 237, 0.25);
                 }
 
                 .delete-btn {
-                    background: rgba(229, 9, 20, 0.2);
-                    color: #ff6b6b;
-                    border: 1px solid rgba(229, 9, 20, 0.3);
+                    background: rgba(229, 9, 20, 0.15);
+                    color: #ff5252;
+                    border: 1px solid rgba(229, 9, 20, 0.2);
                 }
 
                 .delete-btn:hover {
-                    background: rgba(229, 9, 20, 0.3);
-                    border-color: rgba(229, 9, 20, 0.5);
-                }
-
-                .delete-btn:active {
-                    transform: scale(0.95);
+                    background: rgba(229, 9, 20, 0.25);
                 }
 
                 .catalog-count {
                     margin-top: 12px;
-                    font-size: clamp(0.7rem, 1vw, 0.8rem);
-                    color: #b3b3b3;
+                    font-size: 0.75rem;
+                    color: #555;
                     text-align: right;
                 }
 
-                /* Responsive Breakpoints */
+                /* Tablet */
                 @media (max-width: 1024px) {
                     .content-wrapper {
                         grid-template-columns: 1fr;
@@ -535,7 +558,7 @@ function PackagesDashboard() {
 
                     .form-section {
                         position: static;
-                        max-width: 600px;
+                        max-width: 500px;
                         margin: 0 auto;
                         width: 100%;
                     }
@@ -555,7 +578,7 @@ function PackagesDashboard() {
                     }
 
                     .duration-group select {
-                        flex: 0 0 100px;
+                        flex: 0 0 90px;
                     }
 
                     .action-buttons {
@@ -566,12 +589,11 @@ function PackagesDashboard() {
                     .action-btn {
                         width: 100%;
                         text-align: center;
-                        padding: 6px 8px;
+                        padding: 5px 8px;
                     }
 
                     .form-buttons {
                         flex-direction: column;
-                        gap: 10px;
                     }
 
                     .form-buttons button {
@@ -579,41 +601,44 @@ function PackagesDashboard() {
                         min-width: unset;
                     }
 
-                    /* Mobile table adjustments */
                     table {
-                        min-width: 500px;
-                        font-size: 0.75rem;
+                        min-width: 450px;
+                        font-size: 0.8rem;
                     }
 
                     thead th, tbody td {
-                        padding: 6px 8px;
-                    }
-
-                    .pkg-desc {
-                        display: none;
+                        padding: 6px 10px;
                     }
                 }
 
                 @media (max-width: 480px) {
+                    .page-header h1 {
+                        font-size: 1.2rem;
+                    }
+
                     .form-section {
-                        padding: 12px;
+                        padding: 14px;
                     }
 
                     .table-section {
-                        padding: 12px;
+                        padding: 14px;
                     }
 
                     table {
-                        min-width: 400px;
+                        min-width: 380px;
                         font-size: 0.7rem;
                     }
 
                     thead th, tbody td {
-                        padding: 4px 6px;
+                        padding: 4px 8px;
                     }
 
                     .pkg-name {
                         font-size: 0.75rem;
+                    }
+
+                    .pkg-desc {
+                        font-size: 0.6rem;
                     }
 
                     .price-value {
@@ -622,30 +647,25 @@ function PackagesDashboard() {
 
                     .status-badge {
                         font-size: 0.55rem;
-                        padding: 1px 4px;
+                        padding: 1px 6px;
                     }
 
                     .action-btn {
-                        font-size: 0.55rem;
-                        padding: 4px 6px;
-                        min-height: 22px;
-                    }
-
-                    .duration-group {
-                        flex-wrap: nowrap;
+                        font-size: 0.6rem;
+                        padding: 3px 6px;
                     }
 
                     .duration-group select {
-                        flex: 0 0 80px;
-                        font-size: 0.7rem;
+                        flex: 0 0 75px;
+                        font-size: 0.75rem;
                     }
 
                     .duration-group input {
-                        font-size: 0.7rem;
+                        font-size: 0.75rem;
                     }
                 }
 
-                /* Touch device optimizations */
+                /* Touch devices */
                 @media (hover: none) {
                     .submit-btn:hover {
                         transform: none;
@@ -661,38 +681,18 @@ function PackagesDashboard() {
                         min-height: 36px;
                     }
                 }
-
-                /* Print styles */
-                @media print {
-                    .form-section {
-                        display: none;
-                    }
-
-                    .action-buttons {
-                        display: none;
-                    }
-
-                    .status-badge {
-                        border: 1px solid #666;
-                    }
-
-                    body {
-                        background: white !important;
-                        color: black !important;
-                    }
-                }
             `}</style>
 
             <div className="packages-container">
                 {/* Header */}
                 <div className="page-header">
-                    <h1>📦 Bundle & Pricing Configuration</h1>
+                    <h1>📦 Bundle <span>Configuration</span></h1>
                     <p>Create and manage your hotspot packages</p>
                 </div>
 
                 {/* Message */}
                 {uiMessage && (
-                    <div className={uiMessage.includes("Failed") || uiMessage.includes("Communication") ? "error-message" : "success-message"}>
+                    <div className={`message-box ${uiMessage.includes("Failed") || uiMessage.includes("Communication") || uiMessage.includes("failed") ? "message-error" : "message-success"}`}>
                         {uiMessage}
                     </div>
                 )}
@@ -796,7 +796,7 @@ function PackagesDashboard() {
 
                         <div className="form-buttons">
                             <button type="submit" className="submit-btn">
-                                {editingPackageId ? "Update" : "Create"}
+                                {editingPackageId ? "💾 Update" : "🚀 Create"}
                             </button>
                             {editingPackageId && (
                                 <button 
@@ -812,11 +812,15 @@ function PackagesDashboard() {
 
                     {/* Table Section */}
                     <div className="table-section">
-                        <h3>Available Packages</h3>
+                        <h3>
+                            📋 Package Catalog
+                            <span className="count-badge">{catalogList.length}</span>
+                        </h3>
                         
                         {catalogList.length === 0 ? (
                             <div className="empty-state">
-                                <p>No packages found. Create your first bundle!</p>
+                                <p>No packages found</p>
+                                <div className="empty-sub">Create your first bundle above</div>
                             </div>
                         ) : (
                             <>
@@ -855,13 +859,13 @@ function PackagesDashboard() {
                                                                 onClick={() => startEditing(pkg)}
                                                                 className="action-btn edit-btn"
                                                             >
-                                                                Edit
+                                                                ✏️ Edit
                                                             </button>
                                                             <button 
                                                                 onClick={() => handleDeletePackage(pkg.id)}
                                                                 className="action-btn delete-btn"
                                                             >
-                                                                Delete
+                                                                🗑️ Delete
                                                             </button>
                                                         </div>
                                                     </td>

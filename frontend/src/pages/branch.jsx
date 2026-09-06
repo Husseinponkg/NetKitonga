@@ -77,15 +77,22 @@ function Branch() {
 
   return (
     <div style={{
-      padding: "20px",
+      padding: "16px 20px",
       fontFamily: "'Inter', 'Segoe UI', system-ui, -apple-system, sans-serif",
-      background: "linear-gradient(135deg, #0f0f0f 0%, #1a1a1a 100%)",
+      background: "#141414",
       minHeight: "100vh",
-      color: "#ffffff"
+      color: "#ffffff",
+      margin: 0,
     }}>
       <style>{`
         * {
           box-sizing: border-box;
+        }
+
+        body {
+          margin: 0;
+          padding: 0;
+          background: #141414;
         }
 
         @keyframes fadeIn {
@@ -99,181 +106,221 @@ function Branch() {
           }
         }
 
+        @keyframes slideIn {
+          from {
+            opacity: 0;
+            transform: translateX(-20px);
+          }
+          to {
+            opacity: 1;
+            transform: translateX(0);
+          }
+        }
+
         .branch-container {
           max-width: 1400px;
           margin: 0 auto;
+          width: 100%;
         }
 
         .page-header {
-          margin-bottom: 32px;
-          animation: fadeIn 0.6s ease-out;
+          margin-bottom: 24px;
+          animation: slideIn 0.6s ease-out;
         }
 
         .page-header h1 {
-          font-size: 2rem;
+          font-size: 1.6rem;
           font-weight: 700;
           color: #ffffff;
-          margin: 0 0 8px 0;
+          margin: 0 0 4px 0;
           letter-spacing: -0.5px;
         }
 
+        .page-header h1 span {
+          color: #e50914;
+        }
+
         .page-header p {
-          font-size: 0.95rem;
-          color: #b3b3b3;
+          font-size: 0.85rem;
+          color: #808080;
           margin: 0;
         }
 
         .content-wrapper {
           display: grid;
-          grid-template-columns: 380px 1fr;
-          gap: 24px;
+          grid-template-columns: minmax(280px, 360px) 1fr;
+          gap: 20px;
           align-items: start;
         }
 
         .form-section {
           background: rgba(30, 30, 30, 0.8);
-          border: 1px solid rgba(255, 255, 255, 0.1);
-          border-radius: 8px;
-          padding: 24px;
+          border: 1px solid rgba(255, 255, 255, 0.06);
+          border-radius: 4px;
+          padding: 20px;
           animation: fadeIn 0.6s ease-out 0.1s both;
           position: sticky;
           top: 20px;
         }
 
+        .form-section:hover {
+          border-color: rgba(229, 9, 20, 0.15);
+        }
+
         .form-section h3 {
-          margin: 0 0 20px 0;
-          font-size: 1.1rem;
+          margin: 0 0 16px 0;
+          font-size: 1rem;
           font-weight: 600;
           color: #ffffff;
         }
 
         .form-group {
-          margin-bottom: 16px;
+          margin-bottom: 12px;
         }
 
         .form-group label {
           display: block;
-          font-size: 0.8rem;
+          font-size: 0.7rem;
           font-weight: 600;
-          color: #b3b3b3;
-          margin-bottom: 6px;
+          color: #808080;
+          margin-bottom: 4px;
           text-transform: uppercase;
-          letter-spacing: 0.3px;
+          letter-spacing: 0.5px;
         }
 
         .form-group input {
           width: 100%;
-          padding: 10px 12px;
-          background: rgba(51, 51, 51, 0.8);
-          border: 1px solid rgba(255, 255, 255, 0.1);
-          border-radius: 6px;
+          padding: 8px 12px;
+          background: rgba(20, 20, 20, 0.9);
+          border: 1px solid rgba(255, 255, 255, 0.06);
+          border-radius: 4px;
           color: #ffffff;
-          font-size: 0.9rem;
+          font-size: 0.85rem;
           font-family: inherit;
           transition: all 0.2s ease;
         }
 
         .form-group input:focus {
-          background: rgba(51, 51, 51, 1);
-          border-color: rgba(229, 9, 20, 0.5);
+          border-color: rgba(229, 9, 20, 0.4);
           outline: none;
-          box-shadow: 0 0 0 3px rgba(229, 9, 20, 0.1);
+          box-shadow: 0 0 0 3px rgba(229, 9, 20, 0.08);
+          background: rgba(30, 30, 30, 0.9);
         }
 
         .form-group input::placeholder {
-          color: #666;
+          color: #555;
         }
 
         .submit-btn {
           width: 100%;
-          padding: 10px 12px;
-          background: linear-gradient(135deg, #e50914 0%, #c20812 100%);
+          padding: 8px 12px;
+          background: #e50914;
           color: #ffffff;
           border: none;
-          border-radius: 6px;
+          border-radius: 4px;
           font-weight: 600;
-          font-size: 0.9rem;
+          font-size: 0.85rem;
           cursor: pointer;
           transition: all 0.3s ease;
           font-family: inherit;
-          margin-top: 12px;
+          margin-top: 8px;
         }
 
         .submit-btn:hover {
-          transform: translateY(-2px);
-          box-shadow: 0 8px 24px rgba(229, 9, 20, 0.35);
-          background: linear-gradient(135deg, #f20916 0%, #d40a16 100%);
+          background: #f40612;
+          transform: scale(1.02);
+          box-shadow: 0 4px 20px rgba(229, 9, 20, 0.3);
         }
 
         .submit-btn:active {
-          transform: translateY(0);
+          transform: scale(0.98);
         }
 
         .message {
-          padding: 10px 12px;
-          border-radius: 6px;
-          font-size: 0.85rem;
+          padding: 8px 12px;
+          border-radius: 4px;
+          font-size: 0.8rem;
           font-weight: 500;
-          margin-top: 12px;
+          margin-top: 10px;
           animation: fadeIn 0.3s ease-out;
         }
 
         .message-success {
-          background: rgba(76, 175, 80, 0.15);
-          border: 1px solid rgba(76, 175, 80, 0.3);
+          background: rgba(76, 175, 80, 0.1);
+          border: 1px solid rgba(76, 175, 80, 0.2);
           color: #81c784;
         }
 
         .message-error {
-          background: rgba(229, 9, 20, 0.15);
-          border: 1px solid rgba(229, 9, 20, 0.3);
-          color: #ff6b6b;
+          background: rgba(229, 9, 20, 0.1);
+          border: 1px solid rgba(229, 9, 20, 0.2);
+          color: #ff5252;
         }
 
         .branches-section {
           background: rgba(30, 30, 30, 0.8);
-          border: 1px solid rgba(255, 255, 255, 0.1);
-          border-radius: 8px;
-          padding: 24px;
+          border: 1px solid rgba(255, 255, 255, 0.06);
+          border-radius: 4px;
+          padding: 20px;
           animation: fadeIn 0.8s ease-out 0.15s both;
         }
 
+        .branches-section:hover {
+          border-color: rgba(229, 9, 20, 0.15);
+        }
+
         .branches-section h2 {
-          margin: 0 0 20px 0;
-          font-size: 1.1rem;
+          margin: 0 0 16px 0;
+          font-size: 1rem;
           font-weight: 600;
           color: #ffffff;
+        }
+
+        .count-badge {
+          background: rgba(229, 9, 20, 0.15);
+          color: #e50914;
+          padding: 2px 10px;
+          border-radius: 12px;
+          font-size: 0.75rem;
+          font-weight: 600;
+          margin-left: 8px;
         }
 
         .empty-state {
           text-align: center;
           padding: 40px 20px;
-          color: #b3b3b3;
+          color: #808080;
         }
 
         .empty-icon {
           font-size: 2.5rem;
           display: block;
-          margin-bottom: 12px;
-          opacity: 0.5;
+          margin-bottom: 10px;
+          opacity: 0.4;
         }
 
         .empty-text {
-          font-size: 0.95rem;
+          font-size: 0.9rem;
           margin: 0;
+        }
+
+        .empty-sub {
+          font-size: 0.75rem;
+          margin: 4px 0 0 0;
+          opacity: 0.5;
         }
 
         .branches-grid {
           display: grid;
-          grid-template-columns: repeat(auto-fill, minmax(280px, 1fr));
-          gap: 16px;
+          grid-template-columns: repeat(auto-fill, minmax(260px, 1fr));
+          gap: 14px;
         }
 
         .branch-card {
-          background: rgba(40, 40, 40, 0.6);
-          border: 1px solid rgba(255, 255, 255, 0.1);
-          border-radius: 8px;
-          padding: 16px;
+          background: rgba(20, 20, 20, 0.6);
+          border: 1px solid rgba(255, 255, 255, 0.06);
+          border-radius: 4px;
+          padding: 14px 16px;
           transition: all 0.3s ease;
           animation: fadeIn 0.6s ease-out;
           animation-fill-mode: both;
@@ -284,45 +331,51 @@ function Branch() {
         .branch-card:nth-child(3) { animation-delay: 0.15s; }
         .branch-card:nth-child(4) { animation-delay: 0.20s; }
         .branch-card:nth-child(5) { animation-delay: 0.25s; }
+        .branch-card:nth-child(6) { animation-delay: 0.30s; }
 
         .branch-card:hover {
-          background: rgba(40, 40, 40, 0.9);
-          border-color: rgba(229, 9, 20, 0.3);
-          transform: translateY(-4px);
-          box-shadow: 0 8px 24px rgba(229, 9, 20, 0.15);
+          background: rgba(30, 30, 30, 0.8);
+          border-color: rgba(229, 9, 20, 0.15);
+          transform: translateY(-2px);
+          box-shadow: 0 8px 24px rgba(0, 0, 0, 0.2);
         }
 
         .branch-name {
-          font-size: 1.1rem;
+          font-size: 1rem;
           font-weight: 600;
           color: #ffffff;
-          margin: 0 0 12px 0;
+          margin: 0 0 10px 0;
           display: flex;
           align-items: center;
           gap: 8px;
         }
 
         .branch-icon {
-          font-size: 1.3rem;
+          font-size: 1.2rem;
         }
 
         .branch-info {
           display: flex;
           flex-direction: column;
-          gap: 8px;
+          gap: 6px;
         }
 
         .branch-info-item {
           display: flex;
           align-items: flex-start;
-          gap: 8px;
-          font-size: 0.85rem;
+          gap: 6px;
+          font-size: 0.8rem;
+          line-height: 1.4;
         }
 
         .branch-info-label {
-          color: #b3b3b3;
-          min-width: 70px;
+          color: #666;
+          min-width: 60px;
           font-weight: 500;
+          font-size: 0.7rem;
+          text-transform: uppercase;
+          letter-spacing: 0.3px;
+          flex-shrink: 0;
         }
 
         .branch-info-value {
@@ -347,7 +400,7 @@ function Branch() {
           color: #b3b3b3;
         }
 
-        /* Tablet Responsive */
+        /* Tablet */
         @media (max-width: 1024px) {
           .content-wrapper {
             grid-template-columns: 1fr;
@@ -355,36 +408,27 @@ function Branch() {
 
           .form-section {
             position: static;
+            max-width: 500px;
+            margin: 0 auto;
+            width: 100%;
+          }
+
+          .branches-section {
+            max-width: 500px;
+            margin: 0 auto;
+            width: 100%;
           }
 
           .branches-grid {
-            grid-template-columns: repeat(auto-fill, minmax(240px, 1fr));
+            grid-template-columns: 1fr;
           }
         }
 
-        /* Mobile Responsive */
         @media (max-width: 768px) {
           .branch-container {
             padding: 0;
           }
 
-          .page-header h1 {
-            font-size: 1.5rem;
-          }
-
-          .form-section,
-          .branches-section {
-            padding: 20px;
-          }
-
-          .branches-grid {
-            grid-template-columns: repeat(auto-fill, minmax(200px, 1fr));
-            gap: 12px;
-          }
-        }
-
-        /* Small Mobile */
-        @media (max-width: 480px) {
           .page-header h1 {
             font-size: 1.3rem;
           }
@@ -397,34 +441,70 @@ function Branch() {
           .branches-grid {
             grid-template-columns: 1fr;
           }
-
-          .branch-card {
-            padding: 12px;
-          }
-
-          .branch-name {
-            font-size: 1rem;
-            margin-bottom: 10px;
-          }
-
-          .branch-info-item {
-            font-size: 0.8rem;
-          }
         }
 
-        /* Extra small devices */
-        @media (max-width: 360px) {
+        @media (max-width: 480px) {
           .page-header h1 {
             font-size: 1.1rem;
           }
 
-          .form-group label {
+          .page-header p {
             font-size: 0.75rem;
           }
 
+          .form-section,
+          .branches-section {
+            padding: 14px;
+          }
+
+          .branch-card {
+            padding: 12px 14px;
+          }
+
+          .branch-name {
+            font-size: 0.9rem;
+          }
+
+          .branch-info-item {
+            font-size: 0.75rem;
+          }
+
+          .branch-info-label {
+            min-width: 50px;
+            font-size: 0.65rem;
+          }
+        }
+
+        @media (max-width: 360px) {
+          .page-header h1 {
+            font-size: 0.95rem;
+          }
+
+          .form-group label {
+            font-size: 0.65rem;
+          }
+
           .form-group input {
-            font-size: 0.85rem;
-            padding: 8px 10px;
+            font-size: 0.8rem;
+            padding: 6px 10px;
+          }
+
+          .submit-btn {
+            font-size: 0.8rem;
+            padding: 7px 10px;
+          }
+        }
+
+        /* Touch devices */
+        @media (hover: none) {
+          .submit-btn:hover {
+            transform: none;
+            box-shadow: none;
+          }
+
+          .branch-card:hover {
+            transform: none;
+            box-shadow: none;
           }
         }
       `}</style>
@@ -432,7 +512,7 @@ function Branch() {
       <div className="branch-container">
         {/* Header */}
         <div className="page-header">
-          <h1>🏢 Branch Management</h1>
+          <h1>🏢 Branch <span>Management</span></h1>
           <p>Create and manage multiple branches for your business</p>
         </div>
 
@@ -505,12 +585,16 @@ function Branch() {
 
           {/* Branches Section */}
           <div className="branches-section">
-            <h2>📍 Your Branches</h2>
+            <h2>
+              📍 Your Branches
+              <span className="count-badge">{branches.length}</span>
+            </h2>
             
             {branches.length === 0 ? (
               <div className="empty-state">
                 <span className="empty-icon">🏪</span>
                 <p className="empty-text">No branches created yet</p>
+                <p className="empty-sub">Add your first branch using the form</p>
               </div>
             ) : (
               <div className="branches-grid">
@@ -523,22 +607,22 @@ function Branch() {
 
                     <div className="branch-info">
                       <div className="branch-info-item">
-                        <span className="branch-info-label">Location:</span>
+                        <span className="branch-info-label">Location</span>
                         <span className="branch-info-value location">{b.branch_location}</span>
                       </div>
 
                       <div className="branch-info-item">
-                        <span className="branch-info-label">Email:</span>
+                        <span className="branch-info-label">Email</span>
                         <span className="branch-info-value email">{b.branch_email}</span>
                       </div>
 
                       <div className="branch-info-item">
-                        <span className="branch-info-label">Phone:</span>
+                        <span className="branch-info-label">Phone</span>
                         <span className="branch-info-value phone">{b.branch_phone}</span>
                       </div>
 
                       <div className="branch-info-item">
-                        <span className="branch-info-label">Manager:</span>
+                        <span className="branch-info-label">Manager</span>
                         <span className="branch-info-value manager">{b.branch_manager}</span>
                       </div>
                     </div>
@@ -553,4 +637,4 @@ function Branch() {
   );
 }
 
-export default Branch;  
+export default Branch;

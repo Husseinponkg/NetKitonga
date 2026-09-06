@@ -46,7 +46,6 @@ function Sessions() {
         }
     };
 
-    // Format date
     const formatDate = (dateString) => {
         if (!dateString) return 'N/A';
         return new Date(dateString).toLocaleString(undefined, {
@@ -58,7 +57,6 @@ function Sessions() {
         });
     };
 
-    // Calculate session duration
     const getSessionDuration = (startTime) => {
         if (!startTime) return 'N/A';
         const start = new Date(startTime);
@@ -74,7 +72,6 @@ function Sessions() {
         return `${hours}h ${mins}m`;
     };
 
-    // Check if session is expiring soon (less than 15 minutes)
     const isExpiringSoon = (expirationTime) => {
         if (!expirationTime) return false;
         const exp = new Date(expirationTime);
@@ -84,7 +81,6 @@ function Sessions() {
         return diffMins > 0 && diffMins < 15;
     };
 
-    // Check if session is expired
     const isExpired = (expirationTime) => {
         if (!expirationTime) return false;
         const exp = new Date(expirationTime);
@@ -94,15 +90,22 @@ function Sessions() {
 
     return (
         <div style={{ 
-            padding: "clamp(12px, 3vw, 20px)", 
+            padding: "16px 20px", 
             fontFamily: "'Inter', 'Segoe UI', system-ui, -apple-system, sans-serif", 
-            background: "linear-gradient(135deg, #0f0f0f 0%, #1a1a1a 100%)",
+            background: "#141414",
             minHeight: "100vh",
-            color: "#ffffff"
+            color: "#ffffff",
+            margin: 0,
         }}>
             <style>{`
                 * {
                     box-sizing: border-box;
+                }
+
+                body {
+                    margin: 0;
+                    padding: 0;
+                    background: #141414;
                 }
 
                 @keyframes fadeIn {
@@ -113,15 +116,6 @@ function Sessions() {
                     to {
                         opacity: 1;
                         transform: translateY(0);
-                    }
-                }
-
-                @keyframes pulse {
-                    0%, 100% {
-                        opacity: 1;
-                    }
-                    50% {
-                        opacity: 0.5;
                     }
                 }
 
@@ -136,6 +130,20 @@ function Sessions() {
                     }
                 }
 
+                @keyframes pulse {
+                    0%, 100% {
+                        opacity: 1;
+                    }
+                    50% {
+                        opacity: 0.5;
+                    }
+                }
+
+                @keyframes spin {
+                    0% { transform: rotate(0deg); }
+                    100% { transform: rotate(360deg); }
+                }
+
                 .sessions-container {
                     max-width: 1400px;
                     margin: 0 auto;
@@ -143,22 +151,25 @@ function Sessions() {
                 }
 
                 .page-header {
-                    margin-bottom: clamp(20px, 4vw, 32px);
-                    animation: fadeIn 0.6s ease-out;
+                    margin-bottom: 24px;
+                    animation: slideIn 0.6s ease-out;
                 }
 
                 .page-header h1 {
-                    font-size: clamp(1.3rem, 4vw, 2rem);
+                    font-size: 1.6rem;
                     font-weight: 700;
                     color: #ffffff;
-                    margin: 0 0 8px 0;
+                    margin: 0 0 4px 0;
                     letter-spacing: -0.5px;
-                    word-wrap: break-word;
+                }
+
+                .page-header h1 span {
+                    color: #e50914;
                 }
 
                 .page-header p {
-                    font-size: clamp(0.85rem, 1.5vw, 0.95rem);
-                    color: #b3b3b3;
+                    font-size: 0.85rem;
+                    color: #808080;
                     margin: 0;
                 }
 
@@ -167,154 +178,161 @@ function Sessions() {
                     justify-content: space-between;
                     align-items: center;
                     flex-wrap: wrap;
-                    gap: 12px;
-                    margin-bottom: clamp(16px, 3vw, 24px);
+                    gap: 10px;
+                    margin-bottom: 20px;
                 }
 
                 .session-count {
-                    font-size: clamp(0.85rem, 1.2vw, 0.95rem);
-                    color: #b3b3b3;
+                    font-size: 0.85rem;
+                    color: #808080;
                 }
 
                 .session-count strong {
                     color: #ffffff;
                 }
 
+                .count-badge {
+                    background: rgba(229, 9, 20, 0.15);
+                    color: #e50914;
+                    padding: 2px 10px;
+                    border-radius: 12px;
+                    font-size: 0.75rem;
+                    font-weight: 600;
+                    margin-left: 8px;
+                }
+
                 .refresh-btn {
                     display: inline-flex;
                     align-items: center;
-                    gap: 8px;
-                    padding: clamp(8px, 1.2vw, 10px) clamp(16px, 2vw, 20px);
+                    gap: 6px;
+                    padding: 6px 16px;
                     background: rgba(255, 255, 255, 0.05);
-                    border: 1px solid rgba(255, 255, 255, 0.1);
-                    border-radius: 6px;
-                    color: #b3b3b3;
+                    border: 1px solid rgba(255, 255, 255, 0.06);
+                    border-radius: 4px;
+                    color: #808080;
                     font-weight: 500;
-                    font-size: clamp(0.8rem, 1.2vw, 0.9rem);
+                    font-size: 0.8rem;
                     cursor: pointer;
                     transition: all 0.3s ease;
                     font-family: inherit;
                 }
 
-                .refresh-btn:hover {
-                    background: rgba(255, 255, 255, 0.1);
-                    border-color: rgba(255, 255, 255, 0.2);
+                .refresh-btn:hover:not(:disabled) {
+                    background: rgba(255, 255, 255, 0.08);
+                    border-color: rgba(255, 255, 255, 0.12);
                     color: #ffffff;
                 }
 
-                .refresh-btn:active {
+                .refresh-btn:active:not(:disabled) {
                     transform: scale(0.95);
+                }
+
+                .refresh-btn:disabled {
+                    opacity: 0.5;
+                    cursor: not-allowed;
                 }
 
                 .refresh-btn .spinner {
                     display: inline-block;
-                    animation: pulse 1s ease-in-out infinite;
+                    animation: spin 1s linear infinite;
                 }
 
-                .success-message {
-                    padding: clamp(10px, 2vw, 12px) clamp(12px, 2vw, 16px);
-                    margin: 0 0 clamp(16px, 3vw, 24px) 0;
-                    background: rgba(76, 175, 80, 0.15);
-                    border: 1px solid rgba(76, 175, 80, 0.3);
-                    border-radius: 6px;
+                .message-box {
+                    padding: 10px 14px;
+                    margin: 0 0 16px 0;
+                    border-radius: 4px;
+                    font-weight: 500;
+                    font-size: 0.85rem;
+                    animation: fadeIn 0.3s ease-out;
+                }
+
+                .message-success {
+                    background: rgba(76, 175, 80, 0.1);
+                    border: 1px solid rgba(76, 175, 80, 0.2);
                     color: #81c784;
-                    font-weight: 500;
-                    font-size: clamp(0.8rem, 1.2vw, 0.9rem);
-                    animation: fadeIn 0.3s ease-out;
-                    word-wrap: break-word;
                 }
 
-                .error-message {
-                    padding: clamp(10px, 2vw, 12px) clamp(12px, 2vw, 16px);
-                    margin: 0 0 clamp(16px, 3vw, 24px) 0;
-                    background: rgba(229, 9, 20, 0.15);
-                    border: 1px solid rgba(229, 9, 20, 0.3);
-                    border-radius: 6px;
-                    color: #ff6b6b;
-                    font-weight: 500;
-                    font-size: clamp(0.8rem, 1.2vw, 0.9rem);
-                    animation: fadeIn 0.3s ease-out;
-                    word-wrap: break-word;
+                .message-error {
+                    background: rgba(229, 9, 20, 0.1);
+                    border: 1px solid rgba(229, 9, 20, 0.2);
+                    color: #ff5252;
                 }
 
                 .table-section {
                     background: rgba(30, 30, 30, 0.8);
-                    border: 1px solid rgba(255, 255, 255, 0.1);
-                    border-radius: 8px;
-                    padding: clamp(16px, 3vw, 24px);
+                    border: 1px solid rgba(255, 255, 255, 0.06);
+                    border-radius: 4px;
+                    padding: 20px;
                     animation: fadeIn 0.8s ease-out 0.15s both;
                     overflow: hidden;
                     min-width: 0;
                 }
 
+                .table-section:hover {
+                    border-color: rgba(229, 9, 20, 0.15);
+                }
+
                 .table-wrapper {
                     overflow-x: auto;
-                    border-radius: 6px;
                     -webkit-overflow-scrolling: touch;
                 }
 
                 table {
                     width: 100%;
                     border-collapse: collapse;
-                    font-size: clamp(0.75rem, 1.2vw, 0.9rem);
-                    min-width: 700px;
+                    font-size: 0.85rem;
+                    min-width: 650px;
                 }
 
                 thead tr {
                     background: rgba(20, 20, 20, 0.6);
-                    border-bottom: 1px solid rgba(255, 255, 255, 0.1);
+                    border-bottom: 1px solid rgba(255, 255, 255, 0.06);
                 }
 
                 thead th {
-                    padding: clamp(8px, 1.2vw, 12px) clamp(10px, 1.5vw, 14px);
+                    padding: 8px 12px;
                     text-align: left;
                     font-weight: 600;
-                    color: #b3b3b3;
-                    font-size: clamp(0.65rem, 0.9vw, 0.75rem);
+                    color: #808080;
+                    font-size: 0.7rem;
                     text-transform: uppercase;
-                    letter-spacing: 0.3px;
+                    letter-spacing: 0.5px;
                     white-space: nowrap;
                 }
 
                 tbody tr {
-                    border-bottom: 1px solid rgba(255, 255, 255, 0.05);
+                    border-bottom: 1px solid rgba(255, 255, 255, 0.04);
                     transition: all 0.2s ease;
                     animation: slideIn 0.3s ease-out;
                 }
 
                 tbody tr:hover {
-                    background: rgba(30, 30, 30, 1);
+                    background: rgba(40, 40, 40, 0.8);
                 }
 
                 tbody td {
-                    padding: clamp(8px, 1.2vw, 12px) clamp(10px, 1.5vw, 14px);
+                    padding: 8px 12px;
                     color: #e5e5e5;
                     vertical-align: middle;
                 }
 
-                .device-info {
-                    display: flex;
-                    flex-direction: column;
-                    gap: 2px;
-                }
-
                 .device-mac {
                     font-family: 'Courier New', monospace;
-                    font-size: clamp(0.65rem, 0.9vw, 0.75rem);
-                    color: #a0aec0;
+                    font-size: 0.7rem;
+                    color: #808080;
                 }
 
                 .device-label {
-                    font-size: clamp(0.6rem, 0.8vw, 0.7rem);
-                    color: #666;
+                    font-size: 0.6rem;
+                    color: #555;
                     text-transform: uppercase;
                     letter-spacing: 0.3px;
                 }
 
                 .ip-address {
                     font-family: 'Courier New', monospace;
-                    font-size: clamp(0.7rem, 0.9vw, 0.8rem);
-                    color: #a0aec0;
+                    font-size: 0.75rem;
+                    color: #808080;
                 }
 
                 .router-name {
@@ -329,51 +347,51 @@ function Sessions() {
                 }
 
                 .time-main {
-                    font-size: clamp(0.7rem, 0.9vw, 0.8rem);
+                    font-size: 0.75rem;
                     color: #e5e5e5;
                 }
 
                 .time-detail {
-                    font-size: clamp(0.6rem, 0.8vw, 0.7rem);
-                    color: #666;
+                    font-size: 0.65rem;
+                    color: #555;
                 }
 
                 .duration-badge {
                     display: inline-block;
                     padding: 1px 8px;
                     border-radius: 10px;
-                    font-size: clamp(0.6rem, 0.8vw, 0.7rem);
+                    font-size: 0.65rem;
                     font-weight: 500;
                     background: rgba(255, 255, 255, 0.05);
-                    color: #b3b3b3;
+                    color: #808080;
                 }
 
                 .expiry-warning {
-                    color: #ffd54f;
+                    color: #fbc02d;
                 }
 
                 .expiry-danger {
-                    color: #ff6b6b;
+                    color: #ff5252;
                 }
 
                 .terminate-btn {
                     padding: 4px 14px;
                     border: none;
-                    border-radius: 4px;
-                    font-size: clamp(0.65rem, 0.8vw, 0.75rem);
+                    border-radius: 3px;
+                    font-size: 0.7rem;
                     font-weight: 600;
                     cursor: pointer;
                     transition: all 0.2s ease;
                     font-family: inherit;
-                    background: rgba(229, 9, 20, 0.2);
-                    color: #ff6b6b;
-                    border: 1px solid rgba(229, 9, 20, 0.3);
+                    background: rgba(229, 9, 20, 0.12);
+                    color: #ff5252;
+                    border: 1px solid rgba(229, 9, 20, 0.15);
                     white-space: nowrap;
                 }
 
                 .terminate-btn:hover:not(:disabled) {
-                    background: rgba(229, 9, 20, 0.3);
-                    border-color: rgba(229, 9, 20, 0.5);
+                    background: rgba(229, 9, 20, 0.2);
+                    border-color: rgba(229, 9, 20, 0.3);
                 }
 
                 .terminate-btn:active:not(:disabled) {
@@ -390,41 +408,36 @@ function Sessions() {
                     width: 14px;
                     height: 14px;
                     border: 2px solid rgba(255, 255, 255, 0.1);
-                    border-top: 2px solid #ff6b6b;
+                    border-top: 2px solid #ff5252;
                     border-radius: 50%;
-                    animation: pulse 0.8s linear infinite;
+                    animation: spin 0.8s linear infinite;
                 }
 
                 .empty-state {
                     text-align: center;
-                    padding: clamp(40px, 6vw, 60px) clamp(16px, 3vw, 20px);
-                    color: #b3b3b3;
+                    padding: 40px 20px;
+                    color: #808080;
                 }
 
                 .empty-state .empty-icon {
-                    font-size: 3rem;
-                    margin-bottom: 16px;
+                    font-size: 2.8rem;
+                    margin-bottom: 12px;
                     display: block;
+                    opacity: 0.4;
                 }
 
                 .empty-state p {
                     margin: 0;
-                    font-size: clamp(0.9rem, 1.2vw, 1rem);
+                    font-size: 0.9rem;
                 }
 
                 .empty-state .sub-text {
-                    margin-top: 8px;
-                    font-size: clamp(0.8rem, 1vw, 0.9rem);
-                    color: #666;
+                    margin-top: 6px;
+                    font-size: 0.8rem;
+                    color: #555;
                 }
 
-                /* Responsive Breakpoints */
-                @media (max-width: 1024px) {
-                    .table-section {
-                        max-width: 100%;
-                    }
-                }
-
+                /* Tablet */
                 @media (max-width: 768px) {
                     .sessions-container {
                         padding: 0;
@@ -440,43 +453,44 @@ function Sessions() {
                     }
 
                     table {
-                        min-width: 600px;
-                        font-size: 0.75rem;
+                        min-width: 550px;
+                        font-size: 0.8rem;
                     }
 
                     thead th, tbody td {
-                        padding: 6px 8px;
+                        padding: 6px 10px;
                     }
 
                     .device-mac {
-                        font-size: 0.6rem;
+                        font-size: 0.65rem;
                     }
 
                     .ip-address {
-                        font-size: 0.65rem;
+                        font-size: 0.7rem;
                     }
 
                     .time-main {
-                        font-size: 0.65rem;
-                    }
-
-                    .time-detail {
-                        font-size: 0.55rem;
+                        font-size: 0.7rem;
                     }
                 }
 
+                /* Mobile */
                 @media (max-width: 480px) {
+                    .page-header h1 {
+                        font-size: 1.2rem;
+                    }
+
                     .table-section {
                         padding: 12px;
                     }
 
                     table {
-                        min-width: 500px;
+                        min-width: 450px;
                         font-size: 0.7rem;
                     }
 
                     thead th, tbody td {
-                        padding: 4px 6px;
+                        padding: 4px 8px;
                     }
 
                     .device-mac {
@@ -489,23 +503,31 @@ function Sessions() {
 
                     .terminate-btn {
                         padding: 3px 10px;
-                        font-size: 0.55rem;
+                        font-size: 0.6rem;
                     }
 
                     .duration-badge {
                         font-size: 0.55rem;
                         padding: 1px 6px;
                     }
+
+                    .time-main {
+                        font-size: 0.65rem;
+                    }
+
+                    .time-detail {
+                        font-size: 0.55rem;
+                    }
                 }
 
-                /* Touch device optimizations */
+                /* Touch devices */
                 @media (hover: none) {
                     tbody tr:hover {
                         background: transparent;
                     }
 
                     tbody tr:active {
-                        background: rgba(30, 30, 30, 0.5);
+                        background: rgba(40, 40, 40, 0.5);
                     }
 
                     .terminate-btn {
@@ -514,32 +536,7 @@ function Sessions() {
                     }
 
                     .refresh-btn {
-                        min-height: 44px;
-                    }
-                }
-
-                /* Print styles */
-                @media print {
-                    .header-actions {
-                        display: none;
-                    }
-
-                    table {
-                        min-width: 100% !important;
-                    }
-
-                    .terminate-btn {
-                        display: none;
-                    }
-
-                    body {
-                        background: white !important;
-                        color: black !important;
-                    }
-
-                    .table-section {
-                        background: white !important;
-                        border: 1px solid #ddd !important;
+                        min-height: 40px;
                     }
                 }
             `}</style>
@@ -547,13 +544,13 @@ function Sessions() {
             <div className="sessions-container">
                 {/* Header */}
                 <div className="page-header">
-                    <h1>🔄 Active Sessions</h1>
+                    <h1>🔄 Active <span>Sessions</span></h1>
                     <p>Monitor and manage all active user sessions</p>
                 </div>
 
                 {/* Messages */}
                 {message && (
-                    <div className={message.includes("successfully") || message.includes("terminated") ? "success-message" : "error-message"}>
+                    <div className={`message-box ${message.includes("successfully") || message.includes("terminated") ? "message-success" : "message-error"}`}>
                         {message}
                     </div>
                 )}
@@ -562,6 +559,7 @@ function Sessions() {
                 <div className="header-actions">
                     <span className="session-count">
                         <strong>{sessions.length}</strong> active session{sessions.length !== 1 ? 's' : ''}
+                        <span className="count-badge">{sessions.length}</span>
                     </span>
                     <button 
                         type="button" 
@@ -614,10 +612,10 @@ function Sessions() {
                                         return (
                                             <tr key={session.session_id}>
                                                 <td>
-                                                    <div className="device-info">
-                                                        <span className="device-mac">{session.buyer_mac || 'N/A'}</span>
+                                                    <div>
+                                                        <div className="device-mac">{session.buyer_mac || 'N/A'}</div>
                                                         {session.device_name && (
-                                                            <span className="device-label">{session.device_name}</span>
+                                                            <div className="device-label">{session.device_name}</div>
                                                         )}
                                                     </div>
                                                 </td>

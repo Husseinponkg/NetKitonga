@@ -2,7 +2,6 @@ import React, { useState, useEffect } from "react";
 import { API_BASE_URL as API_ROOT } from "../api";
 
 function Portal() {
-    // Structural state control hooks for data packages and workflows
     const [packageCatalog, setPackageCatalog] = useState([]);
     const [selectedPackageId, setSelectedPackageId] = useState("");
     const [phoneNumber, setPhoneNumber] = useState("");
@@ -130,7 +129,6 @@ function Portal() {
 
     const handlePackageSelect = (packageId) => {
         setSelectedPackageId(packageId);
-        // Clear any previous messages when selecting
         if (uiMessage && !uiMessage.includes("PIN")) {
             setUiMessage("");
         }
@@ -148,9 +146,9 @@ function Portal() {
             display: "flex",
             justifyContent: "center",
             alignItems: "flex-start",
-            background: "linear-gradient(135deg, #0f0f0f 0%, #1a1a1a 100%)",
+            background: "#141414",
             fontFamily: "'Inter', -apple-system, BlinkMacSystemFont, 'Segoe UI', Roboto, sans-serif",
-            padding: "clamp(16px, 4vw, 40px)",
+            padding: "16px 20px",
             margin: 0,
             position: "relative",
             overflow: "hidden"
@@ -158,6 +156,12 @@ function Portal() {
             <style>{`
                 * {
                     box-sizing: border-box;
+                }
+
+                body {
+                    margin: 0;
+                    padding: 0;
+                    background: #141414;
                 }
 
                 @keyframes slideUp {
@@ -181,12 +185,12 @@ function Portal() {
                     100% { transform: rotate(360deg); }
                 }
                 @keyframes glowPulse {
-                    0%, 100% { box-shadow: 0 0 20px rgba(229, 9, 20, 0.1); }
-                    50% { box-shadow: 0 0 40px rgba(229, 9, 20, 0.2); }
+                    0%, 100% { box-shadow: 0 0 20px rgba(229, 9, 20, 0.05); }
+                    50% { box-shadow: 0 0 40px rgba(229, 9, 20, 0.12); }
                 }
                 @keyframes cardHover {
                     0% { transform: translateY(0px); }
-                    100% { transform: translateY(-6px); }
+                    100% { transform: translateY(-4px); }
                 }
 
                 .glow-pulse {
@@ -203,11 +207,12 @@ function Portal() {
 
                 .tab-btn {
                     background: transparent;
-                    color: rgba(255,255,255,0.5);
+                    color: rgba(255,255,255,0.4);
                     border: 1px solid rgba(255,255,255,0.06);
                     transition: all 0.3s cubic-bezier(0.4, 0, 0.2, 1);
                     position: relative;
                     overflow: hidden;
+                    -webkit-tap-highlight-color: transparent;
                 }
 
                 .tab-btn::before {
@@ -222,21 +227,21 @@ function Portal() {
                 .tab-btn.active {
                     color: #ffffff;
                     border-color: #e50914;
-                    box-shadow: 0 0 30px rgba(229, 9, 20, 0.15);
+                    box-shadow: 0 0 30px rgba(229, 9, 20, 0.1);
                 }
 
                 .tab-btn.active::before {
-                    opacity: 0.1;
+                    opacity: 0.08;
                 }
 
                 .tab-btn:hover:not(.active) {
-                    border-color: rgba(229, 9, 20, 0.3);
-                    color: rgba(255,255,255,0.8);
+                    border-color: rgba(229, 9, 20, 0.2);
+                    color: rgba(255,255,255,0.7);
                 }
 
                 .form-input, .form-select {
                     background: rgba(255,255,255,0.04);
-                    border: 1px solid rgba(255,255,255,0.08);
+                    border: 1px solid rgba(255,255,255,0.06);
                     color: #ffffff;
                     transition: all 0.3s ease;
                 }
@@ -244,16 +249,16 @@ function Portal() {
                 .form-input:focus, .form-select:focus {
                     border-color: #e50914;
                     background: rgba(255,255,255,0.06);
-                    box-shadow: 0 0 0 4px rgba(229, 9, 20, 0.1);
+                    box-shadow: 0 0 0 3px rgba(229, 9, 20, 0.08);
                     outline: none;
                 }
 
                 .form-input::placeholder {
-                    color: rgba(255,255,255,0.3);
+                    color: rgba(255,255,255,0.2);
                 }
 
                 .form-select option {
-                    background: #1a1e2e;
+                    background: #1a1a1a;
                     color: #ffffff;
                 }
 
@@ -262,6 +267,7 @@ function Portal() {
                     transition: all 0.3s cubic-bezier(0.4, 0, 0.2, 1);
                     position: relative;
                     overflow: hidden;
+                    -webkit-tap-highlight-color: transparent;
                 }
 
                 .submit-btn::after {
@@ -279,11 +285,11 @@ function Portal() {
 
                 .submit-btn:hover:not(:disabled) {
                     transform: translateY(-2px);
-                    box-shadow: 0 8px 30px rgba(229, 9, 20, 0.3);
+                    box-shadow: 0 8px 30px rgba(229, 9, 20, 0.25);
                 }
 
                 .submit-btn:active:not(:disabled) {
-                    transform: translateY(0px);
+                    transform: scale(0.97);
                 }
 
                 .submit-btn:disabled {
@@ -299,56 +305,55 @@ function Portal() {
                 }
 
                 .message-box {
-                    border-radius: 12px;
-                    padding: 14px 18px;
-                    font-size: clamp(0.8rem, 1.2vw, 0.9rem);
+                    border-radius: 8px;
+                    padding: 10px 14px;
+                    font-size: 0.85rem;
                     animation: fadeIn 0.4s ease-out;
                     border-left: 3px solid;
                 }
 
                 .message-box.success {
-                    background: rgba(16, 185, 129, 0.1);
-                    border-color: #10b981;
-                    color: #6ee7b7;
+                    background: rgba(76, 175, 80, 0.08);
+                    border-color: #81c784;
+                    color: #81c784;
                 }
 
                 .message-box.error {
-                    background: rgba(239, 68, 68, 0.1);
-                    border-color: #ef4444;
-                    color: #fca5a5;
+                    background: rgba(229, 9, 20, 0.08);
+                    border-color: #ff5252;
+                    color: #ff5252;
                 }
 
                 .device-info {
                     background: rgba(255,255,255,0.03);
-                    border-radius: 10px;
-                    padding: 10px 16px;
+                    border-radius: 6px;
+                    padding: 8px 14px;
                     border: 1px solid rgba(255,255,255,0.04);
-                    font-size: clamp(0.65rem, 0.9vw, 0.75rem);
-                    color: rgba(255,255,255,0.3);
+                    font-size: 0.7rem;
+                    color: rgba(255,255,255,0.25);
                     text-align: center;
                 }
 
                 .device-info strong {
-                    color: rgba(255,255,255,0.5);
+                    color: rgba(255,255,255,0.4);
                 }
 
-                /* Package Card Styles */
                 .package-grid {
                     display: grid;
-                    grid-template-columns: repeat(auto-fill, minmax(200px, 1fr));
-                    gap: 12px;
-                    margin-bottom: 16px;
-                    max-height: 340px;
+                    grid-template-columns: repeat(auto-fill, minmax(180px, 1fr));
+                    gap: 10px;
+                    margin-bottom: 14px;
+                    max-height: 320px;
                     overflow-y: auto;
-                    padding: 4px 4px 8px 4px;
+                    padding: 2px 2px 6px 2px;
                 }
 
                 .package-grid::-webkit-scrollbar {
-                    width: 4px;
+                    width: 3px;
                 }
 
                 .package-grid::-webkit-scrollbar-track {
-                    background: rgba(255,255,255,0.03);
+                    background: rgba(255,255,255,0.02);
                     border-radius: 2px;
                 }
 
@@ -357,15 +362,11 @@ function Portal() {
                     border-radius: 2px;
                 }
 
-                .package-grid::-webkit-scrollbar-thumb:hover {
-                    background: rgba(229, 9, 20, 0.5);
-                }
-
                 .package-card {
                     background: rgba(255,255,255,0.03);
-                    border: 2px solid rgba(255,255,255,0.06);
-                    border-radius: 12px;
-                    padding: 16px 14px;
+                    border: 2px solid rgba(255,255,255,0.05);
+                    border-radius: 8px;
+                    padding: 14px 12px;
                     cursor: pointer;
                     transition: all 0.3s cubic-bezier(0.4, 0, 0.2, 1);
                     position: relative;
@@ -375,9 +376,9 @@ function Portal() {
                 }
 
                 .package-card:hover:not(.selected) {
-                    border-color: rgba(255,255,255,0.15);
+                    border-color: rgba(255,255,255,0.1);
                     background: rgba(255,255,255,0.05);
-                    transform: translateY(-3px);
+                    transform: translateY(-2px);
                 }
 
                 .package-card:active:not(.selected) {
@@ -386,48 +387,47 @@ function Portal() {
 
                 .package-card.selected {
                     border-color: #e50914;
-                    background: rgba(229, 9, 20, 0.08);
-                    box-shadow: 0 0 30px rgba(229, 9, 20, 0.15), inset 0 0 30px rgba(229, 9, 20, 0.03);
-                    transform: translateY(-3px);
-                    animation: cardHover 0.3s ease-out;
+                    background: rgba(229, 9, 20, 0.06);
+                    box-shadow: 0 0 20px rgba(229, 9, 20, 0.08);
+                    transform: translateY(-2px);
                 }
 
                 .package-card.selected::after {
                     content: '✓';
                     position: absolute;
-                    top: -8px;
-                    right: -8px;
+                    top: -7px;
+                    right: -7px;
                     background: #e50914;
                     color: white;
-                    width: 24px;
-                    height: 24px;
+                    width: 20px;
+                    height: 20px;
                     border-radius: 50%;
-                    font-size: 13px;
+                    font-size: 11px;
                     font-weight: 700;
                     display: flex;
                     align-items: center;
                     justify-content: center;
-                    box-shadow: 0 2px 12px rgba(229, 9, 20, 0.4);
+                    box-shadow: 0 2px 10px rgba(229, 9, 20, 0.3);
                 }
 
                 .package-card .pkg-name {
-                    font-size: clamp(0.85rem, 1.1vw, 0.95rem);
+                    font-size: 0.85rem;
                     font-weight: 600;
                     color: #ffffff;
-                    margin-bottom: 4px;
+                    margin-bottom: 3px;
                 }
 
                 .package-card .pkg-price {
-                    font-size: clamp(1.1rem, 1.5vw, 1.3rem);
+                    font-size: 1.1rem;
                     font-weight: 700;
                     color: #e50914;
-                    margin-bottom: 4px;
+                    margin-bottom: 3px;
                 }
 
                 .package-card .pkg-details {
-                    font-size: clamp(0.65rem, 0.8vw, 0.7rem);
-                    color: rgba(255,255,255,0.4);
-                    line-height: 1.8;
+                    font-size: 0.65rem;
+                    color: rgba(255,255,255,0.35);
+                    line-height: 1.6;
                 }
 
                 .package-card .pkg-details span {
@@ -436,47 +436,46 @@ function Portal() {
 
                 .package-card .pkg-badge {
                     display: inline-block;
-                    padding: 2px 10px;
-                    border-radius: 20px;
-                    font-size: clamp(0.55rem, 0.7vw, 0.6rem);
+                    padding: 1px 8px;
+                    border-radius: 12px;
+                    font-size: 0.55rem;
                     font-weight: 600;
                     text-transform: uppercase;
-                    letter-spacing: 0.5px;
-                    background: rgba(229, 9, 20, 0.15);
+                    letter-spacing: 0.3px;
+                    background: rgba(229, 9, 20, 0.12);
                     color: #e50914;
-                    border: 1px solid rgba(229, 9, 20, 0.15);
-                    margin-top: 6px;
+                    border: 1px solid rgba(229, 9, 20, 0.1);
+                    margin-top: 4px;
                 }
 
                 .package-card .pkg-badge.popular {
-                    background: rgba(16, 185, 129, 0.15);
-                    color: #6ee7b7;
-                    border-color: rgba(16, 185, 129, 0.15);
+                    background: rgba(76, 175, 80, 0.12);
+                    color: #81c784;
+                    border-color: rgba(76, 175, 80, 0.1);
                 }
 
                 .package-card .pkg-badge.best-value {
-                    background: rgba(212, 175, 55, 0.15);
+                    background: rgba(212, 175, 55, 0.12);
                     color: #f5d77b;
-                    border-color: rgba(212, 175, 55, 0.15);
+                    border-color: rgba(212, 175, 55, 0.1);
                 }
 
-                /* Selected package summary */
                 .selected-summary {
-                    background: rgba(229, 9, 20, 0.05);
-                    border: 1px solid rgba(229, 9, 20, 0.1);
-                    border-radius: 10px;
-                    padding: 12px 16px;
-                    margin-bottom: 16px;
+                    background: rgba(229, 9, 20, 0.04);
+                    border: 1px solid rgba(229, 9, 20, 0.08);
+                    border-radius: 8px;
+                    padding: 10px 14px;
+                    margin-bottom: 14px;
                     display: flex;
                     justify-content: space-between;
                     align-items: center;
                     flex-wrap: wrap;
-                    gap: 8px;
+                    gap: 6px;
                     animation: fadeIn 0.3s ease-out;
                 }
 
                 .selected-summary .summary-label {
-                    font-size: clamp(0.65rem, 0.8vw, 0.7rem);
+                    font-size: 0.6rem;
                     color: rgba(255,255,255,0.3);
                     text-transform: uppercase;
                     letter-spacing: 0.5px;
@@ -485,28 +484,29 @@ function Portal() {
                 .selected-summary .summary-name {
                     font-weight: 600;
                     color: #ffffff;
-                    font-size: clamp(0.9rem, 1.2vw, 1rem);
+                    font-size: 0.9rem;
                 }
 
                 .selected-summary .summary-price {
                     font-weight: 700;
                     color: #e50914;
-                    font-size: clamp(1rem, 1.3vw, 1.1rem);
+                    font-size: 1rem;
                 }
 
+                /* Mobile */
                 @media (max-width: 600px) {
                     .package-grid {
-                        grid-template-columns: repeat(auto-fill, minmax(160px, 1fr));
+                        grid-template-columns: repeat(auto-fill, minmax(140px, 1fr));
                         gap: 8px;
-                        max-height: 280px;
+                        max-height: 260px;
                     }
 
                     .package-card {
-                        padding: 12px 10px;
+                        padding: 10px 8px;
                     }
 
                     .package-card .pkg-price {
-                        font-size: 1rem;
+                        font-size: 0.95rem;
                     }
 
                     .selected-summary {
@@ -522,7 +522,7 @@ function Portal() {
                     }
 
                     .package-card {
-                        padding: 10px 8px;
+                        padding: 8px 6px;
                     }
 
                     .package-card .pkg-name {
@@ -530,60 +530,79 @@ function Portal() {
                     }
 
                     .package-card .pkg-price {
-                        font-size: 0.9rem;
+                        font-size: 0.85rem;
+                    }
+
+                    .package-card .pkg-details {
+                        font-size: 0.55rem;
+                    }
+                }
+
+                /* Touch devices */
+                @media (hover: none) {
+                    .submit-btn:hover:not(:disabled) {
+                        transform: none;
+                        box-shadow: none;
+                    }
+
+                    .submit-btn:hover:not(:disabled)::after {
+                        opacity: 0;
+                    }
+
+                    .package-card:hover:not(.selected) {
+                        transform: none;
                     }
                 }
             `}</style>
 
-            {/* Background Elements */}
+            {/* Background Orbs */}
             <div style={{
                 position: "absolute",
-                top: "-50%",
+                top: "-30%",
                 right: "-20%",
-                width: "600px",
-                height: "600px",
-                background: "radial-gradient(circle, rgba(229, 9, 20, 0.06), transparent 70%)",
+                width: "400px",
+                height: "400px",
+                background: "radial-gradient(circle, rgba(229, 9, 20, 0.04), transparent 70%)",
                 borderRadius: "50%",
                 pointerEvents: "none"
             }} />
             <div style={{
                 position: "absolute",
-                bottom: "-40%",
+                bottom: "-30%",
                 left: "-20%",
-                width: "500px",
-                height: "500px",
-                background: "radial-gradient(circle, rgba(229, 9, 20, 0.04), transparent 70%)",
+                width: "350px",
+                height: "350px",
+                background: "radial-gradient(circle, rgba(229, 9, 20, 0.03), transparent 70%)",
                 borderRadius: "50%",
                 pointerEvents: "none"
             }} />
 
             <div style={{
-                maxWidth: "600px",
+                maxWidth: "560px",
                 width: "100%",
-                background: "rgba(255,255,255,0.03)",
-                backdropFilter: "blur(20px)",
-                WebkitBackdropFilter: "blur(20px)",
-                borderRadius: "24px",
-                padding: "clamp(20px, 4vw, 40px) clamp(16px, 3.5vw, 35px) clamp(24px, 4vw, 35px)",
+                background: "rgba(20, 20, 20, 0.95)",
+                backdropFilter: "blur(16px)",
+                WebkitBackdropFilter: "blur(16px)",
+                borderRadius: "16px",
+                padding: "24px 24px 20px",
                 border: "1px solid rgba(255,255,255,0.06)",
-                boxShadow: "0 30px 80px rgba(0,0,0,0.6), inset 0 1px 0 rgba(255,255,255,0.05)",
+                boxShadow: "0 20px 60px rgba(0,0,0,0.5)",
                 position: "relative",
-                animation: "slideUp 0.6s ease-out",
-                transition: "transform 0.3s ease, box-shadow 0.3s ease"
+                animation: "slideUp 0.5s ease-out",
             }}>
                 {/* Header */}
-                <div style={{ textAlign: "center", marginBottom: "clamp(16px, 3vw, 24px)" }}>
+                <div style={{ textAlign: "center", marginBottom: "18px" }}>
                     <div style={{ 
                         display: "flex", 
                         alignItems: "center", 
                         justifyContent: "center",
-                        gap: "12px",
+                        gap: "10px",
                         marginBottom: "2px"
                     }}>
-                        <span style={{ fontSize: "clamp(1.8rem, 4vw, 2.4rem)" }}>🌐</span>
+                        <span style={{ fontSize: "1.8rem" }}>🌐</span>
                         <h1 style={{ 
                             margin: 0, 
-                            fontSize: "clamp(1.4rem, 3.5vw, 2rem)", 
+                            fontSize: "1.6rem", 
                             fontWeight: 700,
                             letterSpacing: "-0.5px",
                             color: "#ffffff"
@@ -593,23 +612,23 @@ function Portal() {
                     </div>
                     <p style={{ 
                         margin: "2px 0 0", 
-                        color: "rgba(255,255,255,0.4)", 
-                        fontSize: "clamp(0.7rem, 1.2vw, 0.85rem)",
+                        color: "rgba(255,255,255,0.35)", 
+                        fontSize: "0.8rem",
                         letterSpacing: "0.3px"
                     }}>
                         Hospitality Internet Solutions
                     </p>
                     <div style={{ 
-                        width: "40px", 
+                        width: "32px", 
                         height: "2px", 
                         background: "linear-gradient(90deg, transparent, #e50914, transparent)",
-                        margin: "8px auto 0"
+                        margin: "6px auto 0"
                     }} />
                 </div>
 
                 {/* Message */}
                 {uiMessage && (
-                    <div className={`message-box ${uiMessage.includes("PIN") || uiMessage.includes("sent") ? "success" : "error"}`}>
+                    <div className={`message-box ${uiMessage.includes("PIN") || uiMessage.includes("sent") || uiMessage.includes("Validating") ? "success" : "error"}`}>
                         {uiMessage}
                     </div>
                 )}
@@ -617,11 +636,11 @@ function Portal() {
                 {/* Tabs */}
                 <div style={{ 
                     display: "flex", 
-                    gap: "8px", 
-                    marginBottom: "20px",
+                    gap: "6px", 
+                    marginBottom: "16px",
                     background: "rgba(255,255,255,0.03)",
                     padding: "4px",
-                    borderRadius: "12px",
+                    borderRadius: "10px",
                     border: "1px solid rgba(255,255,255,0.04)"
                 }}>
                     <button 
@@ -630,11 +649,11 @@ function Portal() {
                         className={`tab-btn ${activeTab === "pay" ? "active" : ""}`}
                         style={{
                             flex: 1,
-                            padding: "10px 12px",
-                            borderRadius: "10px",
+                            padding: "8px 12px",
+                            borderRadius: "8px",
                             cursor: "pointer",
                             fontWeight: 600,
-                            fontSize: "clamp(0.75rem, 1.1vw, 0.85rem)",
+                            fontSize: "0.8rem",
                             fontFamily: "inherit",
                             position: "relative",
                             zIndex: 1,
@@ -649,11 +668,11 @@ function Portal() {
                         className={`tab-btn ${activeTab === "voucher" ? "active" : ""}`}
                         style={{
                             flex: 1,
-                            padding: "10px 12px",
-                            borderRadius: "10px",
+                            padding: "8px 12px",
+                            borderRadius: "8px",
                             cursor: "pointer",
                             fontWeight: 600,
-                            fontSize: "clamp(0.75rem, 1.1vw, 0.85rem)",
+                            fontSize: "0.8rem",
                             fontFamily: "inherit",
                             position: "relative",
                             zIndex: 1,
@@ -667,13 +686,13 @@ function Portal() {
                 {/* Forms */}
                 {activeTab === "pay" ? (
                     <form onSubmit={handlePayAndConnect}>
-                        <div style={{ marginBottom: "12px" }}>
+                        <div style={{ marginBottom: "10px" }}>
                             <label style={{ 
                                 display: "block", 
-                                fontSize: "clamp(0.7rem, 1vw, 0.8rem)", 
+                                fontSize: "0.7rem", 
                                 fontWeight: 600,
-                                color: "rgba(255,255,255,0.5)",
-                                marginBottom: "8px",
+                                color: "rgba(255,255,255,0.4)",
+                                marginBottom: "6px",
                                 letterSpacing: "0.5px",
                                 textTransform: "uppercase"
                             }}>
@@ -683,11 +702,11 @@ function Portal() {
                             {packageCatalog.length === 0 ? (
                                 <div style={{
                                     textAlign: "center",
-                                    padding: "30px",
-                                    color: "rgba(255,255,255,0.3)",
-                                    fontSize: "0.9rem"
+                                    padding: "24px",
+                                    color: "rgba(255,255,255,0.25)",
+                                    fontSize: "0.85rem"
                                 }}>
-                                    <span style={{ display: "block", fontSize: "2rem", marginBottom: "8px" }}>⏳</span>
+                                    <span style={{ display: "block", fontSize: "1.8rem", marginBottom: "6px" }}>⏳</span>
                                     Loading packages...
                                 </div>
                             ) : (
@@ -747,13 +766,13 @@ function Portal() {
                             )}
                         </div>
 
-                        <div style={{ marginBottom: "14px" }}>
+                        <div style={{ marginBottom: "12px" }}>
                             <label style={{ 
                                 display: "block", 
-                                fontSize: "clamp(0.7rem, 1vw, 0.8rem)", 
+                                fontSize: "0.7rem", 
                                 fontWeight: 600,
-                                color: "rgba(255,255,255,0.5)",
-                                marginBottom: "6px",
+                                color: "rgba(255,255,255,0.4)",
+                                marginBottom: "4px",
                                 letterSpacing: "0.5px",
                                 textTransform: "uppercase"
                             }}>
@@ -765,9 +784,9 @@ function Portal() {
                                 className="form-select"
                                 style={{
                                     width: "100%",
-                                    padding: "clamp(12px, 1.5vw, 14px) clamp(14px, 1.8vw, 16px)",
-                                    borderRadius: "12px",
-                                    fontSize: "clamp(0.85rem, 1.1vw, 0.95rem)",
+                                    padding: "10px 14px",
+                                    borderRadius: "8px",
+                                    fontSize: "0.85rem",
                                     fontFamily: "inherit",
                                     appearance: "none",
                                     cursor: "pointer"
@@ -781,13 +800,13 @@ function Portal() {
                             </select>
                         </div>
 
-                        <div style={{ marginBottom: "20px" }}>
+                        <div style={{ marginBottom: "16px" }}>
                             <label style={{ 
                                 display: "block", 
-                                fontSize: "clamp(0.7rem, 1vw, 0.8rem)", 
+                                fontSize: "0.7rem", 
                                 fontWeight: 600,
-                                color: "rgba(255,255,255,0.5)",
-                                marginBottom: "6px",
+                                color: "rgba(255,255,255,0.4)",
+                                marginBottom: "4px",
                                 letterSpacing: "0.5px",
                                 textTransform: "uppercase"
                             }}>
@@ -802,9 +821,9 @@ function Portal() {
                                 className="form-input"
                                 style={{
                                     width: "100%",
-                                    padding: "clamp(12px, 1.5vw, 14px) clamp(14px, 1.8vw, 16px)",
-                                    borderRadius: "12px",
-                                    fontSize: "clamp(0.85rem, 1.1vw, 0.95rem)",
+                                    padding: "10px 14px",
+                                    borderRadius: "8px",
+                                    fontSize: "0.85rem",
                                     fontFamily: "inherit",
                                     boxSizing: "border-box"
                                 }}
@@ -817,10 +836,10 @@ function Portal() {
                             className="submit-btn"
                             style={{
                                 width: "100%",
-                                padding: "clamp(14px, 2vw, 16px)",
-                                borderRadius: "12px",
+                                padding: "12px",
+                                borderRadius: "8px",
                                 border: "none",
-                                fontSize: "clamp(0.9rem, 1.2vw, 1rem)",
+                                fontSize: "0.9rem",
                                 fontWeight: 700,
                                 fontFamily: "inherit",
                                 color: "#ffffff",
@@ -829,12 +848,12 @@ function Portal() {
                                 display: "flex",
                                 alignItems: "center",
                                 justifyContent: "center",
-                                gap: "10px"
+                                gap: "8px"
                             }}
                         >
                             {isLoading ? (
                                 <>
-                                    <span className="spinner" style={{ width: "20px", height: "20px", display: "inline-block" }} />
+                                    <span className="spinner" style={{ width: "18px", height: "18px", display: "inline-block" }} />
                                     Processing...
                                 </>
                             ) : (
@@ -844,13 +863,13 @@ function Portal() {
                     </form>
                 ) : (
                     <form onSubmit={handleVoucherActivation}>
-                        <div style={{ marginBottom: "20px" }}>
+                        <div style={{ marginBottom: "16px" }}>
                             <label style={{ 
                                 display: "block", 
-                                fontSize: "clamp(0.7rem, 1vw, 0.8rem)", 
+                                fontSize: "0.7rem", 
                                 fontWeight: 600,
-                                color: "rgba(255,255,255,0.5)",
-                                marginBottom: "6px",
+                                color: "rgba(255,255,255,0.4)",
+                                marginBottom: "4px",
                                 letterSpacing: "0.5px",
                                 textTransform: "uppercase"
                             }}>
@@ -864,9 +883,9 @@ function Portal() {
                                 className="form-input"
                                 style={{
                                     width: "100%",
-                                    padding: "clamp(12px, 1.5vw, 14px) clamp(14px, 1.8vw, 16px)",
-                                    borderRadius: "12px",
-                                    fontSize: "clamp(0.85rem, 1.1vw, 0.95rem)",
+                                    padding: "10px 14px",
+                                    borderRadius: "8px",
+                                    fontSize: "0.85rem",
                                     fontFamily: "inherit",
                                     textTransform: "uppercase",
                                     letterSpacing: "2px",
@@ -880,10 +899,10 @@ function Portal() {
                             className="submit-btn"
                             style={{
                                 width: "100%",
-                                padding: "clamp(14px, 2vw, 16px)",
-                                borderRadius: "12px",
+                                padding: "12px",
+                                borderRadius: "8px",
                                 border: "none",
-                                fontSize: "clamp(0.9rem, 1.2vw, 1rem)",
+                                fontSize: "0.9rem",
                                 fontWeight: 700,
                                 fontFamily: "inherit",
                                 color: "#ffffff",
@@ -892,7 +911,7 @@ function Portal() {
                                 display: "flex",
                                 alignItems: "center",
                                 justifyContent: "center",
-                                gap: "10px"
+                                gap: "8px"
                             }}
                         >
                             🎫 Activate Voucher
@@ -901,17 +920,17 @@ function Portal() {
                 )}
 
                 {/* Device Info */}
-                <div className="device-info" style={{ marginTop: "20px" }}>
-                    <span style={{ marginRight: "6px" }}>📡</span>
+                <div className="device-info" style={{ marginTop: "16px" }}>
+                    <span style={{ marginRight: "4px" }}>📡</span>
                     <strong>Device:</strong> {buyerMac}
                 </div>
 
                 {/* Footer */}
                 <div style={{ 
-                    marginTop: "14px", 
+                    marginTop: "12px", 
                     textAlign: "center", 
-                    fontSize: "clamp(0.55rem, 0.8vw, 0.65rem)", 
-                    color: "rgba(255,255,255,0.12)",
+                    fontSize: "0.6rem", 
+                    color: "rgba(255,255,255,0.08)",
                     letterSpacing: "0.5px"
                 }}>
                     © {new Date().getFullYear()} Net Kitonga — Secure Payment Gateway

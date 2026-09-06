@@ -29,12 +29,10 @@ function Payments() {
 		fetchPayments();
 	}, []);
 
-	// Format currency
 	const formatCurrency = (amount) => {
 		return `TZS ${Number(amount).toLocaleString()}`;
 	};
 
-	// Get status badge class
 	const getStatusClass = (status) => {
 		const statusMap = {
 			'completed': 'status-completed',
@@ -46,7 +44,6 @@ function Payments() {
 		return statusMap[status?.toLowerCase()] || 'status-default';
 	};
 
-	// Format date
 	const formatDate = (dateString) => {
 		return new Date(dateString).toLocaleString(undefined, {
 			year: 'numeric',
@@ -59,15 +56,22 @@ function Payments() {
 
 	return (
 		<div style={{ 
-			padding: "clamp(12px, 3vw, 20px)", 
+			padding: "16px 20px", 
 			fontFamily: "'Inter', 'Segoe UI', system-ui, -apple-system, sans-serif", 
-			background: "linear-gradient(135deg, #0f0f0f 0%, #1a1a1a 100%)",
+			background: "#141414",
 			minHeight: "100vh",
-			color: "#ffffff"
+			color: "#ffffff",
+			margin: 0,
 		}}>
 			<style>{`
 				* {
 					box-sizing: border-box;
+				}
+
+				body {
+					margin: 0;
+					padding: 0;
+					background: #141414;
 				}
 
 				@keyframes fadeIn {
@@ -78,6 +82,17 @@ function Payments() {
 					to {
 						opacity: 1;
 						transform: translateY(0);
+					}
+				}
+
+				@keyframes slideIn {
+					from {
+						opacity: 0;
+						transform: translateX(-20px);
+					}
+					to {
+						opacity: 1;
+						transform: translateX(0);
 					}
 				}
 
@@ -97,243 +112,245 @@ function Payments() {
 				}
 
 				.page-header {
-					margin-bottom: clamp(20px, 4vw, 32px);
-					animation: fadeIn 0.6s ease-out;
+					margin-bottom: 24px;
+					animation: slideIn 0.6s ease-out;
 				}
 
 				.page-header h1 {
-					font-size: clamp(1.3rem, 4vw, 2rem);
+					font-size: 1.6rem;
 					font-weight: 700;
 					color: #ffffff;
-					margin: 0 0 8px 0;
+					margin: 0 0 4px 0;
 					letter-spacing: -0.5px;
-					word-wrap: break-word;
+				}
+
+				.page-header h1 span {
+					color: #e50914;
 				}
 
 				.page-header p {
-					font-size: clamp(0.85rem, 1.5vw, 0.95rem);
-					color: #b3b3b3;
+					font-size: 0.85rem;
+					color: #808080;
 					margin: 0;
 				}
 
-				.error-message {
-					padding: clamp(10px, 2vw, 12px) clamp(12px, 2vw, 16px);
-					margin: 0 0 clamp(16px, 3vw, 24px) 0;
-					background: rgba(229, 9, 20, 0.15);
-					border: 1px solid rgba(229, 9, 20, 0.3);
-					border-radius: 6px;
-					color: #ff6b6b;
+				.message-box {
+					padding: 10px 14px;
+					margin: 0 0 16px 0;
+					border-radius: 4px;
 					font-weight: 500;
-					font-size: clamp(0.8rem, 1.2vw, 0.9rem);
+					font-size: 0.85rem;
 					animation: fadeIn 0.3s ease-out;
-					word-wrap: break-word;
 				}
 
-				.loading-message {
-					padding: clamp(10px, 2vw, 12px) clamp(12px, 2vw, 16px);
-					margin: 0 0 clamp(16px, 3vw, 24px) 0;
-					background: rgba(100, 149, 237, 0.15);
-					border: 1px solid rgba(100, 149, 237, 0.3);
-					border-radius: 6px;
+				.message-error {
+					background: rgba(229, 9, 20, 0.1);
+					border: 1px solid rgba(229, 9, 20, 0.2);
+					color: #ff5252;
+				}
+
+				.message-loading {
+					background: rgba(100, 149, 237, 0.08);
+					border: 1px solid rgba(100, 149, 237, 0.15);
 					color: #6495ed;
-					font-weight: 500;
-					font-size: clamp(0.8rem, 1.2vw, 0.9rem);
 					animation: pulse 1.5s ease-in-out infinite;
-					word-wrap: break-word;
 				}
 
 				.table-section {
 					background: rgba(30, 30, 30, 0.8);
-					border: 1px solid rgba(255, 255, 255, 0.1);
-					border-radius: 8px;
-					padding: clamp(16px, 3vw, 24px);
+					border: 1px solid rgba(255, 255, 255, 0.06);
+					border-radius: 4px;
+					padding: 20px;
 					animation: fadeIn 0.8s ease-out 0.15s both;
 					overflow: hidden;
 					min-width: 0;
+				}
+
+				.table-section:hover {
+					border-color: rgba(229, 9, 20, 0.15);
 				}
 
 				.table-header {
 					display: flex;
 					justify-content: space-between;
 					align-items: center;
-					margin-bottom: clamp(16px, 2.5vw, 20px);
+					margin-bottom: 16px;
 					flex-wrap: wrap;
-					gap: 12px;
+					gap: 10px;
 				}
 
 				.table-header h3 {
 					margin: 0;
-					font-size: clamp(1rem, 1.5vw, 1.1rem);
+					font-size: 1rem;
 					font-weight: 600;
 					color: #ffffff;
 				}
 
 				.payment-count {
-					font-size: clamp(0.7rem, 1vw, 0.8rem);
-					color: #b3b3b3;
+					font-size: 0.75rem;
+					color: #808080;
 					background: rgba(255, 255, 255, 0.05);
 					padding: 4px 12px;
 					border-radius: 4px;
 				}
 
+				.count-badge {
+					background: rgba(229, 9, 20, 0.15);
+					color: #e50914;
+					padding: 2px 10px;
+					border-radius: 12px;
+					font-size: 0.75rem;
+					font-weight: 600;
+					margin-left: 8px;
+				}
+
 				.table-wrapper {
 					overflow-x: auto;
-					border-radius: 6px;
 					-webkit-overflow-scrolling: touch;
 				}
 
 				table {
 					width: 100%;
 					border-collapse: collapse;
-					font-size: clamp(0.75rem, 1.2vw, 0.9rem);
-					min-width: 700px;
+					font-size: 0.85rem;
+					min-width: 650px;
 				}
 
 				thead tr {
 					background: rgba(20, 20, 20, 0.6);
-					border-bottom: 1px solid rgba(255, 255, 255, 0.1);
+					border-bottom: 1px solid rgba(255, 255, 255, 0.06);
 				}
 
 				thead th {
-					padding: clamp(8px, 1.2vw, 12px) clamp(10px, 1.5vw, 14px);
+					padding: 8px 12px;
 					text-align: left;
 					font-weight: 600;
-					color: #b3b3b3;
-					font-size: clamp(0.65rem, 0.9vw, 0.75rem);
+					color: #808080;
+					font-size: 0.7rem;
 					text-transform: uppercase;
-					letter-spacing: 0.3px;
+					letter-spacing: 0.5px;
 					white-space: nowrap;
 				}
 
 				tbody tr {
-					border-bottom: 1px solid rgba(255, 255, 255, 0.05);
+					border-bottom: 1px solid rgba(255, 255, 255, 0.04);
 					transition: all 0.2s ease;
 				}
 
 				tbody tr:hover {
-					background: rgba(30, 30, 30, 1);
+					background: rgba(40, 40, 40, 0.8);
 				}
 
 				tbody td {
-					padding: clamp(8px, 1.2vw, 12px) clamp(10px, 1.5vw, 14px);
+					padding: 8px 12px;
 					color: #e5e5e5;
 					vertical-align: middle;
 				}
 
 				.reference-code {
 					font-family: 'Courier New', monospace;
-					font-size: clamp(0.65rem, 0.9vw, 0.8rem);
+					font-size: 0.7rem;
 					background: rgba(255, 255, 255, 0.05);
 					padding: 2px 8px;
-					border-radius: 4px;
-					color: #a0aec0;
+					border-radius: 3px;
+					color: #808080;
 					word-break: break-all;
-				}
-
-				.customer-info {
-					font-size: clamp(0.7rem, 1vw, 0.85rem);
 				}
 
 				.customer-mac {
 					font-family: 'Courier New', monospace;
-					font-size: clamp(0.6rem, 0.8vw, 0.75rem);
-					color: #a0aec0;
+					font-size: 0.7rem;
+					color: #808080;
 				}
 
 				.amount-value {
-					font-weight: 600;
+					font-weight: 700;
 					color: #e50914;
-					white-space: nowrap;
 				}
 
 				.gateway-badge {
 					display: inline-block;
-					padding: 2px clamp(6px, 1vw, 10px);
-					border-radius: 4px;
-					font-size: clamp(0.6rem, 0.8vw, 0.75rem);
+					padding: 2px 10px;
+					border-radius: 3px;
+					font-size: 0.65rem;
 					font-weight: 500;
 					background: rgba(255, 255, 255, 0.05);
-					color: #b3b3b3;
+					color: #808080;
 					text-transform: uppercase;
-					white-space: nowrap;
+					letter-spacing: 0.3px;
 				}
 
 				.status-badge {
 					display: inline-block;
-					padding: 2px clamp(6px, 1vw, 10px);
-					border-radius: 4px;
-					font-size: clamp(0.6rem, 0.8vw, 0.75rem);
+					padding: 2px 10px;
+					border-radius: 3px;
+					font-size: 0.65rem;
 					font-weight: 600;
 					text-transform: uppercase;
-					white-space: nowrap;
+					letter-spacing: 0.3px;
 				}
 
 				.status-completed {
-					background: rgba(76, 175, 80, 0.15);
+					background: rgba(76, 175, 80, 0.12);
 					color: #81c784;
 				}
 
 				.status-pending {
-					background: rgba(255, 193, 7, 0.15);
-					color: #ffd54f;
+					background: rgba(255, 193, 7, 0.12);
+					color: #fbc02d;
 				}
 
 				.status-failed {
-					background: rgba(229, 9, 20, 0.15);
-					color: #ff6b6b;
+					background: rgba(229, 9, 20, 0.12);
+					color: #ff5252;
 				}
 
 				.status-cancelled {
-					background: rgba(158, 158, 158, 0.15);
+					background: rgba(158, 158, 158, 0.12);
 					color: #bdbdbd;
 				}
 
 				.status-refunded {
-					background: rgba(100, 149, 237, 0.15);
+					background: rgba(100, 149, 237, 0.12);
 					color: #6495ed;
 				}
 
 				.status-default {
 					background: rgba(255, 255, 255, 0.05);
-					color: #b3b3b3;
+					color: #808080;
 				}
 
 				.date-time {
-					font-size: clamp(0.65rem, 0.9vw, 0.8rem);
-					color: #a0aec0;
+					font-size: 0.75rem;
+					color: #808080;
 					white-space: nowrap;
 				}
 
 				.empty-state {
 					text-align: center;
-					padding: clamp(40px, 6vw, 60px) clamp(16px, 3vw, 20px);
-					color: #b3b3b3;
+					padding: 40px 20px;
+					color: #808080;
 				}
 
 				.empty-state .empty-icon {
-					font-size: 3rem;
-					margin-bottom: 16px;
+					font-size: 2.8rem;
+					margin-bottom: 12px;
 					display: block;
+					opacity: 0.4;
 				}
 
 				.empty-state p {
 					margin: 0;
-					font-size: clamp(0.9rem, 1.2vw, 1rem);
+					font-size: 0.9rem;
 				}
 
 				.empty-state .sub-text {
-					margin-top: 8px;
-					font-size: clamp(0.8rem, 1vw, 0.9rem);
-					color: #666;
+					margin-top: 6px;
+					font-size: 0.8rem;
+					color: #555;
 				}
 
-				/* Responsive Breakpoints */
-				@media (max-width: 1024px) {
-					.table-section {
-						max-width: 100%;
-					}
-				}
-
+				/* Tablet */
 				@media (max-width: 768px) {
 					.payments-container {
 						padding: 0;
@@ -345,58 +362,59 @@ function Payments() {
 					}
 
 					table {
-						min-width: 600px;
-						font-size: 0.75rem;
+						min-width: 550px;
+						font-size: 0.8rem;
 					}
 
 					thead th, tbody td {
-						padding: 6px 8px;
+						padding: 6px 10px;
 					}
 
 					.reference-code {
 						font-size: 0.65rem;
 					}
-
-					.customer-mac {
-						font-size: 0.6rem;
-					}
 				}
 
+				/* Mobile */
 				@media (max-width: 480px) {
+					.page-header h1 {
+						font-size: 1.2rem;
+					}
+
 					.table-section {
 						padding: 12px;
 					}
 
 					table {
-						min-width: 500px;
+						min-width: 450px;
 						font-size: 0.7rem;
 					}
 
 					thead th, tbody td {
-						padding: 4px 6px;
+						padding: 4px 8px;
 					}
 
 					.reference-code {
 						font-size: 0.55rem;
-						padding: 1px 4px;
+						padding: 1px 5px;
 					}
 
 					.customer-mac {
-						font-size: 0.55rem;
+						font-size: 0.6rem;
 					}
 
 					.status-badge {
 						font-size: 0.55rem;
-						padding: 1px 4px;
+						padding: 1px 6px;
 					}
 
 					.gateway-badge {
 						font-size: 0.55rem;
-						padding: 1px 4px;
+						padding: 1px 6px;
 					}
 
 					.date-time {
-						font-size: 0.55rem;
+						font-size: 0.6rem;
 					}
 
 					.amount-value {
@@ -404,30 +422,14 @@ function Payments() {
 					}
 				}
 
-				/* Touch device optimizations */
+				/* Touch devices */
 				@media (hover: none) {
 					tbody tr:hover {
 						background: transparent;
 					}
 
 					tbody tr:active {
-						background: rgba(30, 30, 30, 0.5);
-					}
-				}
-
-				/* Print styles */
-				@media print {
-					table {
-						min-width: 100% !important;
-					}
-
-					body {
-						background: white !important;
-						color: black !important;
-					}
-
-					.status-badge {
-						border: 1px solid #666;
+						background: rgba(40, 40, 40, 0.5);
 					}
 				}
 			`}</style>
@@ -435,20 +437,20 @@ function Payments() {
 			<div className="payments-container">
 				{/* Header */}
 				<div className="page-header">
-					<h1>💳 Payment History</h1>
+					<h1>💳 Payment <span>History</span></h1>
 					<p>View and track all customer payments</p>
 				</div>
 
 				{/* Error Message */}
 				{errorMessage && (
-					<div className="error-message">
+					<div className="message-box message-error">
 						⚠️ {errorMessage}
 					</div>
 				)}
 
 				{/* Loading State */}
 				{loading && !errorMessage && (
-					<div className="loading-message">
+					<div className="message-box message-loading">
 						⏳ Loading payment history...
 					</div>
 				)}
@@ -456,7 +458,10 @@ function Payments() {
 				{/* Table Section */}
 				<div className="table-section">
 					<div className="table-header">
-						<h3>📋 Transaction Records</h3>
+						<h3>
+							📋 Transaction Records
+							<span className="count-badge">{paymentList.length}</span>
+						</h3>
 						{!loading && !errorMessage && (
 							<span className="payment-count">
 								{paymentList.length} payment{paymentList.length !== 1 ? 's' : ''} found
@@ -494,11 +499,9 @@ function Payments() {
 														</span>
 													</td>
 													<td>
-														<div className="customer-info">
-															<div className="customer-mac">
-																{payment.buyer_mac || 'N/A'}
-															</div>
-														</div>
+														<span className="customer-mac">
+															{payment.buyer_mac || 'N/A'}
+														</span>
 													</td>
 													<td>
 														<span className="amount-value">

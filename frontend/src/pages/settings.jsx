@@ -59,15 +59,22 @@ function Settings() {
 
     return (
         <div style={{ 
-            padding: "clamp(12px, 3vw, 20px)", 
+            padding: "16px 20px", 
             fontFamily: "'Inter', 'Segoe UI', system-ui, -apple-system, sans-serif", 
-            background: "linear-gradient(135deg, #0f0f0f 0%, #1a1a1a 100%)",
+            background: "#141414",
             minHeight: "100vh",
-            color: "#ffffff"
+            color: "#ffffff",
+            margin: 0,
         }}>
             <style>{`
                 * {
                     box-sizing: border-box;
+                }
+
+                body {
+                    margin: 0;
+                    padding: 0;
+                    background: #141414;
                 }
 
                 @keyframes fadeIn {
@@ -81,6 +88,17 @@ function Settings() {
                     }
                 }
 
+                @keyframes slideIn {
+                    from {
+                        opacity: 0;
+                        transform: translateX(-20px);
+                    }
+                    to {
+                        opacity: 1;
+                        transform: translateX(0);
+                    }
+                }
+
                 @keyframes pulse {
                     0%, 100% {
                         opacity: 1;
@@ -90,82 +108,83 @@ function Settings() {
                     }
                 }
 
+                @keyframes spin {
+                    0% { transform: rotate(0deg); }
+                    100% { transform: rotate(360deg); }
+                }
+
                 .settings-container {
-                    max-width: 700px;
+                    max-width: 640px;
                     margin: 0 auto;
                     width: 100%;
                 }
 
                 .page-header {
-                    margin-bottom: clamp(20px, 4vw, 32px);
-                    animation: fadeIn 0.6s ease-out;
+                    margin-bottom: 24px;
+                    animation: slideIn 0.6s ease-out;
                 }
 
                 .page-header h1 {
-                    font-size: clamp(1.3rem, 4vw, 2rem);
+                    font-size: 1.6rem;
                     font-weight: 700;
                     color: #ffffff;
-                    margin: 0 0 8px 0;
+                    margin: 0 0 4px 0;
                     letter-spacing: -0.5px;
-                    word-wrap: break-word;
+                }
+
+                .page-header h1 span {
+                    color: #e50914;
                 }
 
                 .page-header p {
-                    font-size: clamp(0.85rem, 1.5vw, 0.95rem);
-                    color: #b3b3b3;
+                    font-size: 0.85rem;
+                    color: #808080;
                     margin: 0;
                 }
 
-                .success-message {
-                    padding: clamp(10px, 2vw, 12px) clamp(12px, 2vw, 16px);
-                    margin: 0 0 clamp(16px, 3vw, 24px) 0;
-                    background: rgba(76, 175, 80, 0.15);
-                    border: 1px solid rgba(76, 175, 80, 0.3);
-                    border-radius: 6px;
+                .message-box {
+                    padding: 10px 14px;
+                    margin: 0 0 16px 0;
+                    border-radius: 4px;
+                    font-weight: 500;
+                    font-size: 0.85rem;
+                    animation: fadeIn 0.3s ease-out;
+                }
+
+                .message-success {
+                    background: rgba(76, 175, 80, 0.1);
+                    border: 1px solid rgba(76, 175, 80, 0.2);
                     color: #81c784;
-                    font-weight: 500;
-                    font-size: clamp(0.8rem, 1.2vw, 0.9rem);
-                    animation: fadeIn 0.3s ease-out;
-                    word-wrap: break-word;
                 }
 
-                .error-message {
-                    padding: clamp(10px, 2vw, 12px) clamp(12px, 2vw, 16px);
-                    margin: 0 0 clamp(16px, 3vw, 24px) 0;
-                    background: rgba(229, 9, 20, 0.15);
-                    border: 1px solid rgba(229, 9, 20, 0.3);
-                    border-radius: 6px;
-                    color: #ff6b6b;
-                    font-weight: 500;
-                    font-size: clamp(0.8rem, 1.2vw, 0.9rem);
-                    animation: fadeIn 0.3s ease-out;
-                    word-wrap: break-word;
+                .message-error {
+                    background: rgba(229, 9, 20, 0.1);
+                    border: 1px solid rgba(229, 9, 20, 0.2);
+                    color: #ff5252;
                 }
 
-                .loading-message {
-                    padding: clamp(10px, 2vw, 12px) clamp(12px, 2vw, 16px);
-                    margin: 0 0 clamp(16px, 3vw, 24px) 0;
-                    background: rgba(100, 149, 237, 0.15);
-                    border: 1px solid rgba(100, 149, 237, 0.3);
-                    border-radius: 6px;
+                .message-loading {
+                    background: rgba(100, 149, 237, 0.08);
+                    border: 1px solid rgba(100, 149, 237, 0.15);
                     color: #6495ed;
-                    font-weight: 500;
-                    font-size: clamp(0.8rem, 1.2vw, 0.9rem);
                     animation: pulse 1.5s ease-in-out infinite;
-                    word-wrap: break-word;
                 }
 
                 .settings-card {
                     background: rgba(30, 30, 30, 0.8);
-                    border: 1px solid rgba(255, 255, 255, 0.1);
-                    border-radius: 8px;
-                    padding: clamp(20px, 4vw, 32px);
+                    border: 1px solid rgba(255, 255, 255, 0.06);
+                    border-radius: 4px;
+                    padding: 24px;
                     animation: fadeIn 0.6s ease-out 0.1s both;
                 }
 
+                .settings-card:hover {
+                    border-color: rgba(229, 9, 20, 0.15);
+                }
+
                 .settings-card h2 {
-                    margin: 0 0 clamp(16px, 2.5vw, 20px) 0;
-                    font-size: clamp(1rem, 1.5vw, 1.1rem);
+                    margin: 0 0 20px 0;
+                    font-size: 1rem;
                     font-weight: 600;
                     color: #ffffff;
                     display: flex;
@@ -178,17 +197,17 @@ function Settings() {
                 }
 
                 .form-group {
-                    margin-bottom: clamp(16px, 2.5vw, 20px);
+                    margin-bottom: 16px;
                 }
 
                 .form-group label {
                     display: block;
-                    font-size: clamp(0.7rem, 1vw, 0.8rem);
+                    font-size: 0.7rem;
                     font-weight: 600;
-                    color: #b3b3b3;
-                    margin-bottom: 6px;
+                    color: #808080;
+                    margin-bottom: 4px;
                     text-transform: uppercase;
-                    letter-spacing: 0.3px;
+                    letter-spacing: 0.5px;
                 }
 
                 .form-group label .required {
@@ -198,32 +217,32 @@ function Settings() {
 
                 .form-group input {
                     width: 100%;
-                    padding: clamp(10px, 1.5vw, 12px) clamp(12px, 1.8vw, 16px);
-                    background: rgba(51, 51, 51, 0.8);
-                    border: 1px solid rgba(255, 255, 255, 0.1);
-                    border-radius: 6px;
+                    padding: 8px 12px;
+                    background: rgba(20, 20, 20, 0.9);
+                    border: 1px solid rgba(255, 255, 255, 0.06);
+                    border-radius: 4px;
                     color: #ffffff;
-                    font-size: clamp(0.85rem, 1.2vw, 0.95rem);
+                    font-size: 0.85rem;
                     font-family: inherit;
                     transition: all 0.2s ease;
                 }
 
                 .form-group input:focus {
-                    background: rgba(51, 51, 51, 1);
-                    border-color: rgba(229, 9, 20, 0.5);
+                    border-color: rgba(229, 9, 20, 0.4);
                     outline: none;
-                    box-shadow: 0 0 0 3px rgba(229, 9, 20, 0.1);
+                    box-shadow: 0 0 0 3px rgba(229, 9, 20, 0.08);
+                    background: rgba(30, 30, 30, 0.9);
                 }
 
                 .form-group input::placeholder {
-                    color: #666;
+                    color: #555;
                 }
 
                 .form-group .hint {
                     display: block;
                     margin-top: 4px;
-                    font-size: clamp(0.65rem, 0.9vw, 0.75rem);
-                    color: #666;
+                    font-size: 0.7rem;
+                    color: #555;
                 }
 
                 .form-group .hint .icon {
@@ -232,17 +251,17 @@ function Settings() {
 
                 .form-actions {
                     display: flex;
-                    gap: 12px;
-                    margin-top: clamp(20px, 3vw, 28px);
+                    gap: 10px;
+                    margin-top: 20px;
                 }
 
                 .form-actions button {
                     flex: 1;
-                    padding: clamp(10px, 1.5vw, 12px);
+                    padding: 8px 12px;
                     border: none;
-                    border-radius: 6px;
+                    border-radius: 4px;
                     font-weight: 600;
-                    font-size: clamp(0.85rem, 1.2vw, 0.95rem);
+                    font-size: 0.85rem;
                     cursor: pointer;
                     transition: all 0.3s ease;
                     font-family: inherit;
@@ -253,22 +272,22 @@ function Settings() {
                 }
 
                 .submit-btn {
-                    background: linear-gradient(135deg, #e50914 0%, #c20812 100%);
+                    background: #e50914;
                     color: white;
                 }
 
                 .submit-btn:hover:not(:disabled) {
-                    transform: translateY(-2px);
-                    box-shadow: 0 8px 24px rgba(229, 9, 20, 0.35);
-                    background: linear-gradient(135deg, #f20916 0%, #d40a16 100%);
+                    background: #f40612;
+                    transform: scale(1.02);
+                    box-shadow: 0 4px 20px rgba(229, 9, 20, 0.3);
                 }
 
                 .submit-btn:active:not(:disabled) {
-                    transform: translateY(0px);
+                    transform: scale(0.98);
                 }
 
                 .submit-btn:disabled {
-                    opacity: 0.6;
+                    opacity: 0.5;
                     cursor: not-allowed;
                 }
 
@@ -276,21 +295,20 @@ function Settings() {
                     display: inline-block;
                     width: 16px;
                     height: 16px;
-                    border: 2px solid rgba(255, 255, 255, 0.3);
+                    border: 2px solid rgba(255, 255, 255, 0.2);
                     border-top: 2px solid #ffffff;
                     border-radius: 50%;
-                    animation: pulse 0.8s linear infinite;
+                    animation: spin 0.8s linear infinite;
                 }
 
                 .reset-btn {
                     background: rgba(255, 255, 255, 0.05);
-                    color: #b3b3b3;
-                    border: 1px solid rgba(255, 255, 255, 0.1);
+                    color: #808080;
+                    border: 1px solid rgba(255, 255, 255, 0.06);
                 }
 
                 .reset-btn:hover:not(:disabled) {
-                    background: rgba(255, 255, 255, 0.1);
-                    border-color: rgba(255, 255, 255, 0.2);
+                    background: rgba(255, 255, 255, 0.08);
                     color: #ffffff;
                 }
 
@@ -305,35 +323,39 @@ function Settings() {
 
                 .info-box {
                     background: rgba(255, 255, 255, 0.03);
-                    border: 1px solid rgba(255, 255, 255, 0.05);
-                    border-radius: 6px;
-                    padding: clamp(12px, 2vw, 16px);
-                    margin-top: clamp(16px, 2.5vw, 20px);
+                    border: 1px solid rgba(255, 255, 255, 0.04);
+                    border-radius: 4px;
+                    padding: 12px 14px;
+                    margin-top: 16px;
                 }
 
                 .info-box p {
                     margin: 0;
-                    font-size: clamp(0.75rem, 1vw, 0.85rem);
-                    color: #888;
+                    font-size: 0.75rem;
+                    color: #666;
                     display: flex;
                     align-items: flex-start;
                     gap: 8px;
                 }
 
                 .info-box .info-icon {
-                    font-size: 1.1em;
+                    font-size: 1em;
                     flex-shrink: 0;
-                    margin-top: 2px;
+                    margin-top: 1px;
                 }
 
-                /* Responsive Breakpoints */
+                .info-box strong {
+                    color: #808080;
+                }
+
+                /* Tablet */
                 @media (max-width: 768px) {
                     .settings-container {
                         padding: 0;
                     }
 
                     .settings-card {
-                        padding: clamp(16px, 3vw, 20px);
+                        padding: 18px;
                     }
 
                     .form-actions {
@@ -345,62 +367,44 @@ function Settings() {
                     }
                 }
 
+                /* Mobile */
                 @media (max-width: 480px) {
+                    .page-header h1 {
+                        font-size: 1.2rem;
+                    }
+
                     .settings-card {
                         padding: 14px;
                     }
 
                     .form-group input {
-                        padding: 10px 12px;
-                        font-size: 0.85rem;
+                        padding: 6px 10px;
+                        font-size: 0.8rem;
                     }
 
                     .form-actions button {
-                        padding: 12px;
-                        font-size: 0.9rem;
+                        padding: 10px 12px;
+                        font-size: 0.8rem;
                     }
                 }
 
-                /* Touch device optimizations */
+                /* Touch devices */
                 @media (hover: none) {
-                    .submit-btn:hover {
+                    .submit-btn:hover:not(:disabled) {
                         transform: none;
                         box-shadow: none;
                     }
 
-                    .reset-btn:hover {
+                    .reset-btn:hover:not(:disabled) {
                         transform: none;
                     }
 
                     .form-actions button {
-                        min-height: 48px;
-                    }
-
-                    .form-group input {
                         min-height: 44px;
                     }
-                }
-
-                /* Print styles */
-                @media print {
-                    .settings-card {
-                        background: white !important;
-                        border: 1px solid #ddd !important;
-                    }
-
-                    .form-actions {
-                        display: none;
-                    }
-
-                    body {
-                        background: white !important;
-                        color: black !important;
-                    }
 
                     .form-group input {
-                        border: 1px solid #ddd !important;
-                        background: white !important;
-                        color: black !important;
+                        min-height: 40px;
                     }
                 }
             `}</style>
@@ -408,19 +412,19 @@ function Settings() {
             <div className="settings-container">
                 {/* Header */}
                 <div className="page-header">
-                    <h1>⚙️ Settings</h1>
+                    <h1>⚙️ <span>Settings</span></h1>
                     <p>Configure your business and system preferences</p>
                 </div>
 
                 {/* Messages */}
                 {message && (
-                    <div className={message.includes("successfully") || message.includes("saved") ? "success-message" : "error-message"}>
+                    <div className={`message-box ${message.includes("successfully") || message.includes("saved") ? "message-success" : "message-error"}`}>
                         {message.includes("successfully") || message.includes("saved") ? "✅" : "⚠️"} {message}
                     </div>
                 )}
 
                 {loading && !message && (
-                    <div className="loading-message">
+                    <div className="message-box message-loading">
                         ⏳ Loading settings...
                     </div>
                 )}

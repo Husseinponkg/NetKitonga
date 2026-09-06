@@ -2,20 +2,17 @@ import React, { useState, useEffect } from "react";
 import { API_BASE_URL } from "../api";
 
 function Customers() {
-    // Structural state control hooks for data management and feedback
     const [customerList, setCustomerList] = useState([]);
     const [uiMessage, setUiMessage] = useState("");
     const [isSuccess, setIsSuccess] = useState(true);
     const [searchTerm, setSearchTerm] = useState("");
     const customerApiUrl = `${API_BASE_URL}/customers`;
 
-    // Extracts context session mapping profile key tokens
     const getTenantId = () => {
         const user = JSON.parse(localStorage.getItem("tenantUser") || "{}");
-        return user.id || 1; // Fallback context tracker index
+        return user.id || 1;
     };
 
-    // 1. READ: Fetches active portal customer records belonging to the tenant profile
     const fetchCustomers = async () => {
         try {
             const tenantId = getTenantId();
@@ -35,7 +32,6 @@ function Customers() {
         fetchCustomers();
     }, []);
 
-    // 2. DELETE: Purges a customer profile out of the multi-tenant database ledger
     const handleDeleteCustomer = async (customerId) => {
         if (!window.confirm("Are you sure you want to permanently delete this customer device registry row?")) return;
         
@@ -57,7 +53,7 @@ function Customers() {
             if (response.ok) {
                 setIsSuccess(true);
                 setUiMessage("Customer device profile successfully removed.");
-                fetchCustomers(); // Auto-refresh data visualization arrays instantly
+                fetchCustomers();
             } else {
                 setIsSuccess(false);
                 setUiMessage(`Action failed: ${result.detail || "Server constraint error"}`);
@@ -68,7 +64,6 @@ function Customers() {
         }
     };
 
-    // Filter items list array dynamically via search term text inputs
     const filteredCustomers = customerList.filter(customer => 
         customer.buyer_mac.toLowerCase().includes(searchTerm.toLowerCase()) ||
         (customer.phone_number && customer.phone_number.includes(searchTerm))
@@ -76,15 +71,24 @@ function Customers() {
 
     return (
         <div style={{
-            padding: "20px",
+            padding: "16px 20px",
             fontFamily: "'Inter', 'Segoe UI', system-ui, -apple-system, sans-serif",
-            background: "linear-gradient(135deg, #0f0f0f 0%, #1a1a1a 100%)",
+            background: "#141414",
             minHeight: "100vh",
-            color: "#ffffff"
+            color: "#ffffff",
+            margin: 0,
+            display: "flex",
+            flexDirection: "column",
         }}>
             <style>{`
                 * {
                     box-sizing: border-box;
+                }
+
+                body {
+                    margin: 0;
+                    padding: 0;
+                    background: #141414;
                 }
 
                 @keyframes fadeIn {
@@ -98,55 +102,74 @@ function Customers() {
                     }
                 }
 
+                @keyframes slideIn {
+                    from {
+                        opacity: 0;
+                        transform: translateX(-20px);
+                    }
+                    to {
+                        opacity: 1;
+                        transform: translateX(0);
+                    }
+                }
+
                 .customers-container {
                     max-width: 1200px;
+                    width: 100%;
                     margin: 0 auto;
+                    flex: 1;
+                    display: flex;
+                    flex-direction: column;
                 }
 
                 .header-section {
                     display: flex;
                     justify-content: space-between;
-                    align-items: flex-start;
-                    gap: 20px;
-                    margin-bottom: 32px;
+                    align-items: center;
+                    gap: 16px;
+                    margin-bottom: 24px;
                     flex-wrap: wrap;
-                    animation: fadeIn 0.6s ease-out;
+                    animation: slideIn 0.6s ease-out;
                 }
 
                 .header-content {
                     flex: 1;
-                    min-width: 250px;
+                    min-width: 200px;
                 }
 
                 .header-content h1 {
-                    font-size: 1.8rem;
+                    font-size: 1.6rem;
                     font-weight: 700;
                     color: #ffffff;
-                    margin: 0 0 8px 0;
+                    margin: 0 0 4px 0;
                     letter-spacing: -0.5px;
                 }
 
+                .header-content h1 span {
+                    color: #e50914;
+                }
+
                 .header-content p {
-                    color: #b3b3b3;
+                    color: #808080;
                     margin: 0;
-                    font-size: 0.9rem;
+                    font-size: 0.85rem;
                     line-height: 1.4;
                 }
 
                 .search-box {
                     flex: 0 0 auto;
-                    min-width: 240px;
+                    min-width: 200px;
                     animation: fadeIn 0.6s ease-out 0.1s both;
                 }
 
                 .search-box input {
                     width: 100%;
-                    padding: 10px 14px;
-                    background: rgba(51, 51, 51, 0.8);
-                    border: 1px solid rgba(255, 255, 255, 0.1);
-                    border-radius: 6px;
+                    padding: 8px 14px;
+                    background: rgba(30, 30, 30, 0.9);
+                    border: 1px solid rgba(255, 255, 255, 0.06);
+                    border-radius: 4px;
                     color: #ffffff;
-                    font-size: 0.9rem;
+                    font-size: 0.85rem;
                     font-family: inherit;
                     transition: all 0.3s ease;
                 }
@@ -156,93 +179,102 @@ function Customers() {
                 }
 
                 .search-box input:focus {
-                    background: rgba(51, 51, 51, 1);
-                    border-color: rgba(229, 9, 20, 0.5);
+                    background: rgba(40, 40, 40, 0.9);
+                    border-color: rgba(229, 9, 20, 0.4);
                     outline: none;
-                    box-shadow: 0 0 0 3px rgba(229, 9, 20, 0.1);
+                    box-shadow: 0 0 0 3px rgba(229, 9, 20, 0.08);
                 }
 
                 .message-box {
-                    padding: 12px 16px;
-                    margin-bottom: 24px;
-                    border-radius: 6px;
-                    font-size: 0.9rem;
+                    padding: 10px 14px;
+                    margin-bottom: 20px;
+                    border-radius: 4px;
+                    font-size: 0.85rem;
                     font-weight: 500;
                     animation: fadeIn 0.3s ease-out;
                 }
 
                 .message-success {
-                    background: rgba(76, 175, 80, 0.15);
-                    border: 1px solid rgba(76, 175, 80, 0.3);
+                    background: rgba(76, 175, 80, 0.1);
+                    border: 1px solid rgba(76, 175, 80, 0.2);
                     color: #81c784;
                 }
 
                 .message-error {
-                    background: rgba(229, 9, 20, 0.15);
-                    border: 1px solid rgba(229, 9, 20, 0.3);
-                    color: #ff6b6b;
+                    background: rgba(229, 9, 20, 0.1);
+                    border: 1px solid rgba(229, 9, 20, 0.2);
+                    color: #ff5252;
                 }
 
                 .table-container {
                     background: rgba(30, 30, 30, 0.8);
-                    border: 1px solid rgba(255, 255, 255, 0.1);
-                    border-radius: 8px;
+                    border: 1px solid rgba(255, 255, 255, 0.06);
+                    border-radius: 4px;
                     overflow: hidden;
                     animation: fadeIn 0.8s ease-out;
+                    flex: 1;
+                }
+
+                .table-container:hover {
+                    border-color: rgba(229, 9, 20, 0.15);
                 }
 
                 .table-wrapper {
                     overflow-x: auto;
+                    -webkit-overflow-scrolling: touch;
                 }
 
                 table {
                     width: 100%;
                     border-collapse: collapse;
-                    font-size: 0.9rem;
+                    font-size: 0.85rem;
+                    min-width: 500px;
                 }
 
                 thead tr {
-                    background: rgba(20, 20, 20, 0.6);
-                    border-bottom: 1px solid rgba(255, 255, 255, 0.1);
+                    background: rgba(20, 20, 20, 0.8);
+                    border-bottom: 1px solid rgba(255, 255, 255, 0.06);
                 }
 
                 thead th {
-                    padding: 12px 14px;
+                    padding: 10px 14px;
                     text-align: left;
                     font-weight: 600;
-                    color: #b3b3b3;
-                    font-size: 0.75rem;
+                    color: #808080;
+                    font-size: 0.7rem;
                     text-transform: uppercase;
-                    letter-spacing: 0.3px;
+                    letter-spacing: 0.5px;
                 }
 
                 tbody tr {
-                    border-bottom: 1px solid rgba(255, 255, 255, 0.05);
+                    border-bottom: 1px solid rgba(255, 255, 255, 0.04);
                     transition: all 0.2s ease;
                 }
 
                 tbody tr:hover {
-                    background: rgba(30, 30, 30, 1);
+                    background: rgba(40, 40, 40, 0.8);
                 }
 
                 tbody td {
-                    padding: 12px 14px;
+                    padding: 10px 14px;
                     color: #e5e5e5;
                 }
 
                 .id-cell {
-                    color: #b3b3b3;
-                    font-size: 0.85rem;
+                    color: #808080;
+                    font-size: 0.8rem;
+                    font-weight: 600;
                 }
 
                 .mac-address {
                     font-family: 'Courier New', monospace;
-                    font-size: 0.8rem;
-                    background: rgba(255, 255, 255, 0.08);
-                    padding: 3px 8px;
-                    border-radius: 4px;
+                    font-size: 0.75rem;
+                    background: rgba(255, 255, 255, 0.06);
+                    padding: 2px 8px;
+                    border-radius: 3px;
                     color: #81c784;
                     font-weight: 500;
+                    display: inline-block;
                 }
 
                 .phone-number {
@@ -251,14 +283,14 @@ function Customers() {
                 }
 
                 .anonymous {
-                    color: #b3b3b3;
-                    font-size: 0.8rem;
-                    opacity: 0.7;
+                    color: #808080;
+                    font-size: 0.75rem;
+                    opacity: 0.6;
                 }
 
                 .timestamp {
-                    color: #b3b3b3;
-                    font-size: 0.85rem;
+                    color: #808080;
+                    font-size: 0.8rem;
                 }
 
                 .action-cell {
@@ -266,17 +298,19 @@ function Customers() {
                 }
 
                 .delete-btn {
-                    padding: 6px 12px;
-                    background: rgba(229, 9, 20, 0.2);
-                    color: #ff6b6b;
-                    border: 1px solid rgba(229, 9, 20, 0.3);
-                    border-radius: 4px;
+                    padding: 4px 12px;
+                    background: rgba(229, 9, 20, 0.15);
+                    color: #ff5252;
+                    border: 1px solid rgba(229, 9, 20, 0.2);
+                    border-radius: 3px;
                     cursor: pointer;
-                    font-size: 0.8rem;
-                    font-weight: 600;
+                    font-size: 0.7rem;
+                    font-weight: 700;
                     font-family: inherit;
                     transition: all 0.2s ease;
                     white-space: nowrap;
+                    text-transform: uppercase;
+                    letter-spacing: 0.3px;
                 }
 
                 .delete-btn:hover {
@@ -287,28 +321,34 @@ function Customers() {
                 }
 
                 .delete-btn:active {
-                    transform: scale(0.98);
+                    transform: scale(0.95);
                 }
 
                 .empty-state {
                     text-align: center;
                     padding: 50px 20px;
-                    color: #b3b3b3;
+                    color: #808080;
                 }
 
                 .empty-icon {
                     font-size: 2.5rem;
                     display: block;
-                    margin-bottom: 12px;
-                    opacity: 0.5;
+                    margin-bottom: 10px;
+                    opacity: 0.4;
                 }
 
                 .empty-text {
-                    font-size: 0.95rem;
+                    font-size: 0.9rem;
                     margin: 0;
                 }
 
-                /* Tablet Responsive */
+                .empty-sub {
+                    font-size: 0.75rem;
+                    margin: 4px 0 0 0;
+                    opacity: 0.5;
+                }
+
+                /* Tablet */
                 @media (max-width: 768px) {
                     .customers-container {
                         padding: 0;
@@ -316,99 +356,136 @@ function Customers() {
 
                     .header-section {
                         flex-direction: column;
-                        gap: 16px;
-                    }
-
-                    .header-content h1 {
-                        font-size: 1.4rem;
-                    }
-
-                    .search-box {
-                        min-width: 100%;
-                    }
-
-                    table {
-                        font-size: 0.85rem;
-                    }
-
-                    thead th, tbody td {
-                        padding: 10px 12px;
-                    }
-
-                    .delete-btn {
-                        padding: 5px 10px;
-                        font-size: 0.75rem;
-                    }
-                }
-
-                /* Mobile Responsive */
-                @media (max-width: 480px) {
-                    .header-section {
-                        flex-direction: column;
+                        align-items: stretch;
                         gap: 12px;
                     }
 
                     .header-content h1 {
-                        font-size: 1.2rem;
-                    }
-
-                    .header-content p {
-                        font-size: 0.8rem;
+                        font-size: 1.3rem;
                     }
 
                     .search-box {
                         min-width: 100%;
                     }
 
-                    .search-box input {
-                        padding: 8px 12px;
-                        font-size: 0.85rem;
-                    }
-
-                    .table-wrapper {
-                        overflow-x: auto;
-                    }
-
                     table {
-                        font-size: 0.75rem;
-                        min-width: 600px;
+                        font-size: 0.8rem;
                     }
 
                     thead th, tbody td {
-                        padding: 8px 10px;
+                        padding: 8px 12px;
                     }
 
-                    .id-cell {
+                    .delete-btn {
+                        padding: 3px 10px;
+                        font-size: 0.65rem;
+                    }
+                }
+
+                /* Mobile */
+                @media (max-width: 480px) {
+                    .header-section {
+                        gap: 10px;
+                        margin-bottom: 16px;
+                    }
+
+                    .header-content h1 {
+                        font-size: 1.1rem;
+                    }
+
+                    .header-content p {
                         font-size: 0.75rem;
                     }
 
-                    .mac-address {
+                    .search-box input {
+                        padding: 6px 12px;
+                        font-size: 0.8rem;
+                    }
+
+                    table {
                         font-size: 0.7rem;
+                        min-width: 400px;
+                    }
+
+                    thead th, tbody td {
+                        padding: 6px 10px;
+                    }
+
+                    .id-cell {
+                        font-size: 0.7rem;
+                    }
+
+                    .mac-address {
+                        font-size: 0.65rem;
                         padding: 2px 6px;
                     }
 
                     .delete-btn {
-                        padding: 4px 8px;
-                        font-size: 0.7rem;
+                        padding: 3px 8px;
+                        font-size: 0.6rem;
                     }
 
                     .timestamp {
-                        font-size: 0.75rem;
-                    }
-                }
-
-                /* Extra small devices */
-                @media (max-width: 360px) {
-                    .header-content h1 {
-                        font-size: 1rem;
-                    }
-
-                    table {
                         font-size: 0.7rem;
                     }
 
+                    .message-box {
+                        font-size: 0.8rem;
+                        padding: 8px 12px;
+                        margin-bottom: 16px;
+                    }
+
+                    .empty-state {
+                        padding: 30px 16px;
+                    }
+
+                    .empty-icon {
+                        font-size: 2rem;
+                    }
+
+                    .empty-text {
+                        font-size: 0.8rem;
+                    }
+                }
+
+                /* Small phones */
+                @media (max-width: 360px) {
+                    .header-content h1 {
+                        font-size: 0.95rem;
+                    }
+
+                    table {
+                        min-width: 320px;
+                        font-size: 0.65rem;
+                    }
+
                     thead th, tbody td {
-                        padding: 6px 8px;
+                        padding: 5px 8px;
+                    }
+
+                    .mac-address {
+                        font-size: 0.6rem;
+                        padding: 1px 5px;
+                    }
+
+                    .delete-btn {
+                        padding: 2px 6px;
+                        font-size: 0.55rem;
+                    }
+                }
+
+                /* Landscape phones */
+                @media (max-height: 600px) and (orientation: landscape) {
+                    .header-section {
+                        margin-bottom: 12px;
+                    }
+
+                    .table-container {
+                        max-height: 55vh;
+                    }
+
+                    .header-content h1 {
+                        font-size: 1.1rem;
                     }
                 }
             `}</style>
@@ -417,7 +494,7 @@ function Customers() {
                 {/* Header Section */}
                 <div className="header-section">
                     <div className="header-content">
-                        <h1>👥 Connected Devices</h1>
+                        <h1>👥 Connected <span>Devices</span></h1>
                         <p>Monitor and manage customer device profiles on your network</p>
                     </div>
                     
@@ -459,6 +536,7 @@ function Customers() {
                                             <div className="empty-state">
                                                 <span className="empty-icon">📭</span>
                                                 <p className="empty-text">No devices found</p>
+                                                <p className="empty-sub">Connect a device to get started</p>
                                             </div>
                                         </td>
                                     </tr>
