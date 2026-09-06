@@ -1,8 +1,15 @@
 import os
 import secrets
+import sys
+from pathlib import Path
 import requests
 from typing import List, Dict, Any
 from fastapi import HTTPException, status
+
+backend_dir = str(Path(__file__).resolve().parents[1])
+if backend_dir not in sys.path:
+    sys.path.insert(0, backend_dir)
+
 from config.db import connection
 from models.payments import CheckoutRequest, PortalBuyerRequest
 
@@ -47,7 +54,10 @@ class PaymentService:
         try:
             response = requests.post(self.auth_url, json=payload, headers=headers, timeout=10)
             if response.status_code == 200:
-                token = response.json().get("token", "")
+                body = response.json()
+                token = body.get("token") or body.get("accessToken")
+                if isinstance(body.get("data"), dict):
+                    token = token or body["data"].get("token") or body["data"].get("accessToken")
                 if token:
                     return token
                 raise HTTPException(status_code=502, detail="AzamPay returned no authorization token.")

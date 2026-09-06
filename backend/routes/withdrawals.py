@@ -1,4 +1,4 @@
-from fastapi import APIRouter, HTTPException, Query
+from fastapi import APIRouter, HTTPException, Query, Body
 
 from backend.controllers.withdrawals import WithdrawalController
 from backend.models.withdrawals import WithdrawalRequest, WithdrawalUpdate
@@ -24,3 +24,8 @@ async def get_withdrawal_history(tenant_id: int = Query(...)) -> list:
 async def update_withdrawal_status(data: WithdrawalUpdate) -> dict:
     controller = WithdrawalController()
     return await controller.update_withdrawal_status(data)
+
+@router.post("/callback")
+async def disbursement_callback(payload: dict = Body(...)) -> dict:
+    controller = WithdrawalController()
+    return await controller.process_disbursement_callback(payload)

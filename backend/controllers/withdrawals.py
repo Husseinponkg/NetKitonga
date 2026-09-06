@@ -2,6 +2,8 @@ from typing import List, Dict, Any
 from fastapi import HTTPException
 from config.db import connection
 from models.withdrawals import WithdrawalRequest, WithdrawalUpdate, WithdrawalResponse
+from services.disbursements import DisbursementService
+import secrets
 
 class WithdrawalController:
     async def get_wallet_balance(self, tenant_id: int) -> Dict[str, Any]:
@@ -41,6 +43,14 @@ class WithdrawalController:
                 if data.amount > current_balance:
                     raise HTTPException(status_code=400, detail="Insufficient wallet balance for this withdrawal.")
 
+                external_reference = f"NETKITONGA-WD-{secrets.token_hex(8).upper()}"
+                disbursement = DisbursementService().send(
+                    data.amount,
+                    data.mobile_money_number,
+                    data.payout_provider,
+                    external_reference,
+                )
+                transaction_reference = disbursement.get("pgReferenceId") or external_reference
                 await cursor.execute(
                     """
                     INSERT INTO withdrawals (tenant_id, wallet_id, amount, mobile_money_number, payout_provider, status)
@@ -50,6 +60,10 @@ class WithdrawalController:
                     (tenant_id, wallet_id, data.amount, data.mobile_money_number, data.payout_provider)
                 )
                 new_id = (await cursor.fetchone())[0]
+                await cursor.execute(
+                    "UPDATE withdrawals SET transaction_reference = %s WHERE id = %s;",
+                    (transaction_reference, new_id),
+                )
 
                 await cursor.execute(
                     "UPDATE tenant_wallets SET total_withdrawn = total_withdrawn + %s, current_balance = current_balance - %s WHERE id = %s;",
@@ -104,5 +118,43 @@ class WithdrawalController:
         except Exception as e:
             await conn.rollback()
             raise HTTPException(status_code=500, detail=f"Update failed: {str(e)}")
+        finally:
+            await conn.close()
+
+    async def process_disbursement_callback(self, payload: Dict[str, Any]) -> Dict[str, Any]:
+        reference = payload.get("pgReferenceId") or payload.get("initiatorReferenceId")
+        callback_status = str(payload.get("status", "")).lower()
+        if not reference:
+            raise HTTPException(status_code=400, detail="Missing disbursement reference.")
+
+        status = "approved" if callback_status in {"success", "successful", "completed", "approved"} else "rejected"
+        conn = await connection()
+        try:
+            async with conn.cursor() as cursor:
+                await cursor.execute(
+                    "SELECT id, wallet_id, amount, status FROM withdrawals WHERE transaction_reference = %s FOR UPDATE;",
+                    (reference,),
+                )
+                withdrawal = await cursor.fetchone()
+                if not withdrawal:
+                    raise HTTPException(status_code=404, detail="Withdrawal reference not found.")
+
+                if withdrawal[3] == "pending":
+                    await cursor.execute(
+                        "UPDATE withdrawals SET status = %s WHERE id = %s;",
+                        (status, withdrawal[0]),
+                    )
+                    if status == "rejected":
+                        await cursor.execute(
+                            "UPDATE tenant_wallets SET total_withdrawn = total_withdrawn - %s, current_balance = current_balance + %s WHERE id = %s;",
+                            (withdrawal[2], withdrawal[2], withdrawal[1]),
+                        )
+                await conn.commit()
+                return {"status": "acknowledged", "withdrawal_status": status}
+        except HTTPException:
+            raise
+        except Exception as error:
+            await conn.rollback()
+            raise HTTPException(status_code=500, detail=f"Disbursement callback failed: {error}")
         finally:
             await conn.close()

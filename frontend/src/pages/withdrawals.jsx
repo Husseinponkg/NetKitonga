@@ -108,8 +108,8 @@ function Withdrawals() {
               : { bg: "#fef9c3", color: "#854d0e" };
 
     return (
-        <main style={{ padding: "20px", backgroundColor: "#f8fafc", minHeight: "100vh" }}>
-            <h1 style={{ marginTop: 0, color: "#0f172a", marginBottom: "20px" }}>Withdrawals</h1>
+        <main style={{ padding: "clamp(16px, 3vw, 32px)", background: "linear-gradient(135deg, #0f0f0f 0%, #1a1a1a 100%)", color: "#ffffff", minHeight: "100vh" }}>
+            <h1 style={{ marginTop: 0, color: "#ffffff", marginBottom: "20px" }}>Withdrawals</h1>
 
             {message && (
                 <div
@@ -117,9 +117,9 @@ function Withdrawals() {
                         padding: "12px",
                         marginBottom: "20px",
                         borderRadius: "6px",
-                        backgroundColor: message.includes("success") ? "#dcfce7" : "#fee2e2",
-                        color: message.includes("success") ? "#166534" : "#991b1b",
-                        border: `1px solid ${message.includes("success") ? "#86efac" : "#fca5a5"}`,
+                        backgroundColor: message.includes("success") ? "rgba(22, 101, 52, 0.2)" : "rgba(229, 9, 20, 0.14)",
+                        color: message.includes("success") ? "#86efac" : "#ff7b83",
+                        border: `1px solid ${message.includes("success") ? "#166534" : "#e50914"}`,
                     }}
                 >
                     {message}
@@ -127,7 +127,7 @@ function Withdrawals() {
             )}
 
             {loading ? (
-                <div style={{ color: "#64748b" }}>Loading wallet data...</div>
+                <div style={{ color: "rgba(255,255,255,0.6)" }}>Loading wallet data...</div>
             ) : (
                 <>
                     <div
@@ -143,42 +143,42 @@ function Withdrawals() {
                                 flex: "1 1 200px",
                                 padding: "20px",
                                 borderRadius: "10px",
-                                backgroundColor: "#fff",
-                                border: "1px solid #e2e8f0",
-                                boxShadow: "0 1px 3px rgba(0,0,0,0.05)",
+                                backgroundColor: "rgba(255,255,255,0.04)",
+                                border: "1px solid rgba(255,255,255,0.08)",
+                                boxShadow: "0 12px 30px rgba(0,0,0,0.18)",
                                 textAlign: "center",
                             }}
                         >
-                            <div style={{ fontSize: "14px", color: "#64748b", marginBottom: "6px" }}>Total Earned</div>
-                            <div style={{ fontSize: "22px", fontWeight: "700", color: "#166534" }}>{fmt(wallet.total_earned)}</div>
+                            <div style={{ fontSize: "14px", color: "rgba(255,255,255,0.55)", marginBottom: "6px" }}>Total Earned</div>
+                            <div style={{ fontSize: "22px", fontWeight: "700", color: "#ff5a63" }}>{fmt(wallet.total_earned)}</div>
                         </div>
                         <div
                             style={{
                                 flex: "1 1 200px",
                                 padding: "20px",
                                 borderRadius: "10px",
-                                backgroundColor: "#fff",
-                                border: "1px solid #e2e8f0",
-                                boxShadow: "0 1px 3px rgba(0,0,0,0.05)",
+                                backgroundColor: "rgba(255,255,255,0.04)",
+                                border: "1px solid rgba(255,255,255,0.08)",
+                                boxShadow: "0 12px 30px rgba(0,0,0,0.18)",
                                 textAlign: "center",
                             }}
                         >
-                            <div style={{ fontSize: "14px", color: "#64748b", marginBottom: "6px" }}>Total Withdrawn</div>
-                            <div style={{ fontSize: "22px", fontWeight: "700", color: "#a16207" }}>{fmt(wallet.total_withdrawn)}</div>
+                            <div style={{ fontSize: "14px", color: "rgba(255,255,255,0.55)", marginBottom: "6px" }}>Total Withdrawn</div>
+                            <div style={{ fontSize: "22px", fontWeight: "700", color: "#ffffff" }}>{fmt(wallet.total_withdrawn)}</div>
                         </div>
                         <div
                             style={{
                                 flex: "1 1 200px",
                                 padding: "20px",
                                 borderRadius: "10px",
-                                backgroundColor: "#fff",
-                                border: "1px solid #e2e8f0",
-                                boxShadow: "0 1px 3px rgba(0,0,0,0.05)",
+                                backgroundColor: "rgba(255,255,255,0.04)",
+                                border: "1px solid rgba(255,255,255,0.08)",
+                                boxShadow: "0 12px 30px rgba(0,0,0,0.18)",
                                 textAlign: "center",
                             }}
                         >
-                            <div style={{ fontSize: "14px", color: "#64748b", marginBottom: "6px" }}>Available Balance</div>
-                            <div style={{ fontSize: "22px", fontWeight: "700", color: "#0284c7" }}>{fmt(wallet.current_balance)}</div>
+                            <div style={{ fontSize: "14px", color: "rgba(255,255,255,0.55)", marginBottom: "6px" }}>Available Balance</div>
+                            <div style={{ fontSize: "22px", fontWeight: "700", color: "#ff5a63" }}>{fmt(wallet.current_balance)}</div>
                         </div>
                     </div>
 
@@ -194,17 +194,17 @@ function Withdrawals() {
                             onSubmit={handleRequest}
                             style={{
                                 width: "380px",
-                                backgroundColor: "#fff",
+                                backgroundColor: "rgba(255,255,255,0.04)",
                                 padding: "24px",
                                 borderRadius: "10px",
-                                border: "1px solid #e2e8f0",
-                                boxShadow: "0 1px 3px rgba(0,0,0,0.05)",
+                                border: "1px solid rgba(255,255,255,0.08)",
+                                boxShadow: "0 12px 30px rgba(0,0,0,0.18)",
                                 flexShrink: 0,
                             }}
                         >
-                            <h3 style={{ marginTop: 0, color: "#0f172a" }}>Request Withdrawal</h3>
+                            <h3 style={{ marginTop: 0, color: "#ffffff" }}>Request Withdrawal</h3>
 
-                            <label style={{ fontSize: "14px", fontWeight: "500", color: "#334155" }}>Amount (TZS):</label>
+                            <label style={{ fontSize: "14px", fontWeight: "500", color: "rgba(255,255,255,0.7)" }}>Amount (TZS):</label>
                             <input
                                 type="number"
                                 required
@@ -218,13 +218,15 @@ function Withdrawals() {
                                     padding: "10px",
                                     marginBottom: "12px",
                                     borderRadius: "6px",
-                                    border: "1px solid #cbd5e1",
+                                    border: "1px solid rgba(255,255,255,0.12)",
+                                    backgroundColor: "rgba(0,0,0,0.2)",
+                                    color: "#ffffff",
                                     fontSize: "14px",
                                     boxSizing: "border-box",
                                 }}
                             />
 
-                            <label style={{ fontSize: "14px", fontWeight: "500", color: "#334155" }}>Mobile Money Number:</label>
+                            <label style={{ fontSize: "14px", fontWeight: "500", color: "rgba(255,255,255,0.7)" }}>Mobile Money Number:</label>
                             <input
                                 type="tel"
                                 required
@@ -236,13 +238,15 @@ function Withdrawals() {
                                     padding: "10px",
                                     marginBottom: "12px",
                                     borderRadius: "6px",
-                                    border: "1px solid #cbd5e1",
+                                    border: "1px solid rgba(255,255,255,0.12)",
+                                    backgroundColor: "rgba(0,0,0,0.2)",
+                                    color: "#ffffff",
                                     fontSize: "14px",
                                     boxSizing: "border-box",
                                 }}
                             />
 
-                            <label style={{ fontSize: "14px", fontWeight: "500", color: "#334155" }}>Provider:</label>
+                            <label style={{ fontSize: "14px", fontWeight: "500", color: "rgba(255,255,255,0.7)" }}>Provider:</label>
                             <select
                                 value={provider}
                                 onChange={(e) => setProvider(e.target.value)}
@@ -251,10 +255,11 @@ function Withdrawals() {
                                     padding: "10px",
                                     marginBottom: "16px",
                                     borderRadius: "6px",
-                                    border: "1px solid #cbd5e1",
+                                    border: "1px solid rgba(255,255,255,0.12)",
                                     fontSize: "14px",
                                     boxSizing: "border-box",
-                                    backgroundColor: "white",
+                                    backgroundColor: "#1a1a1a",
+                                    color: "#ffffff",
                                 }}
                             >
                                 <option value="Mpesa">M-Pesa</option>
@@ -269,7 +274,7 @@ function Withdrawals() {
                                 style={{
                                     width: "100%",
                                     padding: "12px",
-                                    backgroundColor: submitting ? "#94a3b8" : "#0284c7",
+                                    backgroundColor: submitting ? "#5f1a1d" : "#e50914",
                                     color: "white",
                                     border: "none",
                                     borderRadius: "6px",
@@ -285,17 +290,17 @@ function Withdrawals() {
                         <div
                             style={{
                                 flex: 1,
-                                minWidth: "600px",
-                                backgroundColor: "#fff",
+                                minWidth: "min(100%, 600px)",
+                                backgroundColor: "rgba(255,255,255,0.04)",
                                 padding: "24px",
                                 borderRadius: "10px",
-                                border: "1px solid #e2e8f0",
-                                boxShadow: "0 1px 3px rgba(0,0,0,0.05)",
+                                border: "1px solid rgba(255,255,255,0.08)",
+                                boxShadow: "0 12px 30px rgba(0,0,0,0.18)",
                             }}
                         >
-                            <h3 style={{ marginTop: 0, color: "#0f172a" }}>Withdrawal History</h3>
+                            <h3 style={{ marginTop: 0, color: "#ffffff" }}>Withdrawal History</h3>
                             {withdrawals.length === 0 ? (
-                                <p style={{ color: "#64748b", textAlign: "center", padding: "40px 0" }}>
+                                <p style={{ color: "rgba(255,255,255,0.55)", textAlign: "center", padding: "40px 0" }}>
                                     No withdrawals yet.
                                 </p>
                             ) : (
@@ -303,19 +308,19 @@ function Withdrawals() {
                                     <table style={{ width: "100%", borderCollapse: "collapse", fontSize: "14px" }}>
                                         <thead>
                                             <tr style={{ backgroundColor: "#f1f5f9", borderBottom: "2px solid #e2e8f0" }}>
-                                                <th style={{ padding: "12px", textAlign: "left" }}>ID</th>
-                                                <th style={{ padding: "12px", textAlign: "left" }}>Amount</th>
-                                                <th style={{ padding: "12px", textAlign: "left" }}>Provider</th>
-                                                <th style={{ padding: "12px", textAlign: "left" }}>Mobile Number</th>
-                                                <th style={{ padding: "12px", textAlign: "left" }}>Status</th>
-                                                <th style={{ padding: "12px", textAlign: "left" }}>Date</th>
+                                                <th style={{ padding: "12px", textAlign: "left", color: "rgba(255,255,255,0.65)" }}>ID</th>
+                                                <th style={{ padding: "12px", textAlign: "left", color: "rgba(255,255,255,0.65)" }}>Amount</th>
+                                                <th style={{ padding: "12px", textAlign: "left", color: "rgba(255,255,255,0.65)" }}>Provider</th>
+                                                <th style={{ padding: "12px", textAlign: "left", color: "rgba(255,255,255,0.65)" }}>Mobile Number</th>
+                                                <th style={{ padding: "12px", textAlign: "left", color: "rgba(255,255,255,0.65)" }}>Status</th>
+                                                <th style={{ padding: "12px", textAlign: "left", color: "rgba(255,255,255,0.65)" }}>Date</th>
                                             </tr>
                                         </thead>
                                         <tbody>
                                             {withdrawals.map((w) => {
                                                 const st = statusColor(w.status);
                                                 return (
-                                                    <tr key={w.id} style={{ borderBottom: "1px solid #f1f5f9" }}>
+                                                    <tr key={w.id} style={{ borderBottom: "1px solid rgba(255,255,255,0.08)" }}>
                                                         <td style={{ padding: "12px" }}>{w.id}</td>
                                                         <td style={{ padding: "12px", fontWeight: 500 }}>{fmt(w.amount)}</td>
                                                         <td style={{ padding: "12px" }}>{w.payout_provider}</td>
@@ -335,7 +340,7 @@ function Withdrawals() {
                                                                 {w.status}
                                                             </span>
                                                         </td>
-                                                        <td style={{ padding: "12px", fontSize: "13px", color: "#475569" }}>
+                                                        <td style={{ padding: "12px", fontSize: "13px", color: "rgba(255,255,255,0.55)" }}>
                                                             {new Date(w.created_at).toLocaleString()}
                                                         </td>
                                                     </tr>
