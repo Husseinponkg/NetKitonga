@@ -300,6 +300,7 @@ function Dashboard() {
         .menu-card:nth-child(8) { animation-delay: 0.40s; }
         .menu-card:nth-child(9) { animation-delay: 0.45s; }
         .menu-card:nth-child(10) { animation-delay: 0.50s; }
+        .menu-card:nth-child(11) { animation-delay: 0.55s; }
 
         .menu-card:hover {
           transform: translateY(-3px);
@@ -825,6 +826,11 @@ function Dashboard() {
           <Link to="/packages" className="menu-card">
             <span className="menu-icon">📦</span>
             <p className="menu-label">Packages</p>
+          </Link>
+
+          <Link to="/vouchers" className="menu-card">
+            <span className="menu-icon">🎟️</span>
+            <p className="menu-label">Vouchers</p>
           </Link>
 
           <Link to="/payments" className="menu-card">
