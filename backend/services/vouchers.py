@@ -8,6 +8,23 @@ from models.vouchers import VoucherCreate
 
 class VoucherService:
     @staticmethod
+    async def _ensure_table(cursor) -> None:
+        await cursor.execute(
+            """
+            CREATE TABLE IF NOT EXISTS vouchers (
+                id SERIAL PRIMARY KEY,
+                tenant_id INT NOT NULL REFERENCES tenants(id) ON DELETE CASCADE,
+                package_id INT NOT NULL REFERENCES packages(id) ON DELETE CASCADE,
+                code VARCHAR(32) NOT NULL UNIQUE,
+                status VARCHAR(20) NOT NULL DEFAULT 'unused',
+                expires_at TIMESTAMP NULL,
+                redeemed_at TIMESTAMP NULL,
+                created_at TIMESTAMP DEFAULT CURRENT_TIMESTAMP
+            )
+            """
+        )
+
+    @staticmethod
     def _generate_code() -> str:
         alphabet = string.ascii_uppercase + string.digits
         value = "".join(secrets.choice(alphabet) for _ in range(12))
@@ -17,6 +34,7 @@ class VoucherService:
         conn = await connection()
         try:
             async with conn.cursor() as cursor:
+                await self._ensure_table(cursor)
                 await cursor.execute(
                     """
                     SELECT id, package_name
@@ -66,6 +84,7 @@ class VoucherService:
         conn = await connection()
         try:
             async with conn.cursor() as cursor:
+                await self._ensure_table(cursor)
                 await cursor.execute(
                     """
                     SELECT v.id, v.tenant_id, v.package_id, p.package_name,
