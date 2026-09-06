@@ -20,6 +20,7 @@ function Layout({ children }) {
           <Link to="/income" style={styles.link}>Income</Link>
           <Link to="/withdrawals" style={styles.link}>Withdrawals</Link>
           <Link to="/branch" style={styles.link}>Branches</Link>
+          <Link to="/vouchers" style={styles.link}>Vouchers</Link>
           <button type="button" onClick={logout} style={styles.logout}>Logout</button>
         </nav>
       </header>

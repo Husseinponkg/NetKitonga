@@ -25,6 +25,7 @@ from backend.routes.payment import payment_endpoints as payments_router
 from backend.routes.sessions import session_endpoints
 from backend.routes.settings import settings_endpoints
 from backend.routes.withdrawals import router as withdrawals_router
+from backend.routes.vouchers import router as vouchers_router
 app = FastAPI()
 
 app.add_middleware(
@@ -55,6 +56,7 @@ app.include_router(payments_router)
 app.include_router(session_endpoints)
 app.include_router(settings_endpoints)
 app.include_router(withdrawals_router, prefix="/withdrawals", tags=["withdrawals"])
+app.include_router(vouchers_router, prefix="/vouchers", tags=["vouchers"])
 if __name__ == "__main__":
     uvicorn.run("backend.main:app", host="0.0.0.0", port=8000)
 

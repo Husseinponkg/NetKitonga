@@ -13,6 +13,7 @@ import Withdrawals from "./pages/withdrawals";
 import CaptivePortal from "./pages/portal";
 import Sessions from "./pages/sessions";
 import Settings from "./pages/settings";
+import Vouchers from "./pages/vouchers";
 function ProtectedRoute({ children }) {
   const user = JSON.parse(localStorage.getItem("tenantUser") || "null");
   return user ? <Layout>{children}</Layout> : <Navigate to="/" replace />;
@@ -29,6 +30,7 @@ function App() {
         <Route path="/branch" element={<ProtectedRoute><Branch /></ProtectedRoute>} />
         <Route path="/routers" element={<ProtectedRoute><Routers /></ProtectedRoute>} />
         <Route path="/packages" element={<ProtectedRoute><PackagesDashboard /></ProtectedRoute>} />
+        <Route path="/vouchers" element={<ProtectedRoute><Vouchers /></ProtectedRoute>} />
         <Route path="/customers"element={<ProtectedRoute><Customers /></ProtectedRoute>} />
         <Route path="/payments" element={<ProtectedRoute><Payments /></ProtectedRoute>} />
         <Route path="/income" element={<ProtectedRoute><Income /></ProtectedRoute>} />
