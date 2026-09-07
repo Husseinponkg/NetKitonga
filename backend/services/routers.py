@@ -27,14 +27,17 @@ class RouterService:
         setup parameters so the tenant can copy-paste straight into their device.
         """
         # Pull your central server values directly from the environment variables
-        system_domain = (
+        configured_domain = (
             os.getenv("SYSTEM_DOMAIN")
             or os.getenv("SYSTEM_SERVER_IP")
             or "netkitonga.onrender.com"
         )
-        system_ip = os.getenv("SYSTEM_SERVER_IP") or system_domain
-        api_scheme = "https" if system_domain.endswith(".onrender.com") else "http"
+        system_domain = configured_domain.removeprefix("https://").removeprefix("http://").rstrip("/")
+        configured_system_ip = os.getenv("SYSTEM_SERVER_IP") or system_domain
+        system_ip = configured_system_ip.removeprefix("https://").removeprefix("http://").rstrip("/")
+        api_scheme = "https" if configured_domain.startswith("https://") or system_domain.endswith(".onrender.com") else "http"
         api_port = "" if api_scheme == "https" else ":8000"
+        fetch_mode = "https" if api_scheme == "https" else "http"
         
         # 1. Standard structural database payload mapping
         router_payload = {
@@ -57,18 +60,18 @@ class RouterService:
             api_url = f"{api_scheme}://{system_domain}{api_port}/routers/mikrotik/ping"
             
             # Generate a 100% automated copy-paste terminal script for MikroTik WinBox
+            heartbeat_url = f"{api_url}?nas_id={nas_identifier}"
             automated_script = (
-                f"# Router management IP: {ip_address}; "
-                f"/radius remove [find]; "
-                f"/radius add service=hotspot address={system_ip} secret=\"{radius_secret}\" authentication-port=1812 accounting-port=1813; "
-                f"/ip hotspot profile add name=SmartNetProfile hotspot-address=10.10.10.1 login-by=http-chap,cookie split-user-domain=no; "
-                f"/ip hotspot profile set SmartNetProfile use-radius=yes radius-interim-update=00:02:00; "
-                f"/ip hotspot add name=\"Hotspot_{branch_id}\" interface=ether2 profile=SmartNetProfile disabled=no; "
-                f"/ip firewall mangle add chain=postrouting out-interface=ether1 action=change-ttl new-ttl=set:1 comment=\"Anti-Hotspot-Sharing\"; "
-                f"/system script remove [find name=\"CloudPing\"]; "
-                f"/system scheduler remove [find name=\"Run_CloudPing\"]; "
-                f"/system script add name=\"CloudPing\" source={{ /tool fetch url=\"{api_url}?nas_id={nas_identifier}\" mode=http keep-result=no }}; "
-                f"/system scheduler add name=\"Run_CloudPing\" interval=1m start-time=startup on-event=\"/system script run CloudPing\"; "
+                f"/radius remove [find];\n"
+                f"/radius add service=hotspot address={system_ip} secret=\"{radius_secret}\" authentication-port=1812 accounting-port=1813;\n"
+                f"/ip hotspot profile add name=SmartNetProfile hotspot-address=10.10.10.1 login-by=http-chap,cookie split-user-domain=no;\n"
+                f"/ip hotspot profile set SmartNetProfile use-radius=yes radius-interim-update=00:02:00;\n"
+                f"/ip hotspot add name=\"Hotspot_{branch_id}\" interface=ether2 profile=SmartNetProfile disabled=no;\n"
+                f"/ip firewall mangle add chain=postrouting out-interface=ether1 action=change-ttl new-ttl=set:1 comment=\"Anti-Hotspot-Sharing\";\n"
+                f"/system script remove [find name=\"CloudPing\"];\n"
+                f"/system scheduler remove [find name=\"Run_CloudPing\"];\n"
+                f"/system script add name=\"CloudPing\" source={{ /tool fetch url=\"{heartbeat_url}\" mode={fetch_mode} keep-result=no }};\n"
+                f"/system scheduler add name=\"Run_CloudPing\" interval=1m start-time=startup on-event=\"/system script run CloudPing\";\n"
                 f"/system script run CloudPing;"
             )
             
