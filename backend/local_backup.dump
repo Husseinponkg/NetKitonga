@@ -289,7 +289,14 @@ CREATE TABLE public.routers (
     created_at timestamp without time zone DEFAULT CURRENT_TIMESTAMP
 );
 
+ALTER TABLE routers ADD COLUMN IF NOT EXISTS ip_address INET;
 
+UPDATE routers
+SET ip_address = '0.0.0.0'
+WHERE ip_address IS NULL;
+
+ALTER TABLE routers
+ALTER COLUMN ip_address SET NOT NULL;
 ALTER TABLE public.routers OWNER TO postgres;
 
 --

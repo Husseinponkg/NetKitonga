@@ -1,5 +1,6 @@
 from pydantic import BaseModel, Field
 from typing import Optional
+from ipaddress import IPv4Address, IPv6Address
 from datetime import datetime
 
 class RouterRegister(BaseModel):
@@ -22,6 +23,7 @@ class RouterRegister(BaseModel):
     
     # 4. Hardware Tracking Parameters
     mac_address: str = Field(..., max_length=50, json_schema_extra={"example": "AA:BB:CC:11:22:33"})
+    ip_address: IPv4Address | IPv6Address = Field(..., description="The physical router IP address")
     is_licensed: bool = Field(default=True, description="Tracks if extra router additions have been paid for")
     status: str = Field(default="offline", description="Defaults to offline until the first heartbeat lands")
     
@@ -47,6 +49,7 @@ class RouterUpdate(BaseModel):
     radius_secret: Optional[str] = Field(None, max_length=100, description="Shared password for RADIUS handshakes")
     gw_id: Optional[str] = Field(None, max_length=100, description="Gateway ID used only for Ruijie/Wifidog setups")
     mac_address: Optional[str] = Field(None, max_length=50, json_schema_extra={"example": "AA:BB:CC:11:22:33"})
+    ip_address: Optional[IPv4Address | IPv6Address] = Field(None, description="The physical router IP address")
     is_licensed: Optional[bool] = Field(None, description="Tracks if extra router additions have been paid for")
     status: Optional[str] = Field(None, description="Tracks the current operational status of the router")
     
@@ -61,8 +64,9 @@ class RouterDelete(BaseModel):
     router_id: int = Field(..., description="The unique identity token of the router to be deleted")
     
 class RouterResponse(BaseModel):
-     router_id: int
-     router_name: str
-     status: str
-     last_heartbeat: Optional[str]
+    message: Optional[str] = None
+    router_id: int
+    router_name: Optional[str] = None
+    status: str
+    last_heartbeat: Optional[str] = None
  

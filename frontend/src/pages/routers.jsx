@@ -8,6 +8,7 @@ function Routers() {
     const [radiusSecret, setRadiusSecret] = useState("");
     const [gwId, setGwId] = useState("");
     const [macAddress, setMacAddress] = useState("");
+    const [ipAddress, setIpAddress] = useState("");
     const [isLicensed, setIsLicensed] = useState(true);
 
     const [routerList, setRouterList] = useState([]);
@@ -80,6 +81,7 @@ function Routers() {
             radius_secret: driverType === "mikrotik_radius" ? radiusSecret : null,
             gw_id: driverType === "ruijie_wifidog" ? gwId : null,
             mac_address: macAddress,
+            ip_address: ipAddress,
             is_licensed: isLicensed,
             status: "offline",
             last_heartbeat_at: null
@@ -122,6 +124,7 @@ function Routers() {
                 radius_secret: driverType === "mikrotik_radius" ? radiusSecret : null,
                 gw_id: driverType === "ruijie_wifidog" ? gwId : null,
                 mac_address: macAddress,
+                ip_address: ipAddress,
                 is_licensed: isLicensed,
                 status: "offline"
             })
@@ -162,6 +165,7 @@ function Routers() {
         setRouterName(router.router_name);
         setDriverType(router.driver_type);
         setMacAddress(router.mac_address || "");
+        setIpAddress(router.ip_address || "");
         if (router.driver_type === "mikrotik_radius") {
             setNasIdentifier(router.nas_identifier || "");
             setRadiusSecret(router.radius_secret || "");
@@ -179,6 +183,7 @@ function Routers() {
         setRadiusSecret("");
         setGwId("");
         setMacAddress("");
+        setIpAddress("");
         setEditingRouterId(null);
         setProvisioningScript("");
     };
@@ -913,6 +918,17 @@ function Routers() {
                         </div>
 
                         <div className="form-group">
+                            <label>Physical Router IP Address</label>
+                            <input
+                                type="text"
+                                required
+                                placeholder="e.g., 192.168.1.1"
+                                value={ipAddress}
+                                onChange={(e) => setIpAddress(e.target.value.trim())}
+                            />
+                        </div>
+
+                        <div className="form-group">
                             <div className="checkbox-group">
                                 <input
                                     type="checkbox"
@@ -991,6 +1007,7 @@ function Routers() {
                                     <div className="router-details">
                                         <div><strong>Driver:</strong> <span className="detail-value">{router.driver_type}</span></div>
                                         <div><strong>MAC:</strong> <span className="detail-value">{router.mac_address}</span></div>
+                                        <div><strong>IP:</strong> <span className="detail-value">{router.ip_address || "N/A"}</span></div>
                                         <div><strong>Licensed:</strong> <span className="detail-value">{router.is_licensed ? "✅ Yes" : "❌ No"}</span></div>
                                         {router.driver_type === "mikrotik_radius" && router.nas_identifier && (
                                             <div><strong>NAS ID:</strong> <span className="detail-value">{router.nas_identifier}</span></div>

@@ -18,3 +18,6 @@
 postgres:pg_restore --no-owner --no-privileges -d "" local_backup.dump
 
 pg_restore --no-owner --no-privileges -d "YOUR_RENDER_EXTERNAL_DATABASE_URL" local_backup.dump
+
+$env:PGPASSWORD="YOUR_PASSWORD"
+psql "host=dpg-dad61t2fngtc73805t6g-a.oregon-postgres.render.com port=5432 dbname=one_hfrg user=one_hfrg_user sslmode=require"

@@ -17,6 +17,7 @@ class RouterService:
         radius_secret: Optional[str],
         gw_id: Optional[str],
         mac_address: str,
+        ip_address: object,
         is_licensed: bool,
         status: str,
         last_heartbeat_at: Optional[datetime]
@@ -45,6 +46,7 @@ class RouterService:
             "radius_secret": radius_secret if driver_type == 'radius_aaa' else None,
             "gw_id": gw_id if driver_type == 'wifidog_http' else None,
             "mac_address": mac_address,
+            "ip_address": str(ip_address),
             "is_licensed": is_licensed,
             "status": status,
             "last_heartbeat_at": last_heartbeat_at.isoformat() if last_heartbeat_at else None
@@ -56,6 +58,7 @@ class RouterService:
             
             # Generate a 100% automated copy-paste terminal script for MikroTik WinBox
             automated_script = (
+                f"# Router management IP: {ip_address}; "
                 f"/radius remove [find]; "
                 f"/radius add service=hotspot address={system_ip} secret=\"{radius_secret}\" authentication-port=1812 accounting-port=1813; "
                 f"/ip hotspot profile add name=SmartNetProfile hotspot-address=10.10.10.1 login-by=http-chap,cookie split-user-domain=no; "
@@ -88,7 +91,8 @@ class RouterService:
                     "Gateway ID (gw_id)": gw_id,
                     "Auth Server Host": system_domain,
                     "Auth Server Port": 80,
-                    "Auth Server Path": "/api/wifidog/"
+                    "Auth Server Path": "/api/wifidog/",
+                    "Router Management IP": str(ip_address)
                 }
             }
 

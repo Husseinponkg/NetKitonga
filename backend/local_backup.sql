@@ -898,6 +898,17 @@ ALTER TABLE ONLY public.buyers
 ALTER TABLE ONLY public.packages
     ADD CONSTRAINT packages_tenant_id_fkey FOREIGN KEY (tenant_id) REFERENCES public.tenants(id) ON DELETE CASCADE;
 
+-- Add the physical router address to databases restored from this backup.
+ALTER TABLE public.routers
+    ADD COLUMN IF NOT EXISTS ip_address INET;
+
+UPDATE public.routers
+SET ip_address = '0.0.0.0'
+WHERE ip_address IS NULL;
+
+ALTER TABLE public.routers
+    ALTER COLUMN ip_address SET NOT NULL;
+
 
 --
 -- Name: payments payments_branch_id_fkey; Type: FK CONSTRAINT; Schema: public; Owner: postgres

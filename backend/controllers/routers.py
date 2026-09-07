@@ -23,8 +23,8 @@ class RouterController:
                     INSERT INTO routers (
                         tenant_id, branch_id, router_name, driver_type, 
                         nas_identifier, radius_secret, gw_id, mac_address, 
-                        is_licensed, status, last_heartbeat_at
-                    ) VALUES (%s, %s, %s, %s, %s, %s, %s, %s, %s, %s, %s) 
+                        ip_address, is_licensed, status, last_heartbeat_at
+                    ) VALUES (%s, %s, %s, %s, %s, %s, %s, %s, %s, %s, %s, %s)
                     RETURNING id;
                 """
                 
@@ -37,6 +37,7 @@ class RouterController:
                     router_data.radius_secret if router_data.driver_type == "mikrotik_radius" else None,
                     router_data.gw_id if router_data.driver_type == "ruijie_wifidog" else None,
                     router_data.mac_address,
+                    str(router_data.ip_address),
                     router_data.is_licensed,
                     router_data.status,
                     router_data.last_heartbeat_at
@@ -61,6 +62,7 @@ class RouterController:
                     radius_secret=router_data.radius_secret,
                     gw_id=router_data.gw_id,
                     mac_address=router_data.mac_address,
+                    ip_address=router_data.ip_address,
                     is_licensed=router_data.is_licensed,
                     status=router_data.status,
                     last_heartbeat_at=router_data.last_heartbeat_at
@@ -93,6 +95,7 @@ class RouterController:
                         radius_secret = COALESCE(%s, radius_secret),
                         gw_id = COALESCE(%s, gw_id),
                         mac_address = COALESCE(%s, mac_address),
+                        ip_address = COALESCE(%s, ip_address),
                         is_licensed = COALESCE(%s, is_licensed),
                         status = COALESCE(%s, status)
                     WHERE id = %s RETURNING id, status;
@@ -101,6 +104,7 @@ class RouterController:
                     router_data.router_name, router_data.driver_type,
                     router_data.nas_identifier, router_data.radius_secret,
                     router_data.gw_id, router_data.mac_address,
+                    str(router_data.ip_address) if router_data.ip_address else None,
                     router_data.is_licensed, router_data.status,
                     router_data.router_id
                 )
@@ -182,7 +186,7 @@ class RouterController:
         try:
             async with conn.cursor() as cursor:
                 await cursor.execute(
-                    "SELECT id, router_name, driver_type, nas_identifier, radius_secret, gw_id, mac_address, is_licensed, status, last_heartbeat_at FROM routers WHERE tenant_id = %s ORDER BY id",
+                    "SELECT id, router_name, driver_type, nas_identifier, radius_secret, gw_id, mac_address, ip_address, is_licensed, status, last_heartbeat_at FROM routers WHERE tenant_id = %s ORDER BY id",
                     (tenant_id,)
                 )
                 routers = await cursor.fetchall()

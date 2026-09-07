@@ -52,6 +52,7 @@ CREATE TABLE routers (
     
     -- Shared Network Telemetry & Licensing
     mac_address VARCHAR(50) NOT NULL UNIQUE,
+    ip_address INET NOT NULL,                 -- Physical router management address
     is_licensed BOOLEAN DEFAULT TRUE,        -- Enforces router addition limits
     status VARCHAR(20) DEFAULT 'offline',    -- 'online', 'offline'
     last_heartbeat_at TIMESTAMP NULL,        -- Dynamic monitoring update window
