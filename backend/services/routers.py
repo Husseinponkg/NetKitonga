@@ -20,7 +20,8 @@ class RouterService:
         ip_address: object,
         is_licensed: bool,
         status: str,
-        last_heartbeat_at: Optional[datetime]
+        last_heartbeat_at: Optional[datetime],
+        router_id: Optional[int] = None
     ) -> Dict[str, Any]:
         """
         Builds the target tracking payload and automatically generates zero-configuration
@@ -58,13 +59,12 @@ class RouterService:
         # 2. AUTOMATED SCRIPT GENERATION FOR MIKROTIK (RADIUS AAA PATH)
         if driver_type == "radius_aaa" or driver_type == "mikrotik_radius":
             api_url = f"{api_scheme}://{system_domain}{api_port}/routers/mikrotik/ping"
-            
-            # Generate a 100% automated copy-paste terminal script for MikroTik WinBox
+            portal_redirect_url = f"{api_scheme}://{system_domain}{api_port}/portal?router_id={router_id or ''}"
             heartbeat_url = f"{api_url}?nas_id={nas_identifier}"
             automated_script = (
                 f"/radius remove [find];\n"
                 f"/radius add service=hotspot address={system_ip} secret=\"{radius_secret}\" authentication-port=1812 accounting-port=1813;\n"
-                f"/ip hotspot profile add name=SmartNetProfile hotspot-address=10.10.10.1 login-by=http-chap,cookie split-user-domain=no;\n"
+                f"/ip hotspot profile add name=SmartNetProfile hotspot-address=10.10.10.1 login-by=http-chap,cookie split-user-domain=no redirect-to=\"{portal_redirect_url}\";\n"
                 f"/ip hotspot profile set SmartNetProfile use-radius=yes radius-interim-update=00:02:00;\n"
                 f"/ip hotspot add name=\"Hotspot_{branch_id}\" interface=ether2 profile=SmartNetProfile disabled=no;\n"
                 f"/ip firewall mangle add chain=postrouting out-interface=ether1 action=change-ttl new-ttl=set:1 comment=\"Anti-Hotspot-Sharing\";\n"

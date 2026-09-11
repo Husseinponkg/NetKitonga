@@ -65,7 +65,8 @@ class RouterController:
                     ip_address=router_data.ip_address,
                     is_licensed=router_data.is_licensed,
                     status=router_data.status,
-                    last_heartbeat_at=router_data.last_heartbeat_at
+                    last_heartbeat_at=router_data.last_heartbeat_at,
+                    router_id=new_router_id
                 )
                 
                 # 3. Combine response metadata to return to the user interface
