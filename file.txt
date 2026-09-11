@@ -1,0 +1,201 @@
+NET KITONGA API ENDPOINTS
+=========================
+
+Base URL
+--------
+Production: https://netkitonga.onrender.com
+Local:      http://localhost:8000
+
+FastAPI documentation
+---------------------
+GET  /docs       Interactive Swagger API documentation
+GET  /redoc      ReDoc API documentation
+GET  /openapi.json  OpenAPI schema
+
+Health
+------
+GET  /
+Returns the API health status.
+
+Authentication and tenant accounts
+----------------------------------
+POST /auth/register
+Body: { business_name, system_name, email, password }
+Creates a tenant account.
+
+POST /auth/login
+Body: { email, password }
+Logs in a tenant and returns the tenant user information.
+
+PUT  /auth/update
+Body: tenant update payload
+Updates tenant account details.
+
+DELETE /auth/delete
+Body: { id }
+Deletes a tenant account.
+
+Branches
+--------
+POST /branch/create
+Body: { tenant_id, branch_name, branch_location, branch_email, branch_phone, branch_manager }
+Creates a branch.
+
+PUT  /branch/update
+Body: { tenant_id, branch_id, branch_name, branch_location, branch_email, branch_phone, branch_manager }
+Updates a branch.
+
+DELETE /branch/delete
+Body: { tenant_id, branch_id }
+Deletes a branch.
+
+GET  /branch/all?tenant_id={tenant_id}
+Lists all branches belonging to a tenant.
+
+GET  /branch?tenant_id={tenant_id}
+Returns the default branch record for a tenant.
+
+Routers
+-------
+GET  /routers/?tenant_id={tenant_id}
+Lists routers belonging to a tenant.
+
+POST /routers/register
+Body fields:
+  tenant_id, branch_id, router_name, driver_type, mac_address, ip_address,
+  is_licensed, status, last_heartbeat_at
+
+  MikroTik fields:
+    nas_identifier, radius_secret
+
+  Ruijie/Wifidog fields:
+    gw_id
+
+The ip_address field is the physical router management IP address.
+The response also returns a generated hardware_config_block provisioning script.
+
+PUT  /routers/update
+Body fields:
+  router_id, router_name, driver_type, mac_address, ip_address,
+  nas_identifier, radius_secret, gw_id, is_licensed, status
+Updates a router configuration.
+
+DELETE /routers/delete
+Body: { router_id }
+Deletes a router.
+
+GET  /routers/status?router_id={router_id}
+Returns the router status and last heartbeat time.
+
+GET  /routers/mikrotik/ping?nas_id={nas_identifier}
+Physical MikroTik RouterOS heartbeat endpoint.
+The generated MikroTik script calls this endpoint every minute.
+Render example:
+  https://netkitonga.onrender.com/routers/mikrotik/ping?nas_id=YOUR_NAS_ID
+
+GET  /routers/wifidog/ping?gw_id={gateway_id}
+Physical Ruijie/OpenWrt Wifidog heartbeat endpoint.
+Returns plain-text Pong when the gateway is recognized.
+
+Packages
+--------
+POST /packages/create?tenant_id={tenant_id}
+Body: package creation payload
+Creates a package.
+
+GET  /packages/catalog?tenant_id={tenant_id}
+Lists packages belonging to a tenant.
+
+PUT  /packages/update?tenant_id={tenant_id}
+Body: package update payload
+Updates a package.
+
+DELETE /packages/delete?tenant_id={tenant_id}
+Body: package delete payload
+Deletes a package.
+
+Customers
+---------
+GET  /customers/list?tenant_id={tenant_id}
+Lists customers discovered for a tenant.
+
+DELETE /customers/delete
+Body: customer delete payload
+Deletes a customer.
+
+Payments
+--------
+POST /api/payments/checkout
+Body: checkout payload
+Starts a mobile-money payment checkout.
+
+POST /api/payments/portal/buyer
+Body: { tenant_id, buyer_mac, phone_number }
+Registers or finds a captive-portal buyer.
+
+GET  /api/payments/history?tenant_id={tenant_id}
+Returns tenant payment history.
+
+GET  /api/payments/income/stats?tenant_id={tenant_id}
+Returns income totals and payment statistics.
+
+POST /api/payments/webhook/callback
+Body: AzamPay callback JSON
+Required fields include externalId and transactionStatus.
+Public payment gateway callback endpoint.
+
+Active sessions
+---------------
+GET  /sessions/active?tenant_id={tenant_id}
+Lists active internet sessions for a tenant.
+
+POST /sessions/terminate
+Body: { tenant_id, session_id }
+Terminates an active session.
+
+Settings
+--------
+GET  /settings?tenant_id={tenant_id}
+Returns tenant settings.
+
+PUT  /settings
+Body: { tenant_id, business_name, system_name, email, password }
+Updates tenant settings. Password is optional.
+
+Wallet and withdrawals
+----------------------
+GET  /withdrawals/balance?tenant_id={tenant_id}
+Returns the tenant wallet balance.
+
+POST /withdrawals/request?tenant_id={tenant_id}
+Body: withdrawal request payload
+Creates a withdrawal request.
+
+GET  /withdrawals/history?tenant_id={tenant_id}
+Lists tenant withdrawal history.
+
+PUT  /withdrawals/update
+Body: withdrawal update payload
+Updates withdrawal status.
+
+POST /withdrawals/callback
+Body: payment provider callback JSON
+Processes a disbursement callback.
+
+Vouchers
+--------
+POST /vouchers/create?tenant_id={tenant_id}
+Body: voucher creation payload
+Creates vouchers for a tenant package.
+
+GET  /vouchers?tenant_id={tenant_id}
+Lists vouchers belonging to a tenant.
+
+Important deployment notes
+--------------------------
+1. The frontend currently uses VITE_API_URL when configured; otherwise it uses:
+   https://netkitonga.onrender.com
+2. Physical MikroTik routers must be able to reach the deployed HTTPS API.
+3. The MikroTik NAS identifier or Ruijie gateway ID must match the router record.
+4. The routers table must contain the ip_address INET column.
+5. Do not expose database passwords in source files or public documentation.

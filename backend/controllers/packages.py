@@ -25,3 +25,6 @@ class PackageController:
         if not success:
             raise HTTPException(status_code=404, detail="Target catalog bundle profile matching parameters not found.")
         return {"message": "Package profile successfully removed from product tables."}
+
+    async def fetch_public_packages(self, router_id: int) -> List[Dict[str, Any]]:
+        return await self.package_service.get_public_packages_by_router(router_id)

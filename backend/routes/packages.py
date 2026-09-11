@@ -25,3 +25,8 @@ async def handle_package_updates(package_data: PackageUpdate, tenant_id: int = Q
 async def handle_package_removal(package_data: PackageDelete, tenant_id: int = Query(...)):
     """Purges package entries out of the system environment using isolated identity parameters."""
     return await controller.remove_catalog_package(tenant_id, package_data)
+
+@package_endpoints.get("/public", response_model=List[Any])
+async def handle_public_package_catalog(router_id: int = Query(..., description="The router ID from the hotspot gateway")):
+    """Public endpoint for captive portal buyers. Resolves tenant from router and returns active packages."""
+    return await controller.fetch_public_packages(router_id)

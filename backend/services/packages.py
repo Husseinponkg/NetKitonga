@@ -106,3 +106,34 @@ class PackageService:
                 return True
         finally:
             await conn.close()
+
+    async def get_public_packages_by_router(self, router_id: int) -> List[dict]:
+        """Resolves the tenant from a router ID and returns its active packages for public portal access."""
+        conn = await connection()
+        try:
+            async with conn.cursor() as cursor:
+                await cursor.execute("SELECT tenant_id FROM routers WHERE id = %s;", (router_id,))
+                router_row = await cursor.fetchone()
+                if not router_row:
+                    return []
+                tenant_id = router_row[0]
+                query = """
+                    SELECT id, tenant_id, package_name, description, price, 
+                           duration_seconds, data_quota_bytes, mikrotik_rate_limit,
+                           wifidog_max_down_bandwidth, wifidog_max_up_bandwidth, status, created_at
+                    FROM packages WHERE tenant_id = %s AND status = 'active' ORDER BY price ASC;
+                """
+                await cursor.execute(query, (tenant_id,))
+                rows = await cursor.fetchall()
+                catalog = []
+                for row in rows:
+                    catalog.append({
+                        "id": row[0], "tenant_id": row[1], "package_name": row[2],
+                        "description": row[3], "price": float(row[4]), "duration_seconds": row[5],
+                        "data_quota_bytes": row[6], "mikrotik_rate_limit": row[7],
+                        "wifidog_max_down_bandwidth": row[8], "wifidog_max_up_bandwidth": row[9],
+                        "status": row[10], "created_at": row[11]
+                    })
+                return catalog
+        finally:
+            await conn.close()

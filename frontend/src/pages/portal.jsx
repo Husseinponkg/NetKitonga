@@ -27,7 +27,17 @@ function Portal() {
 
     const fetchActivePackages = async () => {
         try {
-            const response = await fetch(`${API_BASE_URL}/packages/catalog?tenant_id=${getTenantId()}`);
+            let url;
+            const loggedInTenantId = getTenantId();
+            if (loggedInTenantId) {
+                url = `${API_BASE_URL}/packages/catalog?tenant_id=${loggedInTenantId}`;
+            } else if (routerId) {
+                url = `${API_BASE_URL}/packages/public?router_id=${routerId}`;
+            } else {
+                throw new Error("Missing tenant or router identification.");
+            }
+
+            const response = await fetch(url);
             if (!response.ok) {
                 const errorData = await response.json().catch(() => ({}));
                 throw new Error(errorData.detail || `Server returned ${response.status}`);
