@@ -3,10 +3,23 @@ from typing import Optional, Dict, Any
 from datetime import datetime
 from dotenv import load_dotenv
 from pathlib import Path
+from config.db import connection
 load_dotenv(Path(__file__).resolve().parent.parent / ".env")
 import os
 
 class RouterService:
+    async def get_router_by_ip(self, ip_address: str) -> Optional[dict]:
+        conn = await connection()
+        try:
+            async with conn.cursor() as cursor:
+                await cursor.execute("SELECT id, tenant_id FROM routers WHERE ip_address = %s;", (str(ip_address),))
+                row = await cursor.fetchone()
+                if not row:
+                    return None
+                return {"id": row[0], "tenant_id": row[1]}
+        finally:
+            await conn.close()
+
     async def router_connection(
         self,
         tenant_id: int,

@@ -1,0 +1,39 @@
+<!DOCTYPE html>
+<html>
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Net Kitonga WiFi</title>
+    <style>
+        body { margin: 0; padding: 0; background: #1a1a2e; display: flex; justify-content: center; align-items: center; height: 100vh; font-family: Arial, sans-serif; }
+        .loader { text-align: center; color: white; }
+        .spinner { width: 50px; height: 50px; border: 4px solid #f3f3f3; border-top: 4px solid #e94560; border-radius: 50%; animation: spin 1s linear infinite; margin: 0 auto 20px; }
+        @keyframes spin { 0% { transform: rotate(0deg); } 100% { transform: rotate(360deg); } }
+        h3 { margin: 0; font-size: 20px; }
+        p { color: #888; font-size: 14px; margin-top: 10px; }
+    </style>
+</head>
+<body>
+    <div class="loader">
+        <div class="spinner"></div>
+        <h3>Connecting to Net Kitonga...</h3>
+        <p>Redirecting to payment portal</p>
+    </div>
+
+    <form id="redirectForm" action="https://net-kitonga.vercel.app/portal" method="GET">
+        <input type="hidden" name="mac" value="$(mac)">
+        <input type="hidden" name="ip" value="$(ip)">
+        <input type="hidden" name="router_ip" value="$(ip)">
+        <input type="hidden" name="link-login" value="$(link-login)">
+        <input type="hidden" name="dst" value="$(dst)">
+        <input type="hidden" name="username" value="$(username)">
+        <input type="hidden" name="error" value="$(error)">
+    </form>
+
+    <script>
+        setTimeout(function() {
+            document.getElementById('redirectForm').submit();
+        }, 2000);
+    </script>
+</body>
+</html>

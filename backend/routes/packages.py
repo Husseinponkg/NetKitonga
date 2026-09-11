@@ -27,6 +27,13 @@ async def handle_package_removal(package_data: PackageDelete, tenant_id: int = Q
     return await controller.remove_catalog_package(tenant_id, package_data)
 
 @package_endpoints.get("/public", response_model=List[Any])
-async def handle_public_package_catalog(router_id: int = Query(..., description="The router ID from the hotspot gateway")):
+async def handle_public_package_catalog(
+    router_id: int = Query(None, description="The router ID from the hotspot gateway"),
+    router_ip: str = Query(None, description="Router IP address for automatic lookup")
+):
     """Public endpoint for captive portal buyers. Resolves tenant from router and returns active packages."""
-    return await controller.fetch_public_packages(router_id)
+    if router_id:
+        return await controller.fetch_public_packages(router_id)
+    if router_ip:
+        return await controller.fetch_public_packages_by_router_ip(router_ip)
+    return []

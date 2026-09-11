@@ -28,3 +28,6 @@ class PackageController:
 
     async def fetch_public_packages(self, router_id: int) -> List[Dict[str, Any]]:
         return await self.package_service.get_public_packages_by_router(router_id)
+
+    async def fetch_public_packages_by_router_ip(self, router_ip: str) -> List[Dict[str, Any]]:
+        return await self.package_service.get_public_packages_by_router_ip(router_ip)

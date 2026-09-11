@@ -29,12 +29,16 @@ function Portal() {
         try {
             let url;
             const loggedInTenantId = getTenantId();
+            const routerIp = queryParams.get("router_ip");
+
             if (loggedInTenantId) {
                 url = `${API_BASE_URL}/packages/catalog?tenant_id=${loggedInTenantId}`;
             } else if (routerId) {
                 url = `${API_BASE_URL}/packages/public?router_id=${routerId}`;
+            } else if (routerIp) {
+                url = `${API_BASE_URL}/packages/public?router_ip=${encodeURIComponent(routerIp)}`;
             } else {
-                throw new Error("Missing tenant or router identification.");
+                throw new Error("Missing tenant, router_id, or router_ip.");
             }
 
             const response = await fetch(url);

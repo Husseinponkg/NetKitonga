@@ -8,6 +8,10 @@ from controllers.routers import RouterController
 router = APIRouter()
 controller = RouterController()
 
+@router.get("/lookup", response_model=Dict[str, Any])
+async def handle_router_lookup(ip_address: str = Query(..., description="Router IP address for automatic lookup")):
+    return await controller.lookup_router_by_ip(ip_address)
+
 # =====================================================================
 #  SECTION 1: DASHBOARD CRUD OPERATION PATHS (Frontend Form Handling)
 # =====================================================================

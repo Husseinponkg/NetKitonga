@@ -1,8 +1,12 @@
 from typing import List
 from config.db import connection
 from models.packages import PackageRegister, PackageUpdate, PackageDelete
+from services.routers import RouterService
 
 class PackageService:
+    def __init__(self):
+        self.router_service = RouterService()
+
     async def create_package(self, tenant_id: int, data: PackageRegister) -> bool:
         """Saves a tenant's brand-new pricing configuration into the postgres database catalogue."""
         conn = await connection()
@@ -137,3 +141,10 @@ class PackageService:
                 return catalog
         finally:
             await conn.close()
+
+    async def get_public_packages_by_router_ip(self, router_ip: str) -> List[dict]:
+        """Resolves the router by IP, then returns its active packages for public portal access."""
+        router_info = await self.router_service.get_router_by_ip(router_ip)
+        if not router_info:
+            return []
+        return await self.get_public_packages_by_router(router_info["id"])
