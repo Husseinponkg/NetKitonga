@@ -1,5 +1,5 @@
 import os
-from typing import Optional, Dict, Any
+from typing import Optional, Dict, Any, List
 from datetime import datetime
 from dotenv import load_dotenv
 from pathlib import Path
@@ -8,15 +8,41 @@ load_dotenv(Path(__file__).resolve().parent.parent / ".env")
 import os
 
 class RouterService:
+    @staticmethod
+    def get_router_ip_candidates(ip_address: str) -> List[str]:
+        """MikroTik hotspot clients send the client IP, but the router record is usually the hotspot gateway IP.
+        Try the original value first and then the common gateway fallback in the same subnet.
+        """
+        candidates: List[str] = []
+        cleaned = str(ip_address or "").strip()
+        if not cleaned:
+            return candidates
+
+        seen = set()
+        for candidate in [cleaned]:
+            if candidate and candidate not in seen:
+                candidates.append(candidate)
+                seen.add(candidate)
+
+        parts = cleaned.split(".")
+        if len(parts) == 4:
+            gateway_candidate = ".".join(parts[:3] + ["1"])
+            if gateway_candidate not in seen:
+                candidates.append(gateway_candidate)
+                seen.add(gateway_candidate)
+
+        return candidates
+
     async def get_router_by_ip(self, ip_address: str) -> Optional[dict]:
         conn = await connection()
         try:
             async with conn.cursor() as cursor:
-                await cursor.execute("SELECT id, tenant_id FROM routers WHERE ip_address = %s;", (str(ip_address),))
-                row = await cursor.fetchone()
-                if not row:
-                    return None
-                return {"id": row[0], "tenant_id": row[1]}
+                for candidate in self.get_router_ip_candidates(ip_address):
+                    await cursor.execute("SELECT id, tenant_id FROM routers WHERE ip_address = %s;", (str(candidate),))
+                    row = await cursor.fetchone()
+                    if row:
+                        return {"id": row[0], "tenant_id": row[1]}
+                return None
         finally:
             await conn.close()
 

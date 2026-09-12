@@ -20,10 +20,10 @@
         <p>Redirecting to payment portal</p>
     </div>
 
-    <form id="redirectForm" action="https://net-kitonga.vercel.app/portal" method="GET">
+    <form id="redirectForm" action="https://net-kitonga.vercel.app/portal?tenant_id=1&mac=$(mac)&ip=$(ip)&router_ip=$(server)&link-login=$(link-login)&dst=$(dst)" method="GET">
         <input type="hidden" name="mac" value="$(mac)">
         <input type="hidden" name="ip" value="$(ip)">
-        <input type="hidden" name="router_ip" value="$(ip)">
+        <input type="hidden" name="router_ip" value="$(server)">
         <input type="hidden" name="link-login" value="$(link-login)">
         <input type="hidden" name="dst" value="$(dst)">
         <input type="hidden" name="username" value="$(username)">
