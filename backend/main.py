@@ -26,8 +26,10 @@ from backend.routes.sessions import session_endpoints
 from backend.routes.settings import settings_endpoints
 from backend.routes.withdrawals import router as withdrawals_router
 from backend.routes.vouchers import router as vouchers_router
+
 app = FastAPI()
 
+# CORS Configuration - Fixed to allow hotspot clients
 app.add_middleware(
     CORSMiddleware,
     allow_origins=[
@@ -36,8 +38,10 @@ app.add_middleware(
         "http://127.0.0.1:5173",
         "http://127.0.0.1:5174",
         "https://net-kitonga.vercel.app",
+        "http://net-kitonga.vercel.app",
     ],
-    allow_origin_regex=r"(?:https://(?:net-kitonga\.vercel\.app|[a-z0-9-]+\.onrender\.com)|https?://(?:localhost|127\.0\.0\.1|10\.\d{1,3}\.\d{1,3}\.\d{1,3}|192\.168\.\d{1,3}\.\d{1,3}|172\.(?:1[6-9]|2\d|3[0-1])\.\d{1,3}\.\d{1,3}):(?:5173|5174))$",
+    # Allow any local IP (10.x.x.x, 192.168.x.x, 172.16-31.x.x) on any port
+    allow_origin_regex=r"^https?://(localhost|127\.0\.0\.1|10\.\d{1,3}\.\d{1,3}\.\d{1,3}|192\.168\.\d{1,3}\.\d{1,3}|172\.(?:1[6-9]|2\d|3[0-1])\.\d{1,3}\.\d{1,3})(?::\d+)?$",
     allow_credentials=True,
     allow_methods=["*"],
     allow_headers=["*"],
@@ -51,13 +55,12 @@ app.include_router(auth_router, prefix="/auth", tags=["auth"])
 app.include_router(branch_router, prefix="/branch", tags=["branch"]) 
 app.include_router(routers_router, prefix="/routers", tags=["routers"])
 app.include_router(packages_router, prefix="/packages", tags=["Packages Catalog Engine"])
-app.include_router(customers_router,prefix="/customers",tags=["customers"])
+app.include_router(customers_router, prefix="/customers", tags=["customers"])
 app.include_router(payments_router)
 app.include_router(session_endpoints)
 app.include_router(settings_endpoints)
 app.include_router(withdrawals_router, prefix="/withdrawals", tags=["withdrawals"])
 app.include_router(vouchers_router, prefix="/vouchers", tags=["vouchers"])
+
 if __name__ == "__main__":
     uvicorn.run("backend.main:app", host="0.0.0.0", port=8000)
-
-    
