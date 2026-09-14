@@ -1,0 +1,109 @@
+# Correct MikroTik Hotspot config for Net Kitonga portal
+# Purpose: allow users on WiFi to open portal, resolve tenant by router IP,
+# and fetch the correct package catalog without a blank screen.
+
+# 1) Hotspot profile
+/ip hotspot profile
+add name=hsprof1 hotspot-address=10.10.10.1 dns-name=hotspot.netkitonga.local login-by=http-chap,http-pap
+
+# 2) Pool + DHCP
+/ip pool
+add name=hotspot-pool ranges=10.10.10.10-10.10.10.254
+
+/ip dhcp-server
+add name=hotspot-dhcp interface=ether2 address-pool=hotspot-pool lease-time=1h
+
+# 3) Network + routes
+/ip address
+add address=192.168.1.188/24 comment=WAN interface=ether1 network=192.168.1.0
+add address=10.10.10.1/24 comment=HOTSPOT interface=ether2 network=10.10.10.0
+
+/ip dhcp-server network
+add address=10.10.10.0/24 gateway=10.10.10.1 dns-server=10.10.10.1
+
+/ip route
+add comment="ISP Default Route" dst-address=0.0.0.0/0 gateway=192.168.1.1
+
+# 4) DNS
+/ip dns
+set allow-remote-requests=yes servers=1.1.1.1,8.8.8.8
+
+/ip dns static
+add address=10.10.10.1 name=hotspot.netkitonga.local ttl=1h type=A
+add address=216.245.75.15 name=netkitonga.onrender.com type=A
+add address=216.245.75.15 name=net-kitonga.vercel.app type=A
+
+# 5) Firewall (safe baseline)
+/ip firewall filter
+add action=accept chain=input comment="Allow established/related" connection-state=established,related
+add action=accept chain=input comment="Allow ping" protocol=icmp
+add action=accept chain=input comment="Allow DNS from hotspot (UDP)" dst-port=53 in-interface=ether2 protocol=udp
+add action=accept chain=input comment="Allow DNS from hotspot (TCP)" dst-port=53 in-interface=ether2 protocol=tcp
+add action=accept chain=input comment="Allow Winbox" dst-port=8291 protocol=tcp
+add action=accept chain=input comment="Allow SSH" dst-port=22 protocol=tcp
+add action=accept chain=input comment="Allow hotspot client traffic" in-interface=ether2
+add action=drop chain=input comment="Drop other input"
+
+add action=accept chain=forward comment="Allow established/related" connection-state=established,related
+add action=accept chain=forward comment="Hotspot to Internet" in-interface=ether2 out-interface=ether1
+add action=drop chain=forward comment="Drop invalid" connection-state=invalid
+
+# 6) NAT for internet access
+/ip firewall nat
+add action=masquerade chain=srcnat comment="Hotspot Internet NAT" out-interface=ether1
+
+# 7) Create hotspot instance
+/ip hotspot
+add name=netkitonga-hotspot interface=ether2 address-pool=hotspot-pool profile=hsprof1 disabled=no
+
+# 8) Walled garden for portal + API access
+/ip hotspot walled-garden
+add action=allow comment="Allow Vercel frontend" dst-host=net-kitonga.vercel.app
+add action=allow comment="Allow Render backend" dst-host=netkitonga.onrender.com
+add action=allow comment="Allow DNS" dst-host=1.1.1.1
+add action=allow comment="Allow DNS fallback" dst-host=8.8.8.8
+
+# Optional if your environment uses explicit IPs:
+# /ip hotspot walled-garden ip
+# add action=allow disabled=no dst-address=216.245.75.15
+
+# 9) Health check script (optional but useful)
+/system script
+add name=RenderHealthCheck owner=admin policy=ftp,reboot,read,write,policy,test,password,sniff,sensitive,romon source="/tool fetch url=\"https://netkitonga.onrender.com/health\" mode=https keep-result=no"
+
+/system scheduler
+add name=RenderHealthScheduler interval=10m on-event="/system script run RenderHealthCheck" policy=ftp,reboot,read,write,policy,test,password,sniff,sensitive,romon start-time=startup
+
+# 10) Cloud ping / heartbeat: let router call the Net Kitonga backend
+/system script
+add name=CloudPing owner=admin policy=ftp,reboot,read,write,policy,test,password,sniff,sensitive,romon source="/tool fetch url=\"https://netkitonga.onrender.com/routers/mikrotik/ping?nas_id=netkitonga-router\" mode=https keep-result=no"
+
+/system scheduler
+add name=Run_CloudPing interval=1m on-event="/system script run CloudPing" policy=ftp,reboot,read,write,policy,test,password,sniff,sensitive,romon start-time=startup
+
+/system script run CloudPing
+
+# 11) Clock
+/system clock
+set time-zone-name=Africa/Dar_es_Salaam
+
+# 11) Optional: turn on hotspot discovery settings
+/ip neighbor discovery-settings
+set discover-interface-list=!dynamic
+
+# 12) Test user
+/ip hotspot user
+add name=test password="test123"
+
+# 13) Login page redirect to portal (recommended)
+# Use the portal route with router_ip + mac so the system resolves the tenant automatically.
+# Example HTML form:
+# action="https://net-kitonga.vercel.app/portal?router_ip=$(server)&mac=$(mac)&ip=$(ip)&dst=$(dst)"
+
+# IMPORTANT:
+# The app expects either:
+#   - tenant_id=... , or
+#   - router_id=... , or
+#   - router_ip=...
+# The safest option is router_ip because it resolves the tenant automatically.
+# Do NOT hardcode tenant_id=1 in a multi-tenant hotspot unless it is the real tenant.
