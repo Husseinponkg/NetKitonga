@@ -10,6 +10,7 @@
 /system script add name="CloudPing" source={
     /tool fetch url="http://192.168.1.169:8000/routers/mikrotik/ping?nas_id=mikrotik-vbox-01" mode=http keep-result=no
 }
+psql "host=dpg-dad61t2fngtc73805t6g-a.oregon-postgres.render.com port=5432 dbname=one_hfrg user=one_hfrg_user sslmode=require"
 
 /system script run CloudPing
 

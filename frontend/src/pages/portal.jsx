@@ -15,7 +15,8 @@ function Portal() {
     const API_BASE_URL = API_ROOT;
 
     const queryParams = new URLSearchParams(window.location.search);
-    const tenantId = queryParams.get("tenant_id");
+    const pathTenantId = window.location.pathname.split("/").filter(Boolean).pop();
+    const tenantId = queryParams.get("tenant_id") || pathTenantId || null;
     const branchId = queryParams.get("branch_id");
     const routerId = queryParams.get("router_id");
     const buyerMac = queryParams.get("mac") || "unknown-device";

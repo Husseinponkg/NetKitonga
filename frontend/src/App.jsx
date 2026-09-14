@@ -25,7 +25,7 @@ function App() {
       <Routes>
         <Route path="/" element={<Login />} />
         <Route path="/register" element={<Register />} />
-        <Route path="/portal" element={<CaptivePortal />} />
+        <Route path="/portal/:tenantId?" element={<CaptivePortal />} />
         <Route path="/dashboard" element={<ProtectedRoute><Dashboard /></ProtectedRoute>} />
         <Route path="/branch" element={<ProtectedRoute><Branch /></ProtectedRoute>} />
         <Route path="/routers" element={<ProtectedRoute><Routers /></ProtectedRoute>} />
