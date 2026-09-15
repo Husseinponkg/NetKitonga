@@ -15,22 +15,20 @@ from models.payments import CheckoutRequest, PortalBuyerRequest
 
 class PaymentService:
     def __init__(self):
-        # Use explicit endpoint overrides first, then the sandbox bases from .env.
-        auth_base_url = os.getenv(
-            "AUTHENTICATOR_SANDBOX_BASE_URL",
-            os.getenv("Authenticator_Sandbox_Base_Url", "https://authenticator-sandbox.azampay.co.tz"),
-        ).rstrip("/")
         checkout_base_url = os.getenv(
-            "AZAMPAY_SANDBOX_CHECKOUT_BASE_URL",
-            os.getenv("Azampay_Sandbox_Checkout_Base_Url", "https://sandbox.azampay.co.tz"),
+            "AZAMPAY_CHECKOUT_BASE_URL",
+            os.getenv(
+                "AZAMPAY_SANDBOX_CHECKOUT_BASE_URL",
+                os.getenv("Azampay_Sandbox_Checkout_Base_Url", "https://sandbox.azampay.co.tz"),
+            ),
         ).rstrip("/")
-        self.auth_url = os.getenv(
-            "AZAMPAY_AUTH_URL",
-            f"{auth_base_url}/AppRegistration/GenerateToken",
-        )
+        self.auth_url = "https://authenticator-sandbox.azampay.co.tz/AppRegistration/GenerateToken"
         self.checkout_url = os.getenv(
-            "AZAMPAY_CHECKOUT_URL",
-            f"{checkout_base_url}/api/azampay/mno/checkout",
+            "AZAMPAY_MNO",
+            os.getenv(
+                "AZAMPAY_CHECKOUT_URL",
+                f"{checkout_base_url}/azampay/mno/checkout",
+            ),
         )
         
         # Pull parameters dynamically from your central environment (.env)
