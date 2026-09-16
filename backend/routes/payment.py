@@ -1,6 +1,7 @@
 
 from fastapi import APIRouter, Query, Depends, status, HTTPException, Body
 from typing import List, Dict, Any
+import requests
 from models.payments import CheckoutRequest, PaymentHistoryResponse, PortalBuyerRequest
 from services.payments import PaymentService
 from controllers.payments import PaymentController
@@ -8,6 +9,49 @@ from controllers.payments import PaymentController
 payment_endpoints = APIRouter(prefix="/api/payments", tags=["AzamPay Micro-Billing Engine"])
 service = PaymentService()
 controller = PaymentController()
+
+@payment_endpoints.get("/azampay/diagnostic")
+async def handle_azampay_diagnostic():
+    auth_ok = False
+    checkout_ok = False
+    auth_error = None
+    checkout_error = None
+    try:
+        token = service._get_bearer_token()
+        auth_ok = bool(token)
+    except Exception as err:
+        auth_error = str(err)
+
+    try:
+        response = requests.post(
+            service.checkout_url,
+            json={
+                "accountNumber": "0712345678",
+                "additionalProperties": {},
+                "amount": 100.0,
+                "currency": "TZS",
+                "externalId": "DIAGNOSTIC-123",
+                "provider": "Mpesa",
+            },
+            headers={
+                "Content-Type": "application/json",
+                "Authorization": f"Bearer {token if auth_ok else 'missing'}",
+            },
+            timeout=service.checkout_timeout,
+        )
+        checkout_ok = response.status_code in (200, 201, 202)
+        checkout_error = response.text if not checkout_ok else None
+    except Exception as err:
+        checkout_error = str(err)
+
+    return {
+        "auth_url": service.auth_url,
+        "checkout_url": service.checkout_url,
+        "auth_ok": auth_ok,
+        "auth_error": auth_error,
+        "checkout_ok": checkout_ok,
+        "checkout_error": checkout_error,
+    }
 
 @payment_endpoints.post("/checkout", response_model=Dict[str, Any], status_code=status.HTTP_200_OK)
 async def handle_checkout_trigger(payload: CheckoutRequest):

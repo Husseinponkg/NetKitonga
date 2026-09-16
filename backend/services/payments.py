@@ -5,10 +5,13 @@ from pathlib import Path
 import requests
 from typing import List, Dict, Any
 from fastapi import HTTPException, status
+from dotenv import load_dotenv
 
 backend_dir = str(Path(__file__).resolve().parents[1])
 if backend_dir not in sys.path:
     sys.path.insert(0, backend_dir)
+
+load_dotenv(Path(__file__).resolve().parent.parent / ".env")
 
 from config.db import connection
 from models.payments import CheckoutRequest, PortalBuyerRequest
@@ -22,7 +25,13 @@ class PaymentService:
                 os.getenv("Azampay_Sandbox_Checkout_Base_Url", "https://sandbox.azampay.co.tz"),
             ),
         ).rstrip("/")
-        self.auth_url = "https://authenticator-sandbox.azampay.co.tz/AppRegistration/GenerateToken"
+        self.auth_url = os.getenv(
+            "AZAMPAY_AUTH_URL",
+            os.getenv(
+                "AZAMPAY_SANDBOX_AUTH_URL",
+                f"{checkout_base_url}/AppRegistration/GenerateToken",
+            ),
+        )
         self.checkout_url = os.getenv(
             "AZAMPAY_MNO",
             os.getenv(
@@ -102,7 +111,7 @@ class PaymentService:
                 token = self._get_bearer_token()
                 
                 # 5. Build payment payload context exactly matching the AzamPay payload structure
-                payload = {
+                checkout_payload = {
                     "accountNumber": data.phone_number,
                     "additionalProperties": {},
                     "amount": float(amount),
@@ -111,7 +120,7 @@ class PaymentService:
                     "provider": data.provider
                 }
                 
-                headers = {
+                checkout_headers = {
                     "Content-Type": "application/json",
                     "Authorization": f"Bearer {token}"
                 }
@@ -122,8 +131,8 @@ class PaymentService:
                     try:
                         response = requests.post(
                             self.checkout_url,
-                            json=payload,
-                            headers=headers,
+                            json=checkout_payload,
+                            headers=checkout_headers,
                             timeout=self.checkout_timeout,
                         )
                         if response.status_code in (200, 201, 202):
