@@ -107,3 +107,78 @@ add name=test password="test123"
 #   - router_ip=...
 # The safest option is router_ip because it resolves the tenant automatically.
 # Do NOT hardcode tenant_id=1 in a multi-tenant hotspot unless it is the real tenant.
+/ip hotspot profile
+add name=hsprof1 hotspot-address=10.10.10.1 dns-name=hotspot.netkitonga.local login-by=http-chap,http-pap
+
+/ip pool
+add name=hotspot-pool ranges=10.10.10.10-10.10.10.254
+
+/ip dhcp-server
+add name=hotspot-dhcp interface=ether2 address-pool=hotspot-pool lease-time=1h
+
+/ip address
+add address=192.168.1.188/24 comment=WAN interface=ether1 network=192.168.1.0
+add address=10.10.10.1/24 comment=HOTSPOT interface=ether2 network=10.10.10.0
+
+/ip dhcp-server network
+add address=10.10.10.0/24 gateway=10.10.10.1 dns-server=10.10.10.1
+
+/ip route
+add dst-address=0.0.0.0/0 gateway=192.168.1.1
+
+/ip dns
+set allow-remote-requests=yes servers=1.1.1.1,8.8.8.8
+
+/ip dns static
+add address=10.10.10.1 name=hotspot.netkitonga.local ttl=1h type=A
+add address=216.245.75.15 name=netkitonga.onrender.com type=A
+add address=216.245.75.15 name=net-kitonga.vercel.app type=A
+
+/ip firewall filter
+add action=accept chain=input connection-state=established,related
+add action=accept chain=input protocol=icmp
+add action=accept chain=input dst-port=53 in-interface=ether2 protocol=udp
+add action=accept chain=input dst-port=53 in-interface=ether2 protocol=tcp
+add action=accept chain=input dst-port=8291 protocol=tcp
+add action=accept chain=input dst-port=22 protocol=tcp
+add action=accept chain=input in-interface=ether2
+add action=drop chain=input
+
+add action=accept chain=forward connection-state=established,related
+add action=accept chain=forward in-interface=ether2 out-interface=ether1
+add action=drop chain=forward connection-state=invalid
+
+/ip firewall nat
+add action=masquerade chain=srcnat out-interface=ether1
+
+/ip hotspot
+add name=netkitonga-hotspot interface=ether2 address-pool=hotspot-pool profile=hsprof1 disabled=no
+
+/ip hotspot walled-garden
+add action=allow dst-host=net-kitonga.vercel.app
+add action=allow dst-host=netkitonga.onrender.com
+add action=allow dst-host=1.1.1.1
+add action=allow dst-host=8.8.8.8
+
+/system script
+add name=RenderHealthCheck owner=admin policy=ftp,reboot,read,write,policy,test,password,sniff,sensitive,romon source="/tool fetch url=\"https://netkitonga.onrender.com/health\" mode=https keep-result=no"
+
+/system scheduler
+add name=RenderHealthScheduler interval=10m on-event="/system script run RenderHealthCheck" policy=ftp,reboot,read,write,policy,test,password,sniff,sensitive,romon start-time=startup
+
+/system script
+add name=CloudPing owner=admin policy=ftp,reboot,read,write,policy,test,password,sniff,sensitive,romon source="/tool fetch url=\"https://netkitonga.onrender.com/routers/mikrotik/ping?nas_id=nas-03\" mode=https keep-result=no"
+
+/system scheduler
+add name=Run_CloudPing interval=1m on-event="/system script run CloudPing" policy=ftp,reboot,read,write,policy,test,password,sniff,sensitive,romon start-time=startup
+
+/system script run CloudPing
+
+/system clock
+set time-zone-name=Africa/Dar_es_Salaam
+
+/ip neighbor discovery-settings
+set discover-interface-list=!dynamic
+
+/ip hotspot user
+add name=test password="test123"

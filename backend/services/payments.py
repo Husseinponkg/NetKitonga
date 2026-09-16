@@ -30,6 +30,8 @@ class PaymentService:
                 f"{checkout_base_url}/azampay/mno/checkout",
             ),
         )
+        self.checkout_timeout = int(os.getenv("AZAMPAY_CHECKOUT_TIMEOUT", "30"))
+        self.checkout_retries = int(os.getenv("AZAMPAY_CHECKOUT_RETRIES", "2"))
         
         # Pull parameters dynamically from your central environment (.env)
         self.app_name = os.getenv("AZAMPAY_APP_NAME")
@@ -114,22 +116,34 @@ class PaymentService:
                     "Authorization": f"Bearer {token}"
                 }
                 
-                # 6. Execute direct outbound network MNO checkout trigger
-                response = requests.post(self.checkout_url, json=payload, headers=headers, timeout=15)
+                # 6. Execute direct outbound network MNO checkout trigger with retries
+                last_error = None
+                for attempt in range(1, self.checkout_retries + 1):
+                    try:
+                        response = requests.post(
+                            self.checkout_url,
+                            json=payload,
+                            headers=headers,
+                            timeout=self.checkout_timeout,
+                        )
+                        if response.status_code in (200, 201, 202):
+                            return {
+                                "status": "pending",
+                                "payment_id": new_payment_id,
+                                "gateway_reference": external_id,
+                                "auth_token": auth_token,
+                                "message": "AzamPay transaction initiated. Please enter your mobile money PIN to connect."
+                            }
+                        last_error = f"AzamPay push prompt rejected (attempt {attempt}): {response.text}"
+                    except requests.exceptions.Timeout as err:
+                        last_error = f"Checkout timeout after {self.checkout_timeout}s (attempt {attempt}): {str(err)}"
+                    except requests.exceptions.RequestException as err:
+                        last_error = f"Checkout network error (attempt {attempt}): {str(err)}"
+                        break
                 
-                if response.status_code in (200, 201, 202):
-                    return {
-                        "status": "pending",
-                        "payment_id": new_payment_id,
-                        "gateway_reference": external_id,
-                        "auth_token": auth_token,
-                        "message": "AzamPay transaction initiated. Please enter your mobile money PIN to connect."
-                    }
-                else:
-                    # Update local database status record if the gateway rejects parameters explicitly
-                    await cursor.execute("UPDATE payments SET status = 'failed' WHERE id = %s;", (new_payment_id,))
-                    await conn.commit()
-                    raise HTTPException(status_code=400, detail=f"AzamPay push prompt rejected: {response.text}")
+                await cursor.execute("UPDATE payments SET status = 'failed' WHERE id = %s;", (new_payment_id,))
+                await conn.commit()
+                raise HTTPException(status_code=400, detail=f"Checkout execution failed: {last_error}")
                     
         except Exception as e:
             await conn.rollback()
