@@ -1,6 +1,25 @@
 import React, { useState, useEffect } from "react";
 import { API_BASE_URL as API_ROOT } from "../api";
 
+// ====================================================================
+// PROVIDER LOGOS
+// --------------------------------------------------------------------
+// Drop these image files into your /public folder (or adjust paths):
+//   public/mpesa.png
+//   public/tigo.png
+//   public/airtel.png
+//   public/halopesa.png
+//   public/azampesa.png
+// If images fail to load, the card falls back to a text placeholder.
+// ====================================================================
+const PROVIDERS = [
+  { id: "Mpesa",    name: "M-Pesa",       logo: "./public/mpesa.jpg" },
+  { id: "Tigo",     name: "Tigo Pesa",    logo: "./public/yas.png" },
+  { id: "Airtel",   name: "Airtel Money", logo: "./public/airtelmoney.png" },
+  { id: "Halopesa", name: "Halopesa",     logo: "./public/halopesa.jpg" },
+  { id: "Azampesa", name: "Azampesa",     logo: "./public/azampesa.jpg" },
+];
+
 function Portal() {
     const [packageCatalog, setPackageCatalog] = useState([]);
     const [selectedPackageId, setSelectedPackageId] = useState("");
@@ -11,6 +30,7 @@ function Portal() {
     
     const [uiMessage, setUiMessage] = useState("");
     const [isLoading, setIsLoading] = useState(false);
+    const [imageErrors, setImageErrors] = useState({});
 
     const API_BASE_URL = API_ROOT;
 
@@ -180,6 +200,17 @@ function Portal() {
         }
     };
 
+    const handleProviderSelect = (providerId) => {
+        setProvider(providerId);
+        if (uiMessage && !uiMessage.includes("PIN")) {
+            setUiMessage("");
+        }
+    };
+
+    const handleImageError = (providerId) => {
+        setImageErrors((prev) => ({ ...prev, [providerId]: true }));
+    };
+
     const getSelectedPackage = () => {
         return packageCatalog.find(pkg => pkg.id === selectedPackageId);
     };
@@ -192,7 +223,7 @@ function Portal() {
             display: "flex",
             justifyContent: "center",
             alignItems: "flex-start",
-            background: "#141414",
+            background: "#000000",
             fontFamily: "'Inter', -apple-system, BlinkMacSystemFont, 'Segoe UI', Roboto, sans-serif",
             padding: "16px 20px",
             margin: 0,
@@ -200,14 +231,12 @@ function Portal() {
             overflow: "hidden"
         }}>
             <style>{`
-                * {
-                    box-sizing: border-box;
-                }
+                * { box-sizing: border-box; }
 
                 body {
                     margin: 0;
                     padding: 0;
-                    background: #141414;
+                    background: #000000;
                 }
 
                 @keyframes slideUp {
@@ -218,10 +247,6 @@ function Portal() {
                     from { opacity: 0; }
                     to { opacity: 1; }
                 }
-                @keyframes pulse {
-                    0%, 100% { opacity: 1; }
-                    50% { opacity: 0.5; }
-                }
                 @keyframes shimmer {
                     0% { background-position: -200% center; }
                     100% { background-position: 200% center; }
@@ -229,18 +254,6 @@ function Portal() {
                 @keyframes spin {
                     0% { transform: rotate(0deg); }
                     100% { transform: rotate(360deg); }
-                }
-                @keyframes glowPulse {
-                    0%, 100% { box-shadow: 0 0 20px rgba(229, 9, 20, 0.05); }
-                    50% { box-shadow: 0 0 40px rgba(229, 9, 20, 0.12); }
-                }
-                @keyframes cardHover {
-                    0% { transform: translateY(0px); }
-                    100% { transform: translateY(-4px); }
-                }
-
-                .glow-pulse {
-                    animation: glowPulse 3s ease-in-out infinite;
                 }
 
                 .brand-gradient {
@@ -254,7 +267,7 @@ function Portal() {
                 .tab-btn {
                     background: transparent;
                     color: rgba(255,255,255,0.4);
-                    border: 1px solid rgba(255,255,255,0.06);
+                    border: 1px solid #1a1a1a;
                     transition: all 0.3s cubic-bezier(0.4, 0, 0.2, 1);
                     position: relative;
                     overflow: hidden;
@@ -276,37 +289,28 @@ function Portal() {
                     box-shadow: 0 0 30px rgba(229, 9, 20, 0.1);
                 }
 
-                .tab-btn.active::before {
-                    opacity: 0.08;
-                }
+                .tab-btn.active::before { opacity: 0.08; }
 
                 .tab-btn:hover:not(.active) {
                     border-color: rgba(229, 9, 20, 0.2);
                     color: rgba(255,255,255,0.7);
                 }
 
-                .form-input, .form-select {
+                .form-input {
                     background: rgba(255,255,255,0.04);
-                    border: 1px solid rgba(255,255,255,0.06);
+                    border: 1px solid #1f1f1f;
                     color: #ffffff;
                     transition: all 0.3s ease;
                 }
 
-                .form-input:focus, .form-select:focus {
+                .form-input:focus {
                     border-color: #e50914;
                     background: rgba(255,255,255,0.06);
                     box-shadow: 0 0 0 3px rgba(229, 9, 20, 0.08);
                     outline: none;
                 }
 
-                .form-input::placeholder {
-                    color: rgba(255,255,255,0.2);
-                }
-
-                .form-select option {
-                    background: #1a1a1a;
-                    color: #ffffff;
-                }
+                .form-input::placeholder { color: rgba(255,255,255,0.2); }
 
                 .submit-btn {
                     background: linear-gradient(135deg, #e50914, #c20812);
@@ -325,18 +329,14 @@ function Portal() {
                     transition: opacity 0.3s ease;
                 }
 
-                .submit-btn:hover:not(:disabled)::after {
-                    opacity: 1;
-                }
+                .submit-btn:hover:not(:disabled)::after { opacity: 1; }
 
                 .submit-btn:hover:not(:disabled) {
                     transform: translateY(-2px);
                     box-shadow: 0 8px 30px rgba(229, 9, 20, 0.25);
                 }
 
-                .submit-btn:active:not(:disabled) {
-                    transform: scale(0.97);
-                }
+                .submit-btn:active:not(:disabled) { transform: scale(0.97); }
 
                 .submit-btn:disabled {
                     opacity: 0.5;
@@ -359,9 +359,9 @@ function Portal() {
                 }
 
                 .message-box.success {
-                    background: rgba(76, 175, 80, 0.08);
-                    border-color: #81c784;
-                    color: #81c784;
+                    background: rgba(70, 211, 105, 0.08);
+                    border-color: #46d369;
+                    color: #46d369;
                 }
 
                 .message-box.error {
@@ -374,16 +374,15 @@ function Portal() {
                     background: rgba(255,255,255,0.03);
                     border-radius: 6px;
                     padding: 8px 14px;
-                    border: 1px solid rgba(255,255,255,0.04);
+                    border: 1px solid #1a1a1a;
                     font-size: 0.7rem;
                     color: rgba(255,255,255,0.25);
                     text-align: center;
                 }
 
-                .device-info strong {
-                    color: rgba(255,255,255,0.4);
-                }
+                .device-info strong { color: rgba(255,255,255,0.4); }
 
+                /* ===== PACKAGE GRID ===== */
                 .package-grid {
                     display: grid;
                     grid-template-columns: repeat(auto-fill, minmax(180px, 1fr));
@@ -394,23 +393,13 @@ function Portal() {
                     padding: 2px 2px 6px 2px;
                 }
 
-                .package-grid::-webkit-scrollbar {
-                    width: 3px;
-                }
-
-                .package-grid::-webkit-scrollbar-track {
-                    background: rgba(255,255,255,0.02);
-                    border-radius: 2px;
-                }
-
-                .package-grid::-webkit-scrollbar-thumb {
-                    background: rgba(229, 9, 20, 0.3);
-                    border-radius: 2px;
-                }
+                .package-grid::-webkit-scrollbar { width: 3px; }
+                .package-grid::-webkit-scrollbar-track { background: rgba(255,255,255,0.02); border-radius: 2px; }
+                .package-grid::-webkit-scrollbar-thumb { background: rgba(229, 9, 20, 0.3); border-radius: 2px; }
 
                 .package-card {
                     background: rgba(255,255,255,0.03);
-                    border: 2px solid rgba(255,255,255,0.05);
+                    border: 2px solid #1a1a1a;
                     border-radius: 8px;
                     padding: 14px 12px;
                     cursor: pointer;
@@ -427,9 +416,7 @@ function Portal() {
                     transform: translateY(-2px);
                 }
 
-                .package-card:active:not(.selected) {
-                    transform: scale(0.97);
-                }
+                .package-card:active:not(.selected) { transform: scale(0.97); }
 
                 .package-card.selected {
                     border-color: #e50914;
@@ -476,9 +463,7 @@ function Portal() {
                     line-height: 1.6;
                 }
 
-                .package-card .pkg-details span {
-                    display: block;
-                }
+                .package-card .pkg-details span { display: block; }
 
                 .package-card .pkg-badge {
                     display: inline-block;
@@ -495,9 +480,9 @@ function Portal() {
                 }
 
                 .package-card .pkg-badge.popular {
-                    background: rgba(76, 175, 80, 0.12);
-                    color: #81c784;
-                    border-color: rgba(76, 175, 80, 0.1);
+                    background: rgba(70, 211, 105, 0.12);
+                    color: #46d369;
+                    border-color: rgba(70, 211, 105, 0.1);
                 }
 
                 .package-card .pkg-badge.best-value {
@@ -506,6 +491,114 @@ function Portal() {
                     border-color: rgba(212, 175, 55, 0.1);
                 }
 
+                /* ===== PROVIDER GRID ===== */
+                .provider-grid {
+                    display: grid;
+                    grid-template-columns: repeat(auto-fill, minmax(100px, 1fr));
+                    gap: 8px;
+                }
+
+                .provider-card {
+                    background: rgba(255,255,255,0.03);
+                    border: 2px solid #1a1a1a;
+                    border-radius: 8px;
+                    padding: 10px 8px;
+                    cursor: pointer;
+                    transition: all 0.25s cubic-bezier(0.4, 0, 0.2, 1);
+                    position: relative;
+                    text-align: center;
+                    user-select: none;
+                    -webkit-tap-highlight-color: transparent;
+                    display: flex;
+                    flex-direction: column;
+                    align-items: center;
+                    justify-content: center;
+                    gap: 8px;
+                    min-height: 100px;
+                }
+
+                .provider-card:hover:not(.selected) {
+                    border-color: rgba(255,255,255,0.15);
+                    background: rgba(255,255,255,0.05);
+                    transform: translateY(-2px);
+                }
+
+                .provider-card:active:not(.selected) { transform: scale(0.96); }
+
+                .provider-card.selected {
+                    border-color: #e50914;
+                    background: rgba(229, 9, 20, 0.08);
+                    box-shadow: 0 0 24px rgba(229, 9, 20, 0.12);
+                    transform: translateY(-2px);
+                }
+
+                .provider-card.selected::after {
+                    content: '✓';
+                    position: absolute;
+                    top: -7px;
+                    right: -7px;
+                    background: #e50914;
+                    color: white;
+                    width: 20px;
+                    height: 20px;
+                    border-radius: 50%;
+                    font-size: 11px;
+                    font-weight: 700;
+                    display: flex;
+                    align-items: center;
+                    justify-content: center;
+                    box-shadow: 0 2px 10px rgba(229, 9, 20, 0.4);
+                }
+
+                .provider-logo-slot {
+                    width: 70px;
+                    height: 44px;
+                    border-radius: 6px;
+                    background: rgba(255,255,255,0.04);
+                    border: 1px solid #1f1f1f;
+                    display: flex;
+                    align-items: center;
+                    justify-content: center;
+                    flex-shrink: 0;
+                    overflow: hidden;
+                    padding: 4px;
+                }
+
+                .provider-logo-slot img {
+                    max-width: 100%;
+                    max-height: 100%;
+                    object-fit: contain;
+                    display: block;
+                }
+
+                .provider-logo-fallback {
+                    font-size: 0.5rem;
+                    color: rgba(255,255,255,0.2);
+                    letter-spacing: 0.5px;
+                    text-transform: uppercase;
+                    font-weight: 800;
+                    text-align: center;
+                    line-height: 1.1;
+                    word-break: break-word;
+                }
+
+                .provider-card.selected .provider-logo-slot {
+                    border-color: rgba(229, 9, 20, 0.6);
+                    background: rgba(229, 9, 20, 0.06);
+                    box-shadow: 0 0 12px rgba(229, 9, 20, 0.2);
+                }
+
+                .provider-name {
+                    font-size: 0.68rem;
+                    font-weight: 700;
+                    color: rgba(255,255,255,0.7);
+                    letter-spacing: 0.2px;
+                    line-height: 1.2;
+                }
+
+                .provider-card.selected .provider-name { color: #ffffff; }
+
+                /* ===== SELECTED SUMMARY ===== */
                 .selected-summary {
                     background: rgba(229, 9, 20, 0.04);
                     border: 1px solid rgba(229, 9, 20, 0.08);
@@ -539,65 +632,44 @@ function Portal() {
                     font-size: 1rem;
                 }
 
-                /* Mobile */
                 @media (max-width: 600px) {
                     .package-grid {
                         grid-template-columns: repeat(auto-fill, minmax(140px, 1fr));
                         gap: 8px;
                         max-height: 260px;
                     }
+                    .package-card { padding: 10px 8px; }
+                    .package-card .pkg-price { font-size: 0.95rem; }
 
-                    .package-card {
-                        padding: 10px 8px;
+                    .provider-grid {
+                        grid-template-columns: repeat(auto-fill, minmax(88px, 1fr));
+                        gap: 6px;
                     }
+                    .provider-card { min-height: 90px; padding: 8px 6px; }
+                    .provider-logo-slot { width: 58px; height: 36px; }
+                    .provider-name { font-size: 0.62rem; }
 
-                    .package-card .pkg-price {
-                        font-size: 0.95rem;
-                    }
-
-                    .selected-summary {
-                        flex-direction: column;
-                        text-align: center;
-                    }
+                    .selected-summary { flex-direction: column; text-align: center; }
                 }
 
                 @media (max-width: 400px) {
-                    .package-grid {
-                        grid-template-columns: 1fr 1fr;
-                        gap: 6px;
-                    }
+                    .package-grid { grid-template-columns: 1fr 1fr; gap: 6px; }
+                    .package-card { padding: 8px 6px; }
+                    .package-card .pkg-name { font-size: 0.75rem; }
+                    .package-card .pkg-price { font-size: 0.85rem; }
+                    .package-card .pkg-details { font-size: 0.55rem; }
 
-                    .package-card {
-                        padding: 8px 6px;
-                    }
-
-                    .package-card .pkg-name {
-                        font-size: 0.75rem;
-                    }
-
-                    .package-card .pkg-price {
-                        font-size: 0.85rem;
-                    }
-
-                    .package-card .pkg-details {
-                        font-size: 0.55rem;
-                    }
+                    .provider-grid { grid-template-columns: repeat(3, 1fr); }
+                    .provider-card { min-height: 80px; }
+                    .provider-logo-slot { width: 48px; height: 32px; }
+                    .provider-name { font-size: 0.55rem; }
                 }
 
-                /* Touch devices */
                 @media (hover: none) {
-                    .submit-btn:hover:not(:disabled) {
-                        transform: none;
-                        box-shadow: none;
-                    }
-
-                    .submit-btn:hover:not(:disabled)::after {
-                        opacity: 0;
-                    }
-
-                    .package-card:hover:not(.selected) {
-                        transform: none;
-                    }
+                    .submit-btn:hover:not(:disabled) { transform: none; box-shadow: none; }
+                    .submit-btn:hover:not(:disabled)::after { opacity: 0; }
+                    .package-card:hover:not(.selected) { transform: none; }
+                    .provider-card:hover:not(.selected) { transform: none; }
                 }
             `}</style>
 
@@ -626,13 +698,13 @@ function Portal() {
             <div style={{
                 maxWidth: "560px",
                 width: "100%",
-                background: "rgba(20, 20, 20, 0.95)",
+                background: "rgba(13, 13, 13, 0.95)",
                 backdropFilter: "blur(16px)",
                 WebkitBackdropFilter: "blur(16px)",
                 borderRadius: "16px",
                 padding: "24px 24px 20px",
-                border: "1px solid rgba(255,255,255,0.06)",
-                boxShadow: "0 20px 60px rgba(0,0,0,0.5)",
+                border: "1px solid #1a1a1a",
+                boxShadow: "0 20px 60px rgba(0,0,0,0.7)",
                 position: "relative",
                 animation: "slideUp 0.5s ease-out",
             }}>
@@ -645,13 +717,25 @@ function Portal() {
                         gap: "10px",
                         marginBottom: "2px"
                     }}>
-                        <span style={{ fontSize: "1.8rem" }}>🌐</span>
+                        <span style={{ 
+                            fontSize: "1.4rem",
+                            width: "36px",
+                            height: "36px",
+                            borderRadius: "6px",
+                            background: "#e50914",
+                            display: "flex",
+                            alignItems: "center",
+                            justifyContent: "center",
+                            color: "#fff",
+                            fontWeight: 900
+                        }}>▶</span>
                         <h1 style={{ 
                             margin: 0, 
                             fontSize: "1.6rem", 
-                            fontWeight: 700,
+                            fontWeight: 900,
                             letterSpacing: "-0.5px",
-                            color: "#ffffff"
+                            color: "#ffffff",
+                            textTransform: "uppercase"
                         }}>
                             Net <span className="brand-gradient">Kitonga</span>
                         </h1>
@@ -659,22 +743,24 @@ function Portal() {
                     <p style={{ 
                         margin: "2px 0 0", 
                         color: "rgba(255,255,255,0.35)", 
-                        fontSize: "0.8rem",
-                        letterSpacing: "0.3px"
+                        fontSize: "0.75rem",
+                        letterSpacing: "1.2px",
+                        textTransform: "uppercase",
+                        fontWeight: 700
                     }}>
-                        Hospitality Internet Solutions
+                        Internet Supply Co.
                     </p>
                     <div style={{ 
                         width: "32px", 
                         height: "2px", 
                         background: "linear-gradient(90deg, transparent, #e50914, transparent)",
-                        margin: "6px auto 0"
+                        margin: "8px auto 0"
                     }} />
                 </div>
 
                 {/* Message */}
                 {uiMessage && (
-                    <div className={`message-box ${uiMessage.includes("PIN") || uiMessage.includes("sent") || uiMessage.includes("Validating") ? "success" : "error"}`}>
+                    <div className={`message-box ${uiMessage.includes("PIN") || uiMessage.includes("sent") || uiMessage.includes("Validating") || uiMessage.includes("✨") ? "success" : "error"}`}>
                         {uiMessage}
                     </div>
                 )}
@@ -687,7 +773,7 @@ function Portal() {
                     background: "rgba(255,255,255,0.03)",
                     padding: "4px",
                     borderRadius: "10px",
-                    border: "1px solid rgba(255,255,255,0.04)"
+                    border: "1px solid #1a1a1a"
                 }}>
                     <button 
                         type="button" 
@@ -698,15 +784,16 @@ function Portal() {
                             padding: "8px 12px",
                             borderRadius: "8px",
                             cursor: "pointer",
-                            fontWeight: 600,
-                            fontSize: "0.8rem",
+                            fontWeight: 800,
+                            fontSize: "0.75rem",
                             fontFamily: "inherit",
                             position: "relative",
                             zIndex: 1,
-                            letterSpacing: "0.3px"
+                            letterSpacing: "0.8px",
+                            textTransform: "uppercase"
                         }}
                     >
-                        💳 Purchase
+                        Purchase
                     </button>
                     <button 
                         type="button" 
@@ -717,29 +804,29 @@ function Portal() {
                             padding: "8px 12px",
                             borderRadius: "8px",
                             cursor: "pointer",
-                            fontWeight: 600,
-                            fontSize: "0.8rem",
+                            fontWeight: 800,
+                            fontSize: "0.75rem",
                             fontFamily: "inherit",
                             position: "relative",
                             zIndex: 1,
-                            letterSpacing: "0.3px"
+                            letterSpacing: "0.8px",
+                            textTransform: "uppercase"
                         }}
                     >
-                        🎫 Voucher
+                        Voucher
                     </button>
                 </div>
 
-                {/* Forms */}
                 {activeTab === "pay" ? (
                     <form onSubmit={handlePayAndConnect}>
                         <div style={{ marginBottom: "10px" }}>
                             <label style={{ 
                                 display: "block", 
-                                fontSize: "0.7rem", 
-                                fontWeight: 600,
-                                color: "rgba(255,255,255,0.4)",
-                                marginBottom: "6px",
-                                letterSpacing: "0.5px",
+                                fontSize: "0.65rem", 
+                                fontWeight: 800,
+                                color: "rgba(255,255,255,0.5)",
+                                marginBottom: "8px",
+                                letterSpacing: "1.2px",
                                 textTransform: "uppercase"
                             }}>
                                 Select Package <span style={{ color: "#e50914" }}>*</span>
@@ -795,7 +882,6 @@ function Portal() {
                                         ))}
                                     </div>
 
-                                    {/* Selected Package Summary */}
                                     {selectedPackage && (
                                         <div className="selected-summary">
                                             <div>
@@ -812,48 +898,63 @@ function Portal() {
                             )}
                         </div>
 
-                        <div style={{ marginBottom: "12px" }}>
+                        {/* ===== PROVIDER CARDS WITH IMAGES ===== */}
+                        <div style={{ marginBottom: "14px" }}>
                             <label style={{ 
                                 display: "block", 
-                                fontSize: "0.7rem", 
-                                fontWeight: 600,
-                                color: "rgba(255,255,255,0.4)",
-                                marginBottom: "4px",
-                                letterSpacing: "0.5px",
+                                fontSize: "0.65rem", 
+                                fontWeight: 800,
+                                color: "rgba(255,255,255,0.5)",
+                                marginBottom: "8px",
+                                letterSpacing: "1.2px",
                                 textTransform: "uppercase"
                             }}>
                                 Payment Provider <span style={{ color: "#e50914" }}>*</span>
                             </label>
-                            <select 
-                                value={mnoProvider} 
-                                onChange={(e) => setProvider(e.target.value)} 
-                                className="form-select"
-                                style={{
-                                    width: "100%",
-                                    padding: "10px 14px",
-                                    borderRadius: "8px",
-                                    fontSize: "0.85rem",
-                                    fontFamily: "inherit",
-                                    appearance: "none",
-                                    cursor: "pointer"
-                                }}
-                            >
-                                <option value="Mpesa">📱 Vodacom M-Pesa</option>
-                                <option value="Tigo">📱 Tigo Pesa</option>
-                                <option value="Airtel">📱 Airtel Money</option>
-                                <option value="Halopesa">📱 Halopesa</option>
-                                <option value="Azampesa">📱 Azampesa</option>
-                            </select>
+
+                            <div className="provider-grid">
+                                {PROVIDERS.map((provider) => (
+                                    <div
+                                        key={provider.id}
+                                        className={`provider-card ${mnoProvider === provider.id ? 'selected' : ''}`}
+                                        onClick={() => handleProviderSelect(provider.id)}
+                                        role="button"
+                                        tabIndex={0}
+                                        onKeyDown={(e) => {
+                                            if (e.key === 'Enter' || e.key === ' ') {
+                                                e.preventDefault();
+                                                handleProviderSelect(provider.id);
+                                            }
+                                        }}
+                                        aria-selected={mnoProvider === provider.id}
+                                    >
+                                        <div className="provider-logo-slot">
+                                            {!imageErrors[provider.id] && provider.logo ? (
+                                                <img
+                                                    src={provider.logo}
+                                                    alt={provider.name}
+                                                    onError={() => handleImageError(provider.id)}
+                                                />
+                                            ) : (
+                                                <span className="provider-logo-fallback">
+                                                    {provider.name}
+                                                </span>
+                                            )}
+                                        </div>
+                                        <div className="provider-name">{provider.name}</div>
+                                    </div>
+                                ))}
+                            </div>
                         </div>
 
                         <div style={{ marginBottom: "16px" }}>
                             <label style={{ 
                                 display: "block", 
-                                fontSize: "0.7rem", 
-                                fontWeight: 600,
-                                color: "rgba(255,255,255,0.4)",
-                                marginBottom: "4px",
-                                letterSpacing: "0.5px",
+                                fontSize: "0.65rem", 
+                                fontWeight: 800,
+                                color: "rgba(255,255,255,0.5)",
+                                marginBottom: "6px",
+                                letterSpacing: "1.2px",
                                 textTransform: "uppercase"
                             }}>
                                 Phone Number <span style={{ color: "#e50914" }}>*</span>
@@ -870,8 +971,7 @@ function Portal() {
                                     padding: "10px 14px",
                                     borderRadius: "8px",
                                     fontSize: "0.85rem",
-                                    fontFamily: "inherit",
-                                    boxSizing: "border-box"
+                                    fontFamily: "inherit"
                                 }}
                             />
                         </div>
@@ -912,11 +1012,11 @@ function Portal() {
                         <div style={{ marginBottom: "16px" }}>
                             <label style={{ 
                                 display: "block", 
-                                fontSize: "0.7rem", 
-                                fontWeight: 600,
-                                color: "rgba(255,255,255,0.4)",
-                                marginBottom: "4px",
-                                letterSpacing: "0.5px",
+                                fontSize: "0.65rem", 
+                                fontWeight: 800,
+                                color: "rgba(255,255,255,0.5)",
+                                marginBottom: "6px",
+                                letterSpacing: "1.2px",
                                 textTransform: "uppercase"
                             }}>
                                 Voucher Code <span style={{ color: "#e50914" }}>*</span>
@@ -934,8 +1034,7 @@ function Portal() {
                                     fontSize: "0.85rem",
                                     fontFamily: "inherit",
                                     textTransform: "uppercase",
-                                    letterSpacing: "2px",
-                                    boxSizing: "border-box"
+                                    letterSpacing: "2px"
                                 }}
                             />
                         </div>
