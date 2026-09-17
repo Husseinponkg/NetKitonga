@@ -83,7 +83,7 @@ function Portal() {
 
     useEffect(() => {
         fetchActivePackages();
-    }, [effectiveRouterId, resolvedRouterIp]);
+    }, [effectiveRouterId, routerIp]);
 
     const handlePayAndConnect = async (e) => {
         e.preventDefault();
