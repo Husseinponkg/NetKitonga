@@ -158,33 +158,38 @@ class PaymentController:
                 query = "SELECT id, tenant_id, amount, status FROM payments WHERE gateway_reference = %s;"
                 await cursor.execute(query, (external_id,))
                 payment_row = await cursor.fetchone()
-                
+
                 # Validation barrier: check if the row exists and is currently in a pending state
                 if not payment_row or payment_row[3] != 'pending':
                     return False
-                
+
                 payment_id, tenant_id, amount, _ = payment_row
                 resolved_status = 'completed' if is_successful else 'failed'
-                
+
                 # 2. Persist the final transaction status update into the PostgreSQL database layer
                 update_payment_query = "UPDATE payments SET status = %s WHERE id = %s;"
                 await cursor.execute(update_payment_query, (resolved_status, payment_id))
-                
-                # 3. If verified successful, execute ledger balance updates to fund the tenant wallet account
+
+                # 3. If verified successful, execute ledger balance updates to fund the tenant wallet account.
+                # Upsert (INSERT ... ON CONFLICT) instead of a bare UPDATE: if a
+                # tenant_wallets row doesn't already exist for this tenant, a plain
+                # UPDATE silently affects 0 rows and the money is never tracked
+                # anywhere even though the payment itself gets marked completed.
                 if resolved_status == 'completed':
-                    wallet_update_query = """
-                        UPDATE tenant_wallets 
-                        SET total_earned = total_earned + %s, 
-                            current_balance = current_balance + %s, 
-                            updated_at = NOW() 
-                        WHERE tenant_id = %s;
+                    wallet_upsert_query = """
+                        INSERT INTO tenant_wallets (tenant_id, total_earned, current_balance, updated_at)
+                        VALUES (%s, %s, %s, NOW())
+                        ON CONFLICT (tenant_id) DO UPDATE
+                        SET total_earned = tenant_wallets.total_earned + EXCLUDED.total_earned,
+                            current_balance = tenant_wallets.current_balance + EXCLUDED.current_balance,
+                            updated_at = NOW();
                     """
-                    await cursor.execute(wallet_update_query, (amount, amount, tenant_id))
-                
+                    await cursor.execute(wallet_upsert_query, (tenant_id, amount, amount))
+
                 # Commit all structural changes to PostgreSQL together
                 await conn.commit()
                 return True
-                
+
         except Exception as e:
             await conn.rollback()
             print(f"Callback accounting processing engine error: {str(e)}")

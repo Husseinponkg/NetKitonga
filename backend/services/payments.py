@@ -1,4 +1,3 @@
-
 import os
 import secrets
 import sys
@@ -102,6 +101,31 @@ class PaymentService:
         self.client_id = os.getenv("AZAMPAY_CLIENT_ID")
         self.client_secret = os.getenv("AZAMPAY_CLIENT_SECRET")
 
+        # AzamPay's flow is two-step: get a Bearer token from the
+        # credentials above, THEN call the actual endpoint with both
+        # the Bearer token AND this X-API-Key header. Without it,
+        # AzamPay rejects (or silently hangs on) the checkout call.
+        # Get this from the sandbox portal's app settings page —
+        # it is separate from clientId / clientSecret.
+        # Falls back to AZAMPAY_TOKEN for .env files that used that
+        # older name for the same value.
+        self.api_key = os.getenv(
+            "AZAMPAY_API_KEY",
+            os.getenv("AZAMPAY_TOKEN"),
+        )
+
+        # Provider values AzamPay accepts for MNO checkout.
+        # Anything outside this set gets normalized/rejected before
+        # we waste a network round trip.
+        self.valid_providers = {
+            "airtel": "Airtel",
+            "tigo": "Tigo",
+            "tigopesa": "Tigo",
+            "halopesa": "Halopesa",
+            "azampesa": "Azampesa",
+            "mpesa": "Mpesa",
+        }
+
     # ================================================================
     # CONFIGURATION VALIDATION
     # ================================================================
@@ -118,6 +142,9 @@ class PaymentService:
 
         if not self.client_secret:
             missing.append("AZAMPAY_CLIENT_SECRET")
+
+        if not self.api_key:
+            missing.append("AZAMPAY_API_KEY")
 
         if missing:
             raise HTTPException(
@@ -167,6 +194,33 @@ class PaymentService:
             )
 
         return phone
+
+    # ================================================================
+    # NORMALIZE PROVIDER
+    # ================================================================
+
+    def _normalize_provider(self, provider: Any) -> str:
+
+        if not provider:
+            raise HTTPException(
+                status_code=400,
+                detail="Mobile network provider is required.",
+            )
+
+        key = str(provider).strip().lower()
+
+        normalized = self.valid_providers.get(key)
+
+        if not normalized:
+            raise HTTPException(
+                status_code=400,
+                detail=(
+                    "Unsupported provider. Must be one of: "
+                    "Airtel, Tigo, Halopesa, Azampesa, Mpesa."
+                ),
+            )
+
+        return normalized
 
     # ================================================================
     # GET AZAMPAY TOKEN
@@ -313,12 +367,14 @@ class PaymentService:
         amount = price_info["price"]
 
         # ====================================================
-        # 2. NORMALIZE PHONE
+        # 2. NORMALIZE PHONE + PROVIDER
         # ====================================================
 
         phone = self._normalize_phone(
             data.phone_number
         )
+
+        provider = self._normalize_provider(data.provider)
 
         # ====================================================
         # 3. GENERATE UNIQUE REFERENCE
@@ -357,24 +413,7 @@ class PaymentService:
         token = self._get_bearer_token()
 
         # ====================================================
-        # 6. CHECK PROVIDER
-        # ====================================================
-
-        provider = str(
-            data.provider
-        ).strip()
-
-        if not provider:
-
-            await self.payment_controller.mark_payment_failed(new_payment_id)
-
-            raise HTTPException(
-                status_code=400,
-                detail="Mobile network provider is required.",
-            )
-
-        # ====================================================
-        # 7. BUILD AZAMPAY PAYLOAD
+        # 6. BUILD AZAMPAY PAYLOAD
         # ====================================================
 
         checkout_payload = {
@@ -390,6 +429,7 @@ class PaymentService:
             "Content-Type": "application/json",
             "Accept": "application/json",
             "Authorization": f"Bearer {token}",
+            "X-API-Key": self.api_key,
         }
 
         # ====================================================
@@ -406,10 +446,11 @@ class PaymentService:
         print("PROVIDER:", provider)
         print("EXTERNAL ID:", external_id)
         print("TOKEN: [HIDDEN]")
+        print("X-API-KEY: [HIDDEN]")
         print("========================================")
 
         # ====================================================
-        # 8. SEND CHECKOUT REQUEST
+        # 7. SEND CHECKOUT REQUEST
         # ====================================================
 
         try:
@@ -457,7 +498,7 @@ class PaymentService:
             )
 
         # ====================================================
-        # 9. LOG AZAMPAY RESPONSE
+        # 8. LOG AZAMPAY RESPONSE
         # ====================================================
 
         print("========================================")
@@ -467,7 +508,7 @@ class PaymentService:
         print("========================================")
 
         # ====================================================
-        # 10. SUCCESS
+        # 9. SUCCESS
         # ====================================================
 
         if response.status_code in (
@@ -489,7 +530,7 @@ class PaymentService:
             }
 
         # ====================================================
-        # 11. AZAMPAY REJECTED REQUEST
+        # 10. AZAMPAY REJECTED REQUEST
         # ====================================================
 
         await self.payment_controller.mark_payment_failed(new_payment_id)
