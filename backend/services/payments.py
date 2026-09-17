@@ -241,6 +241,8 @@ class PaymentService:
             "Accept": "application/json",
         }
 
+        auth_error = None
+
         try:
 
             response = requests.post(
@@ -250,10 +252,6 @@ class PaymentService:
                 timeout=self.auth_timeout,
             )
 
-            # --------------------------------------------------------
-            # SAFE DEBUG LOGGING
-            # --------------------------------------------------------
-
             print("========================================")
             print("AZAMPAY TOKEN DEBUG")
             print("URL:", self.auth_url)
@@ -261,88 +259,58 @@ class PaymentService:
             print("RESPONSE:", response.text)
             print("========================================")
 
-            # --------------------------------------------------------
-            # SUCCESS
-            # --------------------------------------------------------
-
             if response.status_code == 200:
 
                 try:
                     body = response.json()
                 except ValueError:
-                    raise HTTPException(
-                        status_code=502,
-                        detail="AzamPay token server returned invalid JSON.",
-                    )
+                    auth_error = "AzamPay token server returned invalid JSON."
+                else:
+                    token = None
 
-                token = None
-
-                # Possible response:
-                #
-                # {
-                #   "data": {
-                #       "accessToken": "..."
-                #   }
-                # }
-
-                if isinstance(body, dict):
-
-                    token = (
-                        body.get("token")
-                        or body.get("accessToken")
-                    )
-
-                    data = body.get("data")
-
-                    if isinstance(data, dict):
-
+                    if isinstance(body, dict):
                         token = (
-                            token
-                            or data.get("token")
-                            or data.get("accessToken")
+                            body.get("token")
+                            or body.get("accessToken")
                         )
 
-                if token:
+                        data = body.get("data")
 
-                    return str(token)
+                        if isinstance(data, dict):
+                            token = (
+                                token
+                                or data.get("token")
+                                or data.get("accessToken")
+                            )
 
-                raise HTTPException(
-                    status_code=502,
-                    detail="AzamPay returned HTTP 200 but no access token.",
-                )
+                    if token:
+                        return str(token)
 
-            # --------------------------------------------------------
-            # AUTH ERROR
-            # --------------------------------------------------------
-
-            raise HTTPException(
-                status_code=502,
-                detail=(
+                    auth_error = "AzamPay returned HTTP 200 but no access token."
+            else:
+                auth_error = (
                     "AzamPay token generation failed. "
                     f"HTTP {response.status_code}. "
                     f"Response: {response.text[:500]}"
-                ),
-            )
+                )
 
         except requests.exceptions.Timeout as err:
-
-            raise HTTPException(
-                status_code=502,
-                detail=(
-                    "Connection to AzamPay authentication server timed out: "
-                    f"{str(err)}"
-                ),
-            )
+            auth_error = f"Connection to AzamPay authentication server timed out: {str(err)}"
 
         except requests.exceptions.RequestException as err:
+            auth_error = f"Failed to connect to AzamPay authentication server: {str(err)}"
 
-            raise HTTPException(
-                status_code=502,
-                detail=(
-                    "Failed to connect to AzamPay authentication server: "
-                    f"{str(err)}"
-                ),
-            )
+        static_token = os.getenv("AZAMPAY_TOKEN")
+
+        if static_token:
+            return static_token
+
+        detail = auth_error or "AzamPay token generation failed."
+
+        raise HTTPException(
+            status_code=502,
+            detail=detail,
+        )
 
     # ================================================================
     # MNO CHECKOUT
