@@ -96,7 +96,7 @@ class PaymentService:
         )
 
         self.checkout_timeout = int(
-            os.getenv("AZAMPAY_CHECKOUT_TIMEOUT", "60")
+            os.getenv("AZAMPAY_CHECKOUT_TIMEOUT", "90")
         )
 
         # IMPORTANT:
