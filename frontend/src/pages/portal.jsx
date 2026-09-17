@@ -13,11 +13,11 @@ import { API_BASE_URL as API_ROOT } from "../api";
 // If images fail to load, the card falls back to a text placeholder.
 // ====================================================================
 const PROVIDERS = [
-  { id: "Mpesa",    name: "M-Pesa",       logo: "./public/mpesa.jpg" },
-  { id: "Tigo",     name: "Tigo Pesa",    logo: "./public/yas.png" },
-  { id: "Airtel",   name: "Airtel Money", logo: "./public/airtelmoney.png" },
-  { id: "Halopesa", name: "Halopesa",     logo: "./public/halopesa.jpg" },
-  { id: "Azampesa", name: "Azampesa",     logo: "./public/azampesa.jpg" },
+  { id: "Mpesa",    name: "M-Pesa",       logo: "./mpesa.jpg" },
+  { id: "Tigo",     name: "Tigo Pesa",    logo: "./yas.png" },
+  { id: "Airtel",   name: "Airtel Money", logo: "./airtelmoney.png" },
+  { id: "Halopesa", name: "Halopesa",     logo: "./halopesa.jpg" },
+  { id: "Azampesa", name: "Azampesa",     logo: "./azampesa.jpg" },
 ];
 
 function Portal() {
