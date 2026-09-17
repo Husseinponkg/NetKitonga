@@ -300,11 +300,6 @@ class PaymentService:
         except requests.exceptions.RequestException as err:
             auth_error = f"Failed to connect to AzamPay authentication server: {str(err)}"
 
-        static_token = os.getenv("AZAMPAY_TOKEN")
-
-        if static_token:
-            return static_token
-
         detail = auth_error or "AzamPay token generation failed."
 
         raise HTTPException(
@@ -397,8 +392,10 @@ class PaymentService:
             "Content-Type": "application/json",
             "Accept": "application/json",
             "Authorization": f"Bearer {token}",
-            "X-API-Key": self.api_key,
         }
+
+        if self.api_key:
+            checkout_headers["X-API-Key"] = self.api_key
 
         # ====================================================
         # SAFE LOGGING

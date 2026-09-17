@@ -23,20 +23,23 @@ async def handle_azampay_diagnostic():
         auth_error = str(err)
 
     try:
+        checkout_headers = {
+            "Content-Type": "application/json",
+            "Authorization": f"Bearer {token if auth_ok else 'missing'}",
+        }
+        if service.api_key:
+            checkout_headers["X-API-Key"] = service.api_key
         response = requests.post(
             service.checkout_url,
             json={
-                "accountNumber": "0712345678",
+                "accountNumber": "255712345678",
                 "additionalProperties": {},
                 "amount": 100.0,
                 "currency": "TZS",
                 "externalId": "DIAGNOSTIC-123",
                 "provider": "Mpesa",
             },
-            headers={
-                "Content-Type": "application/json",
-                "Authorization": f"Bearer {token if auth_ok else 'missing'}",
-            },
+            headers=checkout_headers,
             timeout=service.checkout_timeout,
         )
         checkout_ok = response.status_code in (200, 201, 202)
@@ -51,6 +54,7 @@ async def handle_azampay_diagnostic():
         "auth_error": auth_error,
         "checkout_ok": checkout_ok,
         "checkout_error": checkout_error,
+        "checkout_headers_sent": {k: ("[HIDDEN]" if k == "Authorization" else v) for k, v in checkout_headers.items()},
     }
 
 @payment_endpoints.post("/checkout", response_model=Dict[str, Any], status_code=status.HTTP_200_OK)
