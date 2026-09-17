@@ -62,10 +62,21 @@ class PaymentService:
             ),
         )
 
+        auth_base_url = os.getenv(
+            "AZAMPAY_AUTH_BASE_URL",
+            os.getenv(
+                "AZAMPAY_SANDBOX_AUTH_BASE_URL",
+                os.getenv(
+                    "AZAMPAY_AUTH_HOST",
+                    "https://authenticator-sandbox.azampay.co.tz",
+                ),
+            ),
+        ).rstrip("/")
+
         if configured_auth_url:
-            self.auth_url = configured_auth_url
+            self.auth_url = configured_auth_url.rstrip("/")
         else:
-            self.auth_url = f"{checkout_base_url}/AppRegistration/GenerateToken"
+            self.auth_url = f"{auth_base_url}/AppRegistration/GenerateToken"
 
         self.checkout_url = os.getenv(
             "AZAMPAY_MNO",
