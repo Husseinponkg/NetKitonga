@@ -38,10 +38,10 @@ class RouterService:
         try:
             async with conn.cursor() as cursor:
                 for candidate in self.get_router_ip_candidates(ip_address):
-                    await cursor.execute("SELECT id, tenant_id FROM routers WHERE ip_address = %s;", (str(candidate),))
+                    await cursor.execute("SELECT id, tenant_id, branch_id FROM routers WHERE ip_address = %s;", (str(candidate),))
                     row = await cursor.fetchone()
                     if row:
-                        return {"id": row[0], "tenant_id": row[1]}
+                        return {"id": row[0], "tenant_id": row[1], "branch_id": row[2]}
                 return None
         finally:
             await conn.close()

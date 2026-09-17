@@ -12,6 +12,17 @@ controller = RouterController()
 async def handle_router_lookup(ip_address: str = Query(..., description="Router IP address for automatic lookup")):
     return await controller.lookup_router_by_ip(ip_address)
 
+@router.get("/resolve", response_model=Dict[str, Any])
+async def handle_router_resolve(ip_address: str = Query(..., description="Client or router IP to resolve tenant, branch, and router details")):
+    router_info = await controller.lookup_router_by_ip(ip_address)
+    if not router_info:
+        raise HTTPException(status_code=404, detail="Router profile not found for the provided IP address.")
+    return {
+        "router_id": router_info["id"],
+        "tenant_id": router_info["tenant_id"],
+        "branch_id": router_info.get("branch_id"),
+    }
+
 # =====================================================================
 #  SECTION 1: DASHBOARD CRUD OPERATION PATHS (Frontend Form Handling)
 # =====================================================================

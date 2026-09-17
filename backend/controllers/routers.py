@@ -235,3 +235,13 @@ class RouterController:
         if not router:
             raise HTTPException(status_code=404, detail="Router profile not found for the provided IP address.")
         return router
+
+    async def resolve_router_by_ip(self, ip_address: str) -> dict:
+        router = await self.router_service.get_router_by_ip(ip_address)
+        if not router:
+            raise HTTPException(status_code=404, detail="Router profile not found for the provided IP address.")
+        return {
+            "router_id": router["id"],
+            "tenant_id": router["tenant_id"],
+            "branch_id": router.get("branch_id"),
+        }
