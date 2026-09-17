@@ -96,7 +96,7 @@ class PaymentService:
         )
 
         self.checkout_timeout = int(
-            os.getenv("AZAMPAY_CHECKOUT_TIMEOUT", "90")
+            os.getenv("AZAMPAY_CHECKOUT_TIMEOUT", "120")
         )
 
         # IMPORTANT:
@@ -435,7 +435,7 @@ class PaymentService:
                 self.checkout_url,
                 json=checkout_payload,
                 headers=checkout_headers,
-                timeout=self.checkout_timeout,
+                timeout=(10, self.checkout_timeout),
             )
 
         except requests.exceptions.Timeout as err:

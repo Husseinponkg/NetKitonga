@@ -40,7 +40,7 @@ async def handle_azampay_diagnostic():
                 "provider": "Mpesa",
             },
             headers=checkout_headers,
-            timeout=service.checkout_timeout,
+            timeout=(10, service.checkout_timeout),
         )
         checkout_ok = response.status_code in (200, 201, 202)
         checkout_error = response.text if not checkout_ok else None
