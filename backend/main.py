@@ -19,6 +19,7 @@ from fastapi.middleware.cors import CORSMiddleware
 from backend.routes.Auth import router as auth_router
 from backend.routes.branch import router as branch_router
 from backend.routes.routers import router as routers_router
+from backend.routes.wifidog import wifidog_router
 from backend.routes.packages import package_endpoints as packages_router
 from backend.routes.customers import customer_endpoints as customers_router
 from backend.routes.payment import payment_endpoints as payments_router
@@ -54,6 +55,7 @@ async def health_check():
 app.include_router(auth_router, prefix="/auth", tags=["auth"])
 app.include_router(branch_router, prefix="/branch", tags=["branch"]) 
 app.include_router(routers_router, prefix="/routers", tags=["routers"])
+app.include_router(wifidog_router, prefix="/wifidog", tags=["wifidog"])
 app.include_router(packages_router, prefix="/packages", tags=["Packages Catalog Engine"])
 app.include_router(customers_router, prefix="/customers", tags=["customers"])
 app.include_router(payments_router)

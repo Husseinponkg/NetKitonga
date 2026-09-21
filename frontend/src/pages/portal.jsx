@@ -180,6 +180,42 @@ function Portal() {
     const handleVoucherActivation = async (e) => {
         e.preventDefault();
         setUiMessage("Validating your token code voucher...");
+
+        if (!voucherCode.trim()) {
+            setUiMessage("Please enter a voucher code.");
+            return;
+        }
+
+        if (!effectiveTenantId || !effectiveRouterId) {
+            setUiMessage("Missing tenant or router configuration.");
+            return;
+        }
+
+        try {
+            const response = await fetch(`${API_BASE_URL}/vouchers/redeem?tenant_id=${effectiveTenantId}`, {
+                method: "POST",
+                headers: { "Content-Type": "application/json" },
+                body: JSON.stringify({
+                    code: voucherCode.trim(),
+                    buyer_mac: buyerMac,
+                    router_id: Number(effectiveRouterId),
+                    assigned_ip: routerIp || null
+                }),
+            });
+
+            const result = await response.json();
+
+            if (response.ok) {
+                setUiMessage(`✨ Voucher redeemed successfully! Internet access activated for ${result.session_duration_seconds || 86400} seconds.`);
+                setVoucherCode("");
+            } else {
+                const detail = typeof result === 'string' ? result : (result.detail || JSON.stringify(result));
+                setUiMessage(`Voucher error: ${detail}`);
+            }
+        } catch (error) {
+            const message = error.message || "Failed to validate voucher.";
+            setUiMessage(`Error: ${message}`);
+        }
     };
 
     const formatDurationText = (seconds) => {

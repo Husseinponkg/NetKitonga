@@ -1,4 +1,4 @@
-import React, { useState, useEffect } from "react";
+import React, { useState, useEffect, useRef } from "react";
 import { Link, useNavigate, useLocation } from "react-router-dom";
 import { API_BASE_URL as API_ROOT } from "../api";
 
@@ -17,6 +17,8 @@ function Routers() {
     const [isLicensed, setIsLicensed] = useState(true);
 
     const [routerList, setRouterList] = useState([]);
+    const routerListRef = useRef(routerList);
+    routerListRef.current = routerList;
     const [provisioningScript, setProvisioningScript] = useState("");
     const [uiMessage, setUiMessage] = useState("");
     const [editingRouterId, setEditingRouterId] = useState(null);
@@ -69,23 +71,33 @@ function Routers() {
 
     useEffect(() => {
         const statusTimer = setInterval(async () => {
-            setRouterList((currentRouters) => {
-                currentRouters.forEach(async (router) => {
-                    try {
-                        const response = await fetch(`${API_BASE_URL}/status?router_id=${router.id}`);
-                        if (!response.ok) return;
-                        const status = await response.json();
-                        setRouterList((latestRouters) => latestRouters.map((latestRouter) =>
-                            latestRouter.id === router.id
-                                ? { ...latestRouter, status: status.status }
-                                : latestRouter
-                        ));
-                    } catch (error) {
-                        console.error("Error checking router status:", error);
-                    }
-                });
-                return currentRouters;
-            });
+            const currentRouters = routerListRef.current;
+            if (!currentRouters.length) return;
+
+            try {
+                const updates = await Promise.all(
+                    currentRouters.map(async (router) => {
+                        try {
+                            const response = await fetch(`${API_BASE_URL}/status?router_id=${router.id}`);
+                            if (!response.ok) return null;
+                            const status = await response.json();
+                            return { id: router.id, status: status.status };
+                        } catch (error) {
+                            console.error("Error checking router status:", error);
+                            return null;
+                        }
+                    })
+                );
+
+                setRouterList((currentRouters) =>
+                    currentRouters.map((router) => {
+                        const update = updates.find((u) => u && u.id === router.id);
+                        return update ? { ...router, status: update.status } : router;
+                    })
+                );
+            } catch (error) {
+                console.error("Error in status polling:", error);
+            }
         }, 10000);
 
         return () => clearInterval(statusTimer);

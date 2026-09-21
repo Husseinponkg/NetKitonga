@@ -146,6 +146,41 @@ class PaymentController:
         finally:
             await conn.close()
 
+    async def create_active_session(self, session_data: Dict[str, Any]) -> int:
+        conn = await connection()
+        try:
+            async with conn.cursor() as cursor:
+                query = """
+                    INSERT INTO active_sessions (
+                        tenant_id, router_id, buyer_id, payment_id,
+                        session_id, assigned_ip, bytes_uploaded, bytes_downloaded,
+                        start_time, expiration_time, status
+                    ) VALUES (%s, %s, %s, %s, %s, %s, 0, 0, NOW(), NOW() + INTERVAL '1 second' * %s, 'active')
+                    RETURNING id;
+                """
+                params = (
+                    session_data["tenant_id"],
+                    session_data["router_id"],
+                    session_data["buyer_id"],
+                    session_data.get("payment_id"),
+                    session_data["session_id"],
+                    session_data["assigned_ip"],
+                    session_data["duration_seconds"],
+                )
+                await cursor.execute(query, params)
+                session_row = await cursor.fetchone()
+                if not session_row:
+                    raise HTTPException(status_code=500, detail="Failed to create active session.")
+                await conn.commit()
+                return session_row[0]
+        except HTTPException:
+            raise
+        except Exception as e:
+            await conn.rollback()
+            raise HTTPException(status_code=500, detail=f"Database error: {str(e)}")
+        finally:
+            await conn.close()
+
     async def process_asynchronous_callback(self, external_id: str, is_successful: bool) -> bool:
         """
         Processes AzamPay background asynchronous webhooks.
@@ -185,6 +220,30 @@ class PaymentController:
                             updated_at = NOW();
                     """
                     await cursor.execute(wallet_upsert_query, (tenant_id, amount, amount))
+
+                    payment_query = "SELECT tenant_id, branch_id, router_id, package_id, buyer_id FROM payments WHERE id = %s;"
+                    await cursor.execute(payment_query, (payment_id,))
+                    payment_context = await cursor.fetchone()
+                    if payment_context:
+                        p_tenant_id, p_branch_id, p_router_id, p_package_id, p_buyer_id = payment_context
+                        duration_query = "SELECT duration_seconds FROM packages WHERE id = %s;"
+                        await cursor.execute(duration_query, (p_package_id,))
+                        duration_row = await cursor.fetchone()
+                        duration_seconds = duration_row[0] if duration_row else 86400
+
+                        session_query = """
+                            INSERT INTO active_sessions (
+                                tenant_id, router_id, buyer_id, payment_id,
+                                session_id, assigned_ip, bytes_uploaded, bytes_downloaded,
+                                start_time, expiration_time, status
+                            ) VALUES (%s, %s, %s, %s, %s, %s, 0, 0, NOW(), NOW() + INTERVAL '1 second' * %s, 'active')
+                            RETURNING id;
+                        """
+                        session_id = f"PAY-{payment_id}-{p_buyer_id}"
+                        await cursor.execute(session_query, (
+                            p_tenant_id, p_router_id, p_buyer_id, payment_id,
+                            session_id, "0.0.0.0", duration_seconds
+                        ))
 
                 # Commit all structural changes to PostgreSQL together
                 await conn.commit()
