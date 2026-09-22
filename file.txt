@@ -97,6 +97,42 @@ GET  /routers/wifidog/ping?gw_id={gateway_id}
 Physical Ruijie/OpenWrt Wifidog heartbeat endpoint.
 Returns plain-text Pong when the gateway is recognized.
 
+WiFiDog captive portal gateway
+------------------------------
+These endpoints are used by Ruijie/OpenWrt WiFiDog captive portal integrations.
+
+GET  /wifidog/ping
+Heartbeat endpoint. Returns plain text: Pong
+
+GET  /wifidog/auth
+Checks whether a client is authorized to access the internet.
+Query params: gw_id, mac, ip, url
+Returns plain text: Auth: 1 or Auth: 0
+Logic:
+  - Looks up router by gw_id
+  - Looks up buyer by MAC
+  - Looks up active, non-expired active_sessions by router + buyer (+ IP if provided)
+  - If found -> Auth: 1, otherwise Auth: 0
+
+GET  /wifidog/login
+Redirects the client to the captive portal.
+Query params: gw_id, mac, ip, url
+Redirects to: https://net-kitonga.vercel.app/portal?...
+
+GET  /wifidog/portal
+Same as /wifidog/login; redirects the client to the captive portal.
+Query params: gw_id, mac, ip, url
+Redirects to: https://net-kitonga.vercel.app/portal?...
+
+GET  /wifidog/msg
+WiFiDog message endpoint.
+Query param: message
+Returns plain text: Message: {message}
+
+GET  /wifidog/register
+WiFiDog register endpoint.
+Returns plain text: OK
+
 Packages
 --------
 POST /packages/create?tenant_id={tenant_id}
@@ -153,6 +189,10 @@ POST /sessions/terminate
 Body: { tenant_id, session_id }
 Terminates an active session.
 
+Note: active_sessions are automatically created when:
+  - A payment webhook callback succeeds for completed payments
+  - A voucher is redeemed via POST /vouchers/redeem
+
 Settings
 --------
 GET  /settings?tenant_id={tenant_id}
@@ -191,6 +231,10 @@ Creates vouchers for a tenant package.
 GET  /vouchers?tenant_id={tenant_id}
 Lists vouchers belonging to a tenant.
 
+POST /vouchers/redeem?tenant_id={tenant_id}
+Body: { code, buyer_mac, router_id, assigned_ip? }
+Redeems a voucher code and creates an active session.
+
 Important deployment notes
 --------------------------
 1. The frontend currently uses VITE_API_URL when configured; otherwise it uses:
@@ -199,3 +243,8 @@ Important deployment notes
 3. The MikroTik NAS identifier or Ruijie gateway ID must match the router record.
 4. The routers table must contain the ip_address INET column.
 5. Do not expose database passwords in source files or public documentation.
+6. For Ruijie WiFiDog routers, configure:
+   - Auth Server: https://netkitonga.onrender.com
+   - Auth Server Port: 443
+   - Auth Server Path: /wifidog/
+    - Heartbeat: /wifidog/ping?gw_id={gateway_id}

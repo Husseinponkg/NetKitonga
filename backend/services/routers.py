@@ -123,7 +123,7 @@ class RouterService:
 
         # 3. AUTOMATED PARAMETERS FOR RUIJIE / OPENWRT / TP-LINK (WIFIDOG HTTP PATH)
         elif driver_type == "wifidog_http" or driver_type == "ruijie_wifidog":
-            api_url = f"{api_scheme}://{system_domain}{api_port}/routers/wifidog/ping"
+            api_url = f"{api_scheme}://{system_domain}{api_port}/wifidog/ping"
             
             return {
                 "url": api_url,
@@ -132,8 +132,8 @@ class RouterService:
                 "hardware_config_block": {
                     "Gateway ID (gw_id)": gw_id,
                     "Auth Server Host": system_domain,
-                    "Auth Server Port": 80,
-                    "Auth Server Path": "/api/wifidog/",
+                    "Auth Server Port": 443 if api_scheme == "https" else 80,
+                    "Auth Server Path": "/wifidog/",
                     "Router Management IP": str(ip_address)
                 }
             }
