@@ -18,8 +18,7 @@ from fastapi.middleware.cors import CORSMiddleware
 
 from backend.routes.Auth import router as auth_router
 from backend.routes.branch import router as branch_router
-from backend.routes.routers import router as routers_router
-from backend.routes.wifidog import wifidog_router
+from backend.routes.routers import router as routers_router, wifidog_router
 from backend.routes.packages import package_endpoints as packages_router
 from backend.routes.customers import customer_endpoints as customers_router
 from backend.routes.payment import payment_endpoints as payments_router
