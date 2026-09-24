@@ -124,7 +124,7 @@ Same as /wifidog/login; redirects the client to the captive portal.
 Query params: gw_id, mac, ip, url
 Redirects to: https://net-kitonga.vercel.app/portal?...
 
-GET  /wifidog/msg
+GET  /wifidog/msg   
 WiFiDog message endpoint.
 Query param: message
 Returns plain text: Message: {message}

@@ -14,7 +14,7 @@ class RouterRegister(BaseModel):
     router_name: str = Field(..., max_length=100, json_schema_extra={"example": "Main Lobby AP"})
     
     # 2. Driver Engine Protocol Switcher
-    driver_type: str = Field(..., description="Must be exactly 'radius_aaa' or 'wifidog_http'")
+    driver_type: str = Field(..., description="Must be exactly 'mikrotik_radius' or 'wifidog_http'")
     
     # 3. Asymmetric Vendor Properties (Marked Optional with default None)
     nas_identifier: Optional[str] = Field(None, max_length=100, description="Used only for MikroTik/RADIUS setups")
@@ -44,7 +44,7 @@ class RouterUpdate(BaseModel):
     
     # 2. Optional Update Fields (All fields are optional for partial updates)
     router_name: Optional[str] = Field(None, max_length=100, json_schema_extra={"example": "Main Lobby AP"})
-    driver_type: Optional[str] = Field(None, description="Must be exactly 'radius_aaa' or 'wifidog_http'")
+    driver_type: Optional[str] = Field(None, description="Must be exactly 'mikrotik_radius' or 'wifidog_http'")
     nas_identifier: Optional[str] = Field(None, max_length=100, description="Used only for MikroTik/RADIUS setups")
     radius_secret: Optional[str] = Field(None, max_length=100, description="Shared password for RADIUS handshakes")
     gw_id: Optional[str] = Field(None, max_length=100, description="Gateway ID used only for Ruijie/Wifidog setups")

@@ -68,7 +68,7 @@ async def handle_wifidog_ping(gw_id: str = Query(..., description="Unique Gatewa
     1. AUTOMATIC WIFIDOG HEARTBEAT
     Fired automatically every 60 seconds by Ruijie/OpenWrt hardware.
     """
-    success = await controller.process_device_heartbeat(gw_id, "ruijie_wifidog")
+    success = await controller.process_device_heartbeat(gw_id, "wifidog_http")
     if not success:
         return PlainTextResponse("Auth: 0\n", status_code=404)
     # Wifidog daemon protocol expects plain text 'Png' or 'Pong' response string

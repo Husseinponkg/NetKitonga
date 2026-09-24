@@ -35,7 +35,7 @@ class RouterController:
                     router_data.driver_type,
                     router_data.nas_identifier if router_data.driver_type == "mikrotik_radius" else None,
                     router_data.radius_secret if router_data.driver_type == "mikrotik_radius" else None,
-                    router_data.gw_id if router_data.driver_type == "ruijie_wifidog" else None,
+                    router_data.gw_id if router_data.driver_type == "wifidog_http" else None,
                     router_data.mac_address,
                     str(router_data.ip_address),
                     router_data.is_licensed,
@@ -204,7 +204,7 @@ class RouterController:
         conn = await connection()
         try:
             async with conn.cursor() as cursor:
-                if driver_protocol == "ruijie_wifidog":
+                if driver_protocol == "wifidog_http":
                     query = "SELECT id FROM routers WHERE gw_id = %s;"
                 else:
                     query = "SELECT id FROM routers WHERE nas_identifier = %s;"

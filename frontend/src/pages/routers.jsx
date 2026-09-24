@@ -118,7 +118,7 @@ function Routers() {
             driver_type: driverType,
             nas_identifier: driverType === "mikrotik_radius" ? nasIdentifier : null,
             radius_secret: driverType === "mikrotik_radius" ? radiusSecret : null,
-            gw_id: driverType === "ruijie_wifidog" ? gwId : null,
+                 gw_id: driverType === "wifidog_http" ? gwId : null,
             mac_address: macAddress,
             ip_address: ipAddress,
             is_licensed: isLicensed,
@@ -161,7 +161,7 @@ function Routers() {
                 driver_type: driverType,
                 nas_identifier: driverType === "mikrotik_radius" ? nasIdentifier : null,
                 radius_secret: driverType === "mikrotik_radius" ? radiusSecret : null,
-                gw_id: driverType === "ruijie_wifidog" ? gwId : null,
+            gw_id: driverType === "wifidog_http" ? gwId : null,
                 mac_address: macAddress,
                 ip_address: ipAddress,
                 is_licensed: isLicensed,
@@ -1306,7 +1306,7 @@ function Routers() {
                                     onChange={(e) => setDriverType(e.target.value)}
                                 >
                                     <option value="mikrotik_radius">MikroTik RouterOS (RADIUS)</option>
-                                    <option value="ruijie_wifidog">Ruijie / OpenWrt (Wifidog)</option>
+                                    <option value="wifidog_http">Ruijie / OpenWrt (Wifidog)</option>
                                 </select>
                             </div>
 
@@ -1473,7 +1473,7 @@ function Routers() {
                                                     <span className="detail-value">{router.nas_identifier}</span>
                                                 </div>
                                             )}
-                                            {router.driver_type === "ruijie_wifidog" && router.gw_id && (
+                                            {router.driver_type === "wifidog_http" && router.gw_id && (
                                                 <div className="detail-row">
                                                     <strong>GW ID</strong>
                                                     <span className="detail-value">{router.gw_id}</span>

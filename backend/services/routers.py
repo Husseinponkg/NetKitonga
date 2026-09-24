@@ -51,7 +51,7 @@ class RouterService:
         tenant_id: int,
         branch_id: int,
         router_name: str,
-        driver_type: str,                # 'radius_aaa' or 'wifidog_http'
+        driver_type: str,                # 'mikrotik_radius' or 'wifidog_http'
         nas_identifier: Optional[str],
         radius_secret: Optional[str],
         gw_id: Optional[str],
@@ -85,8 +85,8 @@ class RouterService:
             "branch_id": branch_id,
             "router_name": router_name,
             "driver_type": driver_type,
-            "nas_identifier": nas_identifier if driver_type == 'radius_aaa' else None,
-            "radius_secret": radius_secret if driver_type == 'radius_aaa' else None,
+            "nas_identifier": nas_identifier if driver_type == 'mikrotik_radius' else None,
+            "radius_secret": radius_secret if driver_type == 'mikrotik_radius' else None,
             "gw_id": gw_id if driver_type == 'wifidog_http' else None,
             "mac_address": mac_address,
             "ip_address": str(ip_address),
@@ -122,7 +122,7 @@ class RouterService:
             }
 
         # 3. AUTOMATED PARAMETERS FOR RUIJIE / OPENWRT / TP-LINK (WIFIDOG HTTP PATH)
-        elif driver_type == "wifidog_http" or driver_type == "ruijie_wifidog":
+        elif driver_type == "wifidog_http":
             api_url = f"{api_scheme}://{system_domain}{api_port}/wifidog/ping"
             
             return {

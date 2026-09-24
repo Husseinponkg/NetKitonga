@@ -41,7 +41,7 @@ CREATE TABLE routers (
     router_name VARCHAR(100) NOT NULL,
     
     -- Driver Type Strategy Engine
-    driver_type VARCHAR(50) NOT NULL, -- 'mikrotik_radius' OR 'ruijie_wifidog'
+    driver_type VARCHAR(50) NOT NULL, -- 'mikrotik_radius' OR 'wifidog_http'
     
     -- MikroTik RADIUS Properties
     nas_identifier VARCHAR(100) NULL UNIQUE, -- Identifies MikroTik inside FreeRADIUS
