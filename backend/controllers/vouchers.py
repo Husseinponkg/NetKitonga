@@ -70,6 +70,19 @@ class VoucherController:
 
                 await cursor.execute(
                     """
+                    INSERT INTO buyers (tenant_id, buyer_mac, phone_number)
+                    VALUES (%s, %s, NULL)
+                    ON CONFLICT (tenant_id, buyer_mac) DO UPDATE
+                    SET phone_number = buyers.phone_number
+                    RETURNING id;
+                    """,
+                    (tenant_id, data.buyer_mac),
+                )
+                buyer_row = await cursor.fetchone()
+                buyer_id = buyer_row[0]
+
+                await cursor.execute(
+                    """
                     INSERT INTO payments (
                         tenant_id, branch_id, router_id, package_id, buyer_id,
                         amount, payment_gateway, gateway_reference, status, auth_token
@@ -81,7 +94,7 @@ class VoucherController:
                         branch_id,
                         data.router_id,
                         package_id,
-                        0,
+                        buyer_id,
                         package_price,
                         gateway_reference,
                         auth_token,
@@ -111,7 +124,7 @@ class VoucherController:
                     (
                         tenant_id,
                         data.router_id,
-                        0,
+                        buyer_id,
                         payment_id,
                         f"VOUCHER-{voucher_id}-{data.buyer_mac}",
                         data.assigned_ip or "0.0.0.0",
