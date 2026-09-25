@@ -62,6 +62,13 @@ class VoucherController:
                 auth_token = secrets.token_urlsafe(32)
 
                 await cursor.execute(
+                    "SELECT branch_id FROM routers WHERE id = %s;",
+                    (data.router_id,),
+                )
+                router_row = await cursor.fetchone()
+                branch_id = router_row[0] if router_row else 0
+
+                await cursor.execute(
                     """
                     INSERT INTO payments (
                         tenant_id, branch_id, router_id, package_id, buyer_id,
@@ -71,7 +78,7 @@ class VoucherController:
                     """,
                     (
                         tenant_id,
-                        0,
+                        branch_id,
                         data.router_id,
                         package_id,
                         0,
