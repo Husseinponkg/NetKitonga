@@ -127,7 +127,7 @@ CREATE TABLE active_sessions (
     tenant_id INT NOT NULL REFERENCES tenants(id) ON DELETE CASCADE,
     router_id INT NOT NULL REFERENCES routers(id) ON DELETE CASCADE,
     buyer_id INT NOT NULL REFERENCES buyers(id) ON DELETE CASCADE,
-    payment_id INT NOT NULL REFERENCES payments(id) ON DELETE CASCADE,
+    payment_id INT NULL REFERENCES payments(id) ON DELETE CASCADE,
     
     session_id VARCHAR(150) NOT NULL UNIQUE, -- RADIUS Acct-Session-Id or Wifidog Token
     assigned_ip VARCHAR(45) NOT NULL,
