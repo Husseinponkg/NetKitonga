@@ -7,6 +7,7 @@ from fastapi import HTTPException
 from config.db import connection
 from models.vouchers import VoucherCreate, VoucherResponse, VoucherRedeem
 from services.vouchers import VoucherService
+from utils.mac import normalize_mac
 
 
 class VoucherController:
@@ -76,7 +77,7 @@ class VoucherController:
                     SET phone_number = buyers.phone_number
                     RETURNING id;
                     """,
-                    (tenant_id, data.buyer_mac),
+                    (tenant_id, normalize_mac(data.buyer_mac)),
                 )
                 buyer_row = await cursor.fetchone()
                 buyer_id = buyer_row[0]

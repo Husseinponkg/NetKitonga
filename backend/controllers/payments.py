@@ -1,6 +1,7 @@
 from config.db import connection
 from typing import Dict, Any, List
 from fastapi import HTTPException
+from utils.mac import normalize_mac
 
 class PaymentController:
     async def get_package_price(self, package_id: int) -> Dict[str, Any]:
@@ -61,7 +62,7 @@ class PaymentController:
                     DO UPDATE SET phone_number = EXCLUDED.phone_number
                     RETURNING id;
                 """
-                await cursor.execute(query, (buyer_data["tenant_id"], buyer_data["buyer_mac"], buyer_data["phone_number"]))
+                await cursor.execute(query, (buyer_data["tenant_id"], normalize_mac(buyer_data["buyer_mac"]), buyer_data["phone_number"]))
                 buyer_row = await cursor.fetchone()
                 if not buyer_row:
                     raise HTTPException(status_code=500, detail="Failed to register portal buyer.")

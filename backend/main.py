@@ -26,6 +26,7 @@ from backend.routes.sessions import session_endpoints
 from backend.routes.settings import settings_endpoints
 from backend.routes.withdrawals import router as withdrawals_router
 from backend.routes.vouchers import router as vouchers_router
+from backend.routes.radius import radius_endpoints
 
 app = FastAPI()
 
@@ -37,8 +38,11 @@ app.add_middleware(
         "http://localhost:5174",
         "http://127.0.0.1:5173",
         "http://127.0.0.1:5174",
-        "https://net-kitonga.vercel.app",
-        "http://net-kitonga.vercel.app",
+        "https://netkitonga.com",
+        "http://netkitonga.com",
+        "http://netkitonga.com:8000",
+        "http://195.211.99.95:8000",
+        "http://127.0.0.1:8000",
     ],
     # Allow any local IP (10.x.x.x, 192.168.x.x, 172.16-31.x.x) on any port
     allow_origin_regex=r"^https?://(localhost|127\.0\.0\.1|10\.\d{1,3}\.\d{1,3}\.\d{1,3}|192\.168\.\d{1,3}\.\d{1,3}|172\.(?:1[6-9]|2\d|3[0-1])\.\d{1,3}\.\d{1,3})(?::\d+)?$",
@@ -62,6 +66,7 @@ app.include_router(session_endpoints)
 app.include_router(settings_endpoints)
 app.include_router(withdrawals_router, prefix="/withdrawals", tags=["withdrawals"])
 app.include_router(vouchers_router, prefix="/vouchers", tags=["vouchers"])
+app.include_router(radius_endpoints, prefix="/radius", tags=["radius"])
 
 if __name__ == "__main__":
     uvicorn.run("backend.main:app", host="0.0.0.0", port=8000)

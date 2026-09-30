@@ -70,14 +70,19 @@ class RouterService:
         configured_domain = (
             os.getenv("SYSTEM_DOMAIN")
             or os.getenv("SYSTEM_SERVER_IP")
-            or "netkitonga.onrender.com"
+            or "0.0.0.0"
         )
         system_domain = configured_domain.removeprefix("https://").removeprefix("http://").rstrip("/")
         configured_system_ip = os.getenv("SYSTEM_SERVER_IP") or system_domain
         system_ip = configured_system_ip.removeprefix("https://").removeprefix("http://").rstrip("/")
-        api_scheme = "https" if configured_domain.startswith("https://") or system_domain.endswith(".onrender.com") else "http"
+        api_scheme = "https" if configured_domain.startswith("https://") else "http"
         api_port = "" if api_scheme == "https" else ":8000"
         fetch_mode = "https" if api_scheme == "https" else "http"
+
+        frontend_url = (
+            os.getenv("FRONTEND_URL")
+            or "https://netkitonga.com"
+        ).rstrip("/")
         
         # 1. Standard structural database payload mapping
         router_payload = {
@@ -98,7 +103,7 @@ class RouterService:
         # 2. AUTOMATED SCRIPT GENERATION FOR MIKROTIK (RADIUS AAA PATH)
         if driver_type == "radius_aaa" or driver_type == "mikrotik_radius":
             api_url = f"{api_scheme}://{system_domain}{api_port}/routers/mikrotik/ping"
-            portal_redirect_url = f"{api_scheme}://{system_domain}{api_port}/portal?router_id={router_id or ''}"
+            portal_redirect_url = f"{frontend_url}/portal?router_id={router_id or ''}"
             heartbeat_url = f"{api_url}?nas_id={nas_identifier}"
             automated_script = (
                 f"/radius remove [find];\n"

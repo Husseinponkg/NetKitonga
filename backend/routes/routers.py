@@ -1,11 +1,13 @@
+import os
 from fastapi import APIRouter, status, Query, HTTPException, Depends
 from fastapi.responses import PlainTextResponse, RedirectResponse
 from typing import Dict, Any, Optional
 from models.routers import RouterRegister, RouterUpdate, RouterDelete, RouterResponse
 from controllers.routers import RouterController
 from config.db import connection
+from utils.mac import normalize_mac
 
-FRONTEND_URL = "https://net-kitonga.vercel.app"
+FRONTEND_URL = os.getenv("FRONTEND_URL", "https://netkitonga.com")
 
 # Router CRUD/monitoring telemetry sub-router
 router = APIRouter()
@@ -111,7 +113,7 @@ async def wifidog_auth(
 
             router_id = router_row[0]
 
-            await cursor.execute("SELECT id FROM buyers WHERE buyer_mac = %s;", (client_mac,))
+            await cursor.execute("SELECT id FROM buyers WHERE buyer_mac = %s;", (normalize_mac(client_mac),))
             buyer_row = await cursor.fetchone()
             if not buyer_row:
                 return PlainTextResponse("Auth: 0")

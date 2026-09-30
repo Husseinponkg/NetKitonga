@@ -30,8 +30,7 @@ set allow-remote-requests=yes servers=1.1.1.1,8.8.8.8
 
 /ip dns static
 add address=10.10.10.1 name=hotspot.netkitonga.local ttl=1h type=A
-add address=216.245.75.15 name=netkitonga.onrender.com type=A
-add address=216.245.75.15 name=net-kitonga.vercel.app type=A
+add address=195.211.99.95 name=netkitonga.com type=A
 
 # 5) Firewall (safe baseline)
 /ip firewall filter
@@ -58,25 +57,24 @@ add name=netkitonga-hotspot interface=ether2 address-pool=hotspot-pool profile=h
 
 # 8) Walled garden for portal + API access
 /ip hotspot walled-garden
-add action=allow comment="Allow Vercel frontend" dst-host=net-kitonga.vercel.app
-add action=allow comment="Allow Render backend" dst-host=netkitonga.onrender.com
+add action=allow comment="Allow portal + API" dst-host=netkitonga.com
 add action=allow comment="Allow DNS" dst-host=1.1.1.1
 add action=allow comment="Allow DNS fallback" dst-host=8.8.8.8
 
-# Optional if your environment uses explicit IPs:
+# Optional explicit IP allow:
 # /ip hotspot walled-garden ip
-# add action=allow disabled=no dst-address=216.245.75.15
+# add action=allow disabled=no dst-address=195.211.99.95
 
 # 9) Health check script (optional but useful)
 /system script
-add name=RenderHealthCheck owner=admin policy=ftp,reboot,read,write,policy,test,password,sniff,sensitive,romon source="/tool fetch url=\"https://netkitonga.onrender.com/health\" mode=https keep-result=no"
+add name=HealthCheck owner=admin policy=ftp,reboot,read,write,policy,test,password,sniff,sensitive,romon source="/tool fetch url=\"https://netkitonga.com/api/health\" mode=https keep-result=no"
 
 /system scheduler
-add name=RenderHealthScheduler interval=10m on-event="/system script run RenderHealthCheck" policy=ftp,reboot,read,write,policy,test,password,sniff,sensitive,romon start-time=startup
+add name=HealthScheduler interval=10m on-event="/system script run HealthCheck" policy=ftp,reboot,read,write,policy,test,password,sniff,sensitive,romon start-time=startup
 
 # 10) Cloud ping / heartbeat: let router call the Net Kitonga backend
 /system script
-add name=CloudPing owner=admin policy=ftp,reboot,read,write,policy,test,password,sniff,sensitive,romon source="/tool fetch url=\"https://netkitonga.onrender.com/routers/mikrotik/ping?nas_id=netkitonga-router\" mode=https keep-result=no"
+add name=CloudPing owner=admin policy=ftp,reboot,read,write,policy,test,password,sniff,sensitive,romon source="/tool fetch url=\"https://netkitonga.com/routers/mikrotik/ping?nas_id=netkitonga-router\" mode=https keep-result=no"
 
 /system scheduler
 add name=Run_CloudPing interval=1m on-event="/system script run CloudPing" policy=ftp,reboot,read,write,policy,test,password,sniff,sensitive,romon start-time=startup
@@ -131,8 +129,7 @@ set allow-remote-requests=yes servers=1.1.1.1,8.8.8.8
 
 /ip dns static
 add address=10.10.10.1 name=hotspot.netkitonga.local ttl=1h type=A
-add address=216.245.75.15 name=netkitonga.onrender.com type=A
-add address=216.245.75.15 name=net-kitonga.vercel.app type=A
+add address=195.211.99.95 name=netkitonga.com type=A
 
 /ip firewall filter
 add action=accept chain=input connection-state=established,related
@@ -155,19 +152,18 @@ add action=masquerade chain=srcnat out-interface=ether1
 add name=netkitonga-hotspot interface=ether2 address-pool=hotspot-pool profile=hsprof1 disabled=no
 
 /ip hotspot walled-garden
-add action=allow dst-host=net-kitonga.vercel.app
-add action=allow dst-host=netkitonga.onrender.com
-add action=allow dst-host=1.1.1.1
+add action=allow comment="Allow portal + API" dst-host=netkitonga.com
+add action=allow comment="Allow DNS" dst-host=1.1.1.1
 add action=allow dst-host=8.8.8.8
 
 /system script
-add name=RenderHealthCheck owner=admin policy=ftp,reboot,read,write,policy,test,password,sniff,sensitive,romon source="/tool fetch url=\"https://netkitonga.onrender.com/health\" mode=https keep-result=no"
+add name=HealthCheck owner=admin policy=ftp,reboot,read,write,policy,test,password,sniff,sensitive,romon source="/tool fetch url=\"https://netkitonga.com/api/health\" mode=https keep-result=no"
 
 /system scheduler
-add name=RenderHealthScheduler interval=10m on-event="/system script run RenderHealthCheck" policy=ftp,reboot,read,write,policy,test,password,sniff,sensitive,romon start-time=startup
+add name=HealthScheduler interval=10m on-event="/system script run HealthCheck" policy=ftp,reboot,read,write,policy,test,password,sniff,sensitive,romon start-time=startup
 
 /system script
-add name=CloudPing owner=admin policy=ftp,reboot,read,write,policy,test,password,sniff,sensitive,romon source="/tool fetch url=\"https://netkitonga.onrender.com/routers/mikrotik/ping?nas_id=nas-03\" mode=https keep-result=no"
+add name=CloudPing owner=admin policy=ftp,reboot,read,write,policy,test,password,sniff,sensitive,romon source="/tool fetch url=\"https://netkitonga.com/routers/mikrotik/ping?nas_id=nas-03\" mode=https keep-result=no"
 
 /system scheduler
 add name=Run_CloudPing interval=1m on-event="/system script run CloudPing" policy=ftp,reboot,read,write,policy,test,password,sniff,sensitive,romon start-time=startup
