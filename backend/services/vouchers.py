@@ -26,9 +26,7 @@ class VoucherService:
 
     @staticmethod
     def _generate_code() -> str:
-        alphabet = string.ascii_uppercase + string.digits
-        value = "".join(secrets.choice(alphabet) for _ in range(12))
-        return f"{value[:4]}-{value[4:8]}-{value[8:]}"
+        return f"{secrets.randbelow(10000):04d}"
 
     async def create_vouchers(self, tenant_id: int, data: VoucherCreate) -> List[dict]:
         conn = await connection()
