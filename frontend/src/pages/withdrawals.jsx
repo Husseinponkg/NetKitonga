@@ -1,6 +1,7 @@
 import React, { useEffect, useState } from "react";
 import { Link, useNavigate, useLocation } from "react-router-dom";
 import { API_BASE_URL } from "../api";
+import { clearTenantSession, getStoredTenantUser, getTenantId } from "../session";
 
 function Withdrawals() {
     const navigate = useNavigate();
@@ -8,6 +9,7 @@ function Withdrawals() {
     const [sidebarOpen, setSidebarOpen] = useState(false);
 
     const [wallet, setWallet] = useState({ total_earned: 0, total_withdrawn: 0, current_balance: 0 });
+    const [incomeBreakdown, setIncomeBreakdown] = useState({ voucher_total: 0, mobile_money_total: 0 });
     const [withdrawals, setWithdrawals] = useState([]);
     const [amount, setAmount] = useState("");
     const [mobileNumber, setMobileNumber] = useState("");
@@ -16,10 +18,10 @@ function Withdrawals() {
     const [loading, setLoading] = useState(true);
     const [submitting, setSubmitting] = useState(false);
 
-    const user = JSON.parse(localStorage.getItem("tenantUser") || "null");
+    const user = getStoredTenantUser();
 
     const logout = () => {
-        localStorage.removeItem("tenantUser");
+        clearTenantSession();
         navigate("/");
     };
 
@@ -38,14 +40,16 @@ function Withdrawals() {
         { to: "/settings", label: "Settings", icon: "M19.14 12.94c.04-.3.06-.61.06-.94 0-.32-.02-.64-.07-.94l2.03-1.58c.18-.14.23-.41.12-.61l-1.92-3.32c-.12-.22-.37-.29-.59-.22l-2.39.96c-.5-.38-1.03-.7-1.62-.94l-.36-2.54c-.04-.24-.24-.41-.48-.41h-3.84c-.24 0-.43.17-.47.41l-.36 2.54c-.59.24-1.13.57-1.62.94l-2.39-.96c-.22-.08-.47 0-.59.22L2.74 8.87c-.12.21-.08.47.12.61l2.03 1.58c-.05.3-.09.63-.09.94s.02.64.07.94l-2.03 1.58c-.18.14-.23.41-.12.61l1.92 3.32c.12.22.37.29.59.22l2.39-.96c.5.38 1.03.7 1.62.94l.36 2.54c.05.24.24.41.48.41h3.84c.24 0 .44-.17.47-.41l.36-2.54c.59-.24 1.13-.56 1.62-.94l2.39.96c.22.08.47 0 .59-.22l1.92-3.32c.12-.22.07-.47-.12-.61l-2.01-1.58zM12 15.6c-1.98 0-3.6-1.62-3.6-3.6s1.62-3.6 3.6-3.6 3.6 1.62 3.6 3.6-1.62 3.6-3.6 3.6z" },
     ];
 
-    const getTenantId = () => {
-        const u = JSON.parse(localStorage.getItem("tenantUser") || "{}");
-        return u.id || 1;
-    };
+    const getSessionTenantId = () => getTenantId();
 
     const fetchWallet = async () => {
         try {
-            const res = await fetch(`${API_BASE_URL}/withdrawals/balance?tenant_id=${getTenantId()}`);
+            const tenantId = getSessionTenantId();
+            if (!tenantId) {
+                setWallet({ total_earned: 0, total_withdrawn: 0, current_balance: 0 });
+                return;
+            }
+            const res = await fetch(`${API_BASE_URL}/withdrawals/balance?tenant_id=${tenantId}`);
             if (res.ok) {
                 const data = await res.json();
                 setWallet(data);
@@ -55,9 +59,34 @@ function Withdrawals() {
         }
     };
 
+    const fetchIncomeBreakdown = async () => {
+        try {
+            const tenantId = getSessionTenantId();
+            if (!tenantId) {
+                setIncomeBreakdown({ voucher_total: 0, mobile_money_total: 0 });
+                return;
+            }
+            const res = await fetch(`${API_BASE_URL}/payments/income/stats?tenant_id=${tenantId}`);
+            if (res.ok) {
+                const data = await res.json();
+                setIncomeBreakdown({
+                    voucher_total: data.voucher_completed_total || 0,
+                    mobile_money_total: data.azampay_completed_total || 0,
+                });
+            }
+        } catch (err) {
+            console.error("Error fetching income breakdown:", err);
+        }
+    };
+
     const fetchHistory = async () => {
         try {
-            const res = await fetch(`${API_BASE_URL}/withdrawals/history?tenant_id=${getTenantId()}`);
+            const tenantId = getSessionTenantId();
+            if (!tenantId) {
+                setWithdrawals([]);
+                return;
+            }
+            const res = await fetch(`${API_BASE_URL}/withdrawals/history?tenant_id=${tenantId}`);
             if (res.ok) {
                 const data = await res.json();
                 setWithdrawals(Array.isArray(data) ? data : []);
@@ -69,7 +98,7 @@ function Withdrawals() {
 
     const loadData = async () => {
         setLoading(true);
-        await Promise.all([fetchWallet(), fetchHistory()]);
+        await Promise.all([fetchWallet(), fetchIncomeBreakdown(), fetchHistory()]);
         setLoading(false);
     };
 
@@ -81,6 +110,13 @@ function Withdrawals() {
         e.preventDefault();
         setMessage("");
         setSubmitting(true);
+
+        const tenantId = getSessionTenantId();
+        if (!tenantId) {
+            setMessage("Tenant session is missing. Please login again.");
+            setSubmitting(false);
+            return;
+        }
 
         const withdrawAmount = parseFloat(amount);
         if (!withdrawAmount || withdrawAmount <= 0) {
@@ -95,7 +131,7 @@ function Withdrawals() {
         }
 
         try {
-            const res = await fetch(`${API_BASE_URL}/withdrawals/request?tenant_id=${getTenantId()}`, {
+            const res = await fetch(`${API_BASE_URL}/withdrawals/request?tenant_id=${tenantId}`, {
                 method: "POST",
                 headers: { "Content-Type": "application/json" },
                 body: JSON.stringify({
@@ -1098,8 +1134,12 @@ function Withdrawals() {
                             {/* Stats */}
                             <div className="stats-grid">
                                 <div className="stat-card">
-                                    <div className="stat-label">Total Earned</div>
+                                    <div className="stat-label">Mobile Money Earnings</div>
                                     <div className="stat-value earned">{fmt(wallet.total_earned)}</div>
+                                </div>
+                                <div className="stat-card">
+                                    <div className="stat-label">Voucher Earnings</div>
+                                    <div className="stat-value" style={{ color: "#fbc02d" }}>{fmt(incomeBreakdown.voucher_total)}</div>
                                 </div>
                                 <div className="stat-card">
                                     <div className="stat-label">Total Withdrawn</div>
@@ -1109,6 +1149,19 @@ function Withdrawals() {
                                     <div className="stat-label">Available Balance</div>
                                     <div className="stat-value balance">{fmt(wallet.current_balance)}</div>
                                 </div>
+                            </div>
+
+                            <div style={{
+                                background: "rgba(229,9,20,0.06)",
+                                border: "1px solid rgba(229,9,20,0.2)",
+                                borderRadius: "6px",
+                                padding: "12px 16px",
+                                marginBottom: "18px",
+                                fontSize: "0.75rem",
+                                color: "rgba(255,255,255,0.7)",
+                                fontWeight: 600,
+                            }}>
+                                ℹ️ Only mobile money earnings are withdrawable. Voucher revenue is excluded from withdrawal balance.
                             </div>
 
                             {/* Content */}

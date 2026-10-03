@@ -1,5 +1,6 @@
 import React from "react";
 import { BrowserRouter, Routes, Route, Navigate } from "react-router-dom";
+import { getStoredTenantUser, hasValidTenantSession } from "./session";
 import Login from "./log";
 import Register from "./reg";
 import Layout from "./components/Layout";
@@ -15,6 +16,7 @@ import CaptivePortal from "./pages/portal";
 import Sessions from "./pages/sessions";
 import Settings from "./pages/settings";
 import Vouchers from "./pages/vouchers";
+import Admin from "./pages/admin";
 
 class ErrorBoundary extends React.Component {
   constructor(props) {
@@ -47,8 +49,13 @@ class ErrorBoundary extends React.Component {
 }
 
 function ProtectedRoute({ children }) {
-  const user = JSON.parse(localStorage.getItem("tenantUser") || "null");
-  return user ? <Layout>{children}</Layout> : <Navigate to="/" replace />;
+  const user = getStoredTenantUser();
+  return user && hasValidTenantSession() ? <Layout>{children}</Layout> : <Navigate to="/" replace />;
+}
+
+function AdminRoute({ children }) {
+  const adminUser = typeof window !== "undefined" ? localStorage.getItem("adminUser") : null;
+  return adminUser ? children : <Navigate to="/" replace />;
 }
 
 function App() {
@@ -60,7 +67,7 @@ function App() {
           <Route path="/register" element={<Register />} />
           <Route path="/portal" element={<CaptivePortal />} />
           <Route path="/portal/:tenantId?" element={<CaptivePortal />} />
-          <Route path="/dashboard" element={<Dashboard />} />
+          <Route path="/dashboard" element={<ProtectedRoute><Dashboard /></ProtectedRoute>} />
           <Route path="/branch" element={<ProtectedRoute><Branch /></ProtectedRoute>} />
           <Route path="/routers" element={<ProtectedRoute><Routers /></ProtectedRoute>} />
           <Route path="/packages" element={<ProtectedRoute><PackagesDashboard /></ProtectedRoute>} />
@@ -71,6 +78,7 @@ function App() {
           <Route path="/withdrawals" element={<ProtectedRoute><Withdrawals /></ProtectedRoute>} />
           <Route path="/sessions" element={<ProtectedRoute><Sessions /></ProtectedRoute>} />
           <Route path="/settings" element={<ProtectedRoute><Settings /></ProtectedRoute>} />
+          <Route path="/admin" element={<AdminRoute><Admin /></AdminRoute>} />
         </Routes>
       </ErrorBoundary>
     </BrowserRouter>

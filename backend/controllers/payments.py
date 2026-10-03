@@ -97,6 +97,46 @@ class PaymentController:
         finally:
             await conn.close()
 
+    async def get_portal_payment_status(
+        self,
+        gateway_reference: str,
+        router_id: int,
+        buyer_mac: str,
+    ) -> Dict[str, Any]:
+        conn = await connection()
+        try:
+            async with conn.cursor() as cursor:
+                await cursor.execute(
+                    """
+                                        SELECT p.status, p.auth_token, EXISTS (
+                                                SELECT 1
+                                                FROM active_sessions s
+                                                WHERE s.payment_id = p.id
+                                                    AND s.router_id = p.router_id
+                                                    AND s.buyer_id = p.buyer_id
+                                                    AND s.status = 'active'
+                                                    AND s.expiration_time > NOW()
+                                        )
+                    FROM payments p
+                    JOIN buyers b ON b.id = p.buyer_id AND b.tenant_id = p.tenant_id
+                    WHERE p.gateway_reference = %s
+                      AND p.router_id = %s
+                      AND b.buyer_mac = %s;
+                    """,
+                    (gateway_reference, router_id, normalize_mac(buyer_mac)),
+                )
+                payment = await cursor.fetchone()
+                if not payment:
+                    raise HTTPException(status_code=404, detail="Payment was not found for this device.")
+
+                payment_status, auth_token, has_active_session = payment
+                return {
+                    "status": payment_status,
+                    "auth_token": auth_token if payment_status == "completed" else None,
+                }
+        finally:
+            await conn.close()
+
     async def get_income_stats(self, tenant_id: int) -> Dict[str, Any]:
         conn = await connection()
         try:
@@ -110,7 +150,11 @@ class PaymentController:
                         COUNT(*) FILTER (WHERE status = 'failed') AS failed_count,
                         COALESCE(SUM(amount) FILTER (WHERE status = 'failed'), 0) AS failed_total,
                         COUNT(*) AS total_count,
-                        COALESCE(SUM(amount), 0) AS total_amount
+                        COALESCE(SUM(amount), 0) AS total_amount,
+                        COUNT(*) FILTER (WHERE status = 'completed' AND LOWER(payment_gateway) = 'voucher') AS voucher_completed_count,
+                        COALESCE(SUM(amount) FILTER (WHERE status = 'completed' AND LOWER(payment_gateway) = 'voucher'), 0) AS voucher_completed_total,
+                        COUNT(*) FILTER (WHERE status = 'completed' AND LOWER(payment_gateway) = 'azampay') AS azampay_completed_count,
+                        COALESCE(SUM(amount) FILTER (WHERE status = 'completed' AND LOWER(payment_gateway) = 'azampay'), 0) AS azampay_completed_total
                     FROM payments
                     WHERE tenant_id = %s;
                 """, (tenant_id,))
@@ -120,7 +164,9 @@ class PaymentController:
                         "completed_count": 0, "completed_total": 0,
                         "pending_count": 0, "pending_total": 0,
                         "failed_count": 0, "failed_total": 0,
-                        "total_count": 0, "total_amount": 0
+                        "total_count": 0, "total_amount": 0,
+                        "voucher_completed_count": 0, "voucher_completed_total": 0,
+                        "azampay_completed_count": 0, "azampay_completed_total": 0,
                     }
                 return {
                     "completed_count": row[0] or 0,
@@ -130,7 +176,11 @@ class PaymentController:
                     "failed_count": row[4] or 0,
                     "failed_total": float(row[5] or 0),
                     "total_count": row[6] or 0,
-                    "total_amount": float(row[7] or 0)
+                    "total_amount": float(row[7] or 0),
+                    "voucher_completed_count": row[8] or 0,
+                    "voucher_completed_total": float(row[9] or 0),
+                    "azampay_completed_count": row[10] or 0,
+                    "azampay_completed_total": float(row[11] or 0),
                 }
         finally:
             await conn.close()
@@ -191,7 +241,7 @@ class PaymentController:
         try:
             async with conn.cursor() as cursor:
                 # 1. Fetch current transaction payload context parameters safely
-                query = "SELECT id, tenant_id, amount, status FROM payments WHERE gateway_reference = %s;"
+                query = "SELECT id, tenant_id, amount, status, payment_gateway FROM payments WHERE gateway_reference = %s;"
                 await cursor.execute(query, (external_id,))
                 payment_row = await cursor.fetchone()
 
@@ -199,7 +249,7 @@ class PaymentController:
                 if not payment_row or payment_row[3] != 'pending':
                     return False
 
-                payment_id, tenant_id, amount, _ = payment_row
+                payment_id, tenant_id, amount, _, payment_gateway = payment_row
                 resolved_status = 'completed' if is_successful else 'failed'
 
                 # 2. Persist the final transaction status update into the PostgreSQL database layer
@@ -211,7 +261,7 @@ class PaymentController:
                 # tenant_wallets row doesn't already exist for this tenant, a plain
                 # UPDATE silently affects 0 rows and the money is never tracked
                 # anywhere even though the payment itself gets marked completed.
-                if resolved_status == 'completed':
+                if resolved_status == 'completed' and str(payment_gateway).lower() == 'azampay':
                     wallet_upsert_query = """
                         INSERT INTO tenant_wallets (tenant_id, total_earned, current_balance, updated_at)
                         VALUES (%s, %s, %s, NOW())

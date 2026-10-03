@@ -63,11 +63,17 @@ class VoucherController:
                 auth_token = secrets.token_urlsafe(32)
 
                 await cursor.execute(
-                    "SELECT branch_id FROM routers WHERE id = %s;",
+                    """
+                    SELECT r.branch_id, r.driver_type
+                    FROM routers r
+                    WHERE r.id = %s;
+                    """,
                     (data.router_id,),
                 )
                 router_row = await cursor.fetchone()
-                branch_id = router_row[0] if router_row else 0
+                if not router_row:
+                    raise HTTPException(status_code=404, detail="Router was not found for this voucher redemption.")
+                branch_id, driver_type = router_row
 
                 await cursor.execute(
                     """
@@ -133,21 +139,12 @@ class VoucherController:
                     ),
                 )
 
-                wallet_upsert_query = """
-                    INSERT INTO tenant_wallets (tenant_id, total_earned, current_balance, updated_at)
-                    VALUES (%s, %s, %s, NOW())
-                    ON CONFLICT (tenant_id) DO UPDATE
-                    SET total_earned = tenant_wallets.total_earned + EXCLUDED.total_earned,
-                        current_balance = tenant_wallets.current_balance + EXCLUDED.current_balance,
-                        updated_at = NOW();
-                """
-                await cursor.execute(wallet_upsert_query, (tenant_id, package_price, package_price))
-
                 await conn.commit()
                 return {
                     "message": "Voucher redeemed successfully.",
                     "session_duration_seconds": duration_seconds,
                     "package_id": package_id,
+                    "auth_token": auth_token,
                 }
         except HTTPException:
             raise

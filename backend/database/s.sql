@@ -153,7 +153,7 @@ CREATE TABLE tenant_wallets (
 CREATE TABLE withdrawals (
     id SERIAL PRIMARY KEY,
     tenant_id INT NOT NULL REFERENCES tenants(id) ON DELETE CASCADE,
-    wallet_id INT NOT NULL REFERENCES tenant_wallets(id) ON DELETE CASCADE,
+    wallet_id INT NOT REFERENCES tenant_wallets(id) ON DELETE CASCADE,
     
     amount DECIMAL(10, 2) NOT NULL,
     mobile_money_number VARCHAR(30) NOT NULL,
@@ -163,3 +163,16 @@ CREATE TABLE withdrawals (
     
     created_at TIMESTAMP DEFAULT CURRENT_TIMESTAMP
 );
+
+-- 11. SYSTEM LOGS (ADMIN MONITORING)
+CREATE TABLE IF NOT EXISTS system_logs (
+    id SERIAL PRIMARY KEY,
+    tenant_id INT NULL REFERENCES tenants(id) ON DELETE CASCADE,
+    action VARCHAR(150) NOT NULL,
+    entity_type VARCHAR(100) NOT NULL,
+    entity_id INT NULL,
+    metadata JSONB NULL,
+    created_at TIMESTAMP DEFAULT CURRENT_TIMESTAMP
+);
+CREATE INDEX IF NOT EXISTS idx_system_logs_tenant_id ON system_logs(tenant_id);
+CREATE INDEX IF NOT EXISTS idx_system_logs_created_at ON system_logs(created_at);

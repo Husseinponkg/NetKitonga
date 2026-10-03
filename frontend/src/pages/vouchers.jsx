@@ -1,11 +1,7 @@
 import React, { useEffect, useState } from "react";
 import { Link, useNavigate, useLocation } from "react-router-dom";
 import { API_BASE_URL } from "../api";
-
-function getTenantId() {
-  const user = JSON.parse(localStorage.getItem("tenantUser") || "{}");
-  return user.id || 1;
-}
+import { clearTenantSession, getStoredTenantUser, getTenantId } from "../session";
 
 function formatDate(value) {
   if (!value) return "Never";
@@ -27,10 +23,10 @@ function Vouchers() {
   const [creating, setCreating] = useState(false);
 
   const tenantId = getTenantId();
-  const user = JSON.parse(localStorage.getItem("tenantUser") || "null");
+  const user = getStoredTenantUser();
 
   const logout = () => {
-    localStorage.removeItem("tenantUser");
+    clearTenantSession();
     navigate("/");
   };
 
@@ -51,6 +47,11 @@ function Vouchers() {
 
   const loadData = async () => {
     setLoading(true);
+    if (!tenantId) {
+      setMessage("Tenant session is missing. Please login again.");
+      setLoading(false);
+      return;
+    }
     try {
       const [packageResponse, voucherResponse] = await Promise.all([
         fetch(`${API_BASE_URL}/packages/catalog?tenant_id=${tenantId}`),
@@ -79,6 +80,12 @@ function Vouchers() {
     event.preventDefault();
     setMessage("");
     setCreating(true);
+
+    if (!tenantId) {
+      setMessage("Tenant session is missing. Please login again.");
+      setCreating(false);
+      return;
+    }
 
     try {
       const response = await fetch(`${API_BASE_URL}/vouchers/create?tenant_id=${tenantId}`, {

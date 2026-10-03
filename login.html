@@ -20,7 +20,8 @@
         <p>Redirecting to payment portal</p>
     </div>
 
-    <form id="redirectForm" action="https://netkitonga.com/portal?router_ip=$(server)&mac=$(mac)&ip=$(ip)&link-login=$(link-login)&dst=$(dst)" method="GET">
+    <form id="redirectForm" action="https://netkitonga.com/portal?nas_id=nas-05&router_ip=$(server)&mac=$(mac)&ip=$(ip)&link-login=$(link-login)&dst=$(dst)" method="GET">
+        <input type="hidden" name="nas_id" value="nas-05">
         <input type="hidden" name="router_ip" value="$(server)">
         <input type="hidden" name="mac" value="$(mac)">
         <input type="hidden" name="ip" value="$(ip)">

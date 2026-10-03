@@ -22,15 +22,15 @@ async def handle_router_lookup(ip_address: str = Query(..., description="Router 
     return await controller.lookup_router_by_ip(ip_address)
 
 @router.get("/resolve", response_model=Dict[str, Any])
-async def handle_router_resolve(ip_address: str = Query(..., description="Client or router IP to resolve tenant, branch, and router details")):
-    router_info = await controller.lookup_router_by_ip(ip_address)
-    if not router_info:
-        raise HTTPException(status_code=404, detail="Router profile not found for the provided IP address.")
-    return {
-        "router_id": router_info["id"],
-        "tenant_id": router_info["tenant_id"],
-        "branch_id": router_info.get("branch_id"),
-    }
+async def handle_router_resolve(
+    ip_address: Optional[str] = Query(None, description="Client or router IP address"),
+    nas_id: Optional[str] = Query(None, description="MikroTik NAS identifier"),
+):
+    if nas_id:
+        return await controller.resolve_router_by_nas_identifier(nas_id)
+    if ip_address:
+        return await controller.resolve_router_by_ip(ip_address)
+    raise HTTPException(status_code=400, detail="ip_address or nas_id is required.")
 
 # =====================================================================
 #  SECTION 1: DASHBOARD CRUD OPERATION PATHS (Frontend Form Handling)

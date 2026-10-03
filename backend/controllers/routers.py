@@ -245,3 +245,13 @@ class RouterController:
             "tenant_id": router["tenant_id"],
             "branch_id": router.get("branch_id"),
         }
+
+    async def resolve_router_by_nas_identifier(self, nas_identifier: str) -> dict:
+        router = await self.router_service.get_router_by_nas_identifier(nas_identifier)
+        if not router:
+            raise HTTPException(status_code=404, detail="Router profile not found for this NAS identifier.")
+        return {
+            "router_id": router["id"],
+            "tenant_id": router["tenant_id"],
+            "branch_id": router.get("branch_id"),
+        }

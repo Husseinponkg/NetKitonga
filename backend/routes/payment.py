@@ -6,7 +6,7 @@ from models.payments import CheckoutRequest, PaymentHistoryResponse, PortalBuyer
 from services.payments import PaymentService
 from controllers.payments import PaymentController
 
-payment_endpoints = APIRouter(prefix="/api/payments", tags=["AzamPay Micro-Billing Engine"])
+payment_endpoints = APIRouter(prefix="/payments", tags=["AzamPay Micro-Billing Engine"])
 service = PaymentService()
 controller = PaymentController()
 
@@ -65,6 +65,14 @@ async def handle_checkout_trigger(payload: CheckoutRequest):
 @payment_endpoints.post("/portal/buyer", response_model=Dict[str, int], status_code=status.HTTP_200_OK)
 async def handle_portal_buyer(payload: PortalBuyerRequest):
     return {"buyer_id": await service.register_portal_buyer(payload)}
+
+@payment_endpoints.get("/status")
+async def handle_portal_payment_status(
+    gateway_reference: str = Query(...),
+    router_id: int = Query(...),
+    buyer_mac: str = Query(...),
+):
+    return await controller.get_portal_payment_status(gateway_reference, router_id, buyer_mac)
 
 @payment_endpoints.get("/history", response_model=List[PaymentHistoryResponse])
 async def handle_get_payment_ledger(tenant_id: int = Query(..., description="The active business tenant ID context")):

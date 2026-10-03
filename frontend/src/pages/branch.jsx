@@ -1,14 +1,15 @@
 import React, { useEffect, useState } from "react";
 import { Link, useNavigate, useLocation } from "react-router-dom";
 import { API_BASE_URL } from "../api";
+import { clearTenantSession, getStoredTenantUser, getTenantId } from "../session";
 
 function Branch() {
   const navigate = useNavigate();
   const location = useLocation();
   const [sidebarOpen, setSidebarOpen] = useState(false);
 
-  const currentUser = JSON.parse(localStorage.getItem("tenantUser") || "null");
-  const tenantId = currentUser?.id ?? null;
+  const currentUser = getStoredTenantUser();
+  const tenantId = getTenantId();
 
   const [branch_name, setBranchName] = useState("");
   const [branch_location, setBranchLocation] = useState("");
@@ -20,7 +21,7 @@ function Branch() {
   const [error, setError] = useState("");
 
   const logout = () => {
-    localStorage.removeItem("tenantUser");
+    clearTenantSession();
     navigate("/");
   };
 

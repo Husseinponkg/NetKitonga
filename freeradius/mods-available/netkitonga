@@ -1,0 +1,39 @@
+rest netkitonga {
+    # Net Kitonga billing backend REST integration
+    # Place at: /etc/freeradius/3.0/mods-available/netkitonga
+
+    connect_timeout = 3
+    receive_timeout = 5
+    post_timeout = 5
+    chroot = /srv/radius
+
+    authorize {
+        uri = "http://127.0.0.1:8000/radius/authorize/simple"
+        method = 'GET'
+        data = 'mac=%{Calling-Station-Id}&nas_id=%{NAS-Identifier}&nas_ip=%{NAS-IP-Address}&ip=%{Framed-IP-Address}'
+    }
+
+    authenticate {
+        uri = "http://127.0.0.1:8000/radius/authorize/simple"
+        method = 'GET'
+        data = 'mac=%{User-Name}&nas_id=%{NAS-Identifier}'
+    }
+
+    accounting {
+        uri = "http://127.0.0.1:8000/radius/accounting"
+        method = 'POST'
+        content_type = 'application/json'
+        data = '{
+            "username": "%{User-Name}",
+            "calling_station_id": "%{Calling-Station-Id}",
+            "nas_identifier": "%{NAS-Identifier}",
+            "session_id": "%{Acct-Session-Id}",
+            "framed_ip_address": "%{Framed-IP-Address}",
+            "acct_status_type": "%{Acct-Status-Type}",
+            "acct_input_octets": "%{Acct-Input-Octets}",
+            "acct_output_octets": "%{Acct-Output-Octets}",
+            "acct_session_time": "%{Acct-Session-Time}",
+            "event_timestamp": "%{Event-Timestamp}"
+        }'
+    }
+}

@@ -1,20 +1,21 @@
 import React, { useEffect, useState } from "react";
 import { Link, useNavigate, useLocation } from "react-router-dom";
 import { API_BASE_URL } from "../api";
+import { clearTenantSession, getStoredTenantUser, getTenantId } from "../session";
 
 function Settings() {
     const navigate = useNavigate();
     const location = useLocation();
     const [sidebarOpen, setSidebarOpen] = useState(false);
 
-    const currentUser = JSON.parse(localStorage.getItem("tenantUser") || "{}");
+    const currentUser = getStoredTenantUser();
     const [form, setForm] = useState({ business_name: "", system_name: "", email: "", password: "" });
     const [message, setMessage] = useState("");
     const [loading, setLoading] = useState(true);
     const [saving, setSaving] = useState(false);
 
     const logout = () => {
-        localStorage.removeItem("tenantUser");
+        clearTenantSession();
         navigate("/");
     };
 
@@ -37,7 +38,13 @@ function Settings() {
         const loadSettings = async () => {
             try {
                 setLoading(true);
-                const response = await fetch(`${API_BASE_URL}/settings?tenant_id=${currentUser.id || 1}`);
+                const tenantId = getTenantId();
+                if (!tenantId) {
+                    setMessage("Tenant session is missing. Please login again.");
+                    setLoading(false);
+                    return;
+                }
+                const response = await fetch(`${API_BASE_URL}/settings?tenant_id=${tenantId}`);
                 const data = await response.json();
                 if (!response.ok) throw new Error(data.detail || "Could not load settings.");
                 setForm({ ...data, password: "" });
@@ -57,12 +64,19 @@ function Settings() {
         event.preventDefault();
         setMessage("");
         setSaving(true);
+
+        const tenantId = getTenantId();
+        if (!tenantId) {
+            setMessage("Tenant session is missing. Please login again.");
+            setSaving(false);
+            return;
+        }
         
         try {
             const response = await fetch(`${API_BASE_URL}/settings`, {
                 method: "PUT",
                 headers: { "Content-Type": "application/json" },
-                body: JSON.stringify({ tenant_id: currentUser.id || 1, ...form }),
+                body: JSON.stringify({ tenant_id: tenantId, ...form }),
             });
             const result = await response.json();
             if (!response.ok) throw new Error(result.detail || "Could not save settings.");

@@ -16,6 +16,7 @@ import uvicorn
 from fastapi import FastAPI
 from fastapi.middleware.cors import CORSMiddleware
 
+from backend.routes.admin import router as admin_router
 from backend.routes.Auth import router as auth_router
 from backend.routes.branch import router as branch_router
 from backend.routes.routers import router as routers_router, wifidog_router
@@ -55,6 +56,7 @@ app.add_middleware(
 async def health_check():
     return {"status": "ok", "service": "billing-api"}
 
+app.include_router(admin_router, prefix="/admin", tags=["admin"])
 app.include_router(auth_router, prefix="/auth", tags=["auth"])
 app.include_router(branch_router, prefix="/branch", tags=["branch"]) 
 app.include_router(routers_router, prefix="/routers", tags=["routers"])
@@ -66,6 +68,10 @@ app.include_router(session_endpoints)
 app.include_router(settings_endpoints)
 app.include_router(withdrawals_router, prefix="/withdrawals", tags=["withdrawals"])
 app.include_router(vouchers_router, prefix="/vouchers", tags=["vouchers"])
+from backend.routes.captive import captive_router as captive_endpoints
+
+app.include_router(captive_endpoints, prefix="/captive", tags=["captive"])
+
 app.include_router(radius_endpoints, prefix="/radius", tags=["radius"])
 
 if __name__ == "__main__":

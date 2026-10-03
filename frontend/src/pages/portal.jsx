@@ -1,5 +1,7 @@
 import React, { useState, useEffect } from "react";
+import { useLocation } from "react-router-dom";
 import { API_BASE_URL as API_ROOT } from "../api";
+import { getStoredTenantUser, getTenantId as getSessionTenantId } from "../session";
 
 // ====================================================================
 // PROVIDER LOGOS
@@ -24,7 +26,45 @@ const PROVIDERS = [
   { id: "Azampesa", name: "Azampesa",     logo: "data:image/jpeg;base64,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" },
 ];
 
+function normalizeMac(value) {
+    const compact = String(value || "").toUpperCase().replace(/[^0-9A-F]/g, "");
+    return compact.length === 12 ? compact.match(/.{2}/g).join(":") : compact;
+}
+
+function submitHotspotLogin(loginLink, username, password, destination) {
+    if (!loginLink || !username || !password) return false;
+
+    let url;
+    try {
+        url = new URL(loginLink, window.location.origin);
+    } catch {
+        return false;
+    }
+
+    const host = url.hostname.toLowerCase();
+    const isPrivateIpv4 =
+        /^10\./.test(host) ||
+        /^192\.168\./.test(host) ||
+        /^172\.(1[6-9]|2\d|3[01])\./.test(host);
+    if (!isPrivateIpv4 && !host.endsWith(".local")) return false;
+
+    const form = document.createElement("form");
+    form.method = "post";
+    form.action = url.href;
+    for (const [name, value] of Object.entries({ username, password, dst: destination || "" })) {
+        const input = document.createElement("input");
+        input.type = "hidden";
+        input.name = name;
+        input.value = value;
+        form.appendChild(input);
+    }
+    document.body.appendChild(form);
+    form.submit();
+    return true;
+}
+
 function Portal() {
+    const location = useLocation();
     const [packageCatalog, setPackageCatalog] = useState([]);
     const [selectedPackageId, setSelectedPackageId] = useState("");
     const [phoneNumber, setPhoneNumber] = useState("");
@@ -38,25 +78,33 @@ function Portal() {
 
     const API_BASE_URL = API_ROOT;
 
-    const queryParams = new URLSearchParams(window.location.search);
-    const pathTenantId = window.location.pathname.split("/").filter(Boolean).pop();
+    const queryParams = new URLSearchParams(location.search);
+    const pathParts = location.pathname.split("/").filter(Boolean);
+    const pathTenantId = pathParts[0] === "portal" ? pathParts[1] || null : null;
     const tenantId = queryParams.get("tenant_id") || pathTenantId || null;
     const branchId = queryParams.get("branch_id");
     const routerId = queryParams.get("router_id");
     const buyerMac = queryParams.get("mac") || "unknown-device";
     const routerIp = queryParams.get("router_ip");
+    const nasId = queryParams.get("nas_id");
+    const linkLogin = queryParams.get("link-login") || queryParams.get("link-login-only");
+    const destination = queryParams.get("dst") || queryParams.get("link-orig") || "";
+    const [pendingGatewayReference, setPendingGatewayReference] = useState(null);
 
     const [resolvedRouter, setResolvedRouter] = useState(null);
 
     const getTenantId = () => {
-        const user = JSON.parse(localStorage.getItem("tenantUser") || "{}");
-        return user.id || tenantId;
+        const user = getStoredTenantUser();
+        return user?.id ?? getSessionTenantId() ?? tenantId;
     };
 
     const resolveRouterFromIp = async () => {
-        if (!routerIp || routerId || tenantId) return;
+        if ((!routerIp && !nasId) || routerId || (tenantId && branchId)) return;
         try {
-            const response = await fetch(`${API_BASE_URL}/routers/resolve?ip_address=${encodeURIComponent(routerIp)}`);
+            const lookup = nasId
+                ? `nas_id=${encodeURIComponent(nasId)}`
+                : `ip_address=${encodeURIComponent(routerIp)}`;
+            const response = await fetch(`${API_BASE_URL}/routers/resolve?${lookup}`);
             if (!response.ok) return;
             const data = await response.json();
             setResolvedRouter(data);
@@ -67,7 +115,7 @@ function Portal() {
 
     useEffect(() => {
         resolveRouterFromIp();
-    }, [routerIp, routerId, tenantId]);
+    }, [routerIp, nasId, routerId, tenantId, branchId]);
 
     const effectiveTenantId = tenantId || resolvedRouter?.tenant_id;
     const effectiveBranchId = branchId || resolvedRouter?.branch_id;
@@ -109,6 +157,48 @@ function Portal() {
         fetchActivePackages();
     }, [effectiveRouterId, routerIp]);
 
+    useEffect(() => {
+        if (!pendingGatewayReference || !effectiveRouterId || buyerMac === "unknown-device") return;
+
+        let cancelled = false;
+        let timer;
+        const checkPayment = async () => {
+            try {
+                const params = new URLSearchParams({
+                    gateway_reference: pendingGatewayReference,
+                    router_id: String(effectiveRouterId),
+                    buyer_mac: normalizeMac(buyerMac),
+                });
+                const response = await fetch(`${API_BASE_URL}/payments/status?${params}`);
+                if (response.ok) {
+                    const payment = await response.json();
+                    if (payment.status === "completed" && payment.auth_token) {
+                        setPendingGatewayReference(null);
+                        if (!submitHotspotLogin(linkLogin, normalizeMac(buyerMac), payment.auth_token, destination)) {
+                            setUiMessage("Payment confirmed. Return to the hotspot login page to connect.");
+                        }
+                        return;
+                    }
+                    if (payment.status === "failed") {
+                        setPendingGatewayReference(null);
+                        setUiMessage("Payment was not completed. Please try again.");
+                        return;
+                    }
+                }
+            } catch (error) {
+                console.error("Failed to check payment status:", error);
+            }
+
+            if (!cancelled) timer = setTimeout(checkPayment, 3000);
+        };
+
+        checkPayment();
+        return () => {
+            cancelled = true;
+            clearTimeout(timer);
+        };
+    }, [pendingGatewayReference, effectiveRouterId, buyerMac, linkLogin, destination, API_BASE_URL]);
+
     const handlePayAndConnect = async (e) => {
         e.preventDefault();
         setUiMessage("");
@@ -127,7 +217,7 @@ function Portal() {
         }
 
         try {
-            const buyerResponse = await fetch(`${API_BASE_URL}/api/payments/portal/buyer`, {
+            const buyerResponse = await fetch(`${API_BASE_URL}/payments/portal/buyer`, {
                 method: "POST",
                 headers: { "Content-Type": "application/json" },
                 body: JSON.stringify({
@@ -151,7 +241,7 @@ function Portal() {
             };
 
             setUiMessage("Contacting AzamPay...");
-            const response = await fetch(`${API_BASE_URL}/api/payments/checkout`, {
+            const response = await fetch(`${API_BASE_URL}/payments/checkout`, {
                 method: "POST",
                 headers: { "Content-Type": "application/json" },
                 body: JSON.stringify(checkoutPayload),
@@ -163,6 +253,7 @@ function Portal() {
             if (response.ok) {
                 const gatewayMessage = result?.message || "AzamPay accepted the request. Please check your phone and enter your mobile money PIN to complete payment.";
                 setUiMessage(`✨ ${gatewayMessage}`);
+                if (result?.gateway_reference) setPendingGatewayReference(result.gateway_reference);
             } else if (response.status === 504) {
                 setUiMessage("AzamPay did not respond in time. Please try again or contact support.");
             } else {
@@ -206,7 +297,15 @@ function Portal() {
             const result = await response.json();
 
             if (response.ok) {
-                setUiMessage(`✨ Voucher redeemed successfully! Internet access activated for ${result.session_duration_seconds || 86400} seconds.`);
+                const loginStarted = submitHotspotLogin(
+                    linkLogin,
+                    normalizeMac(buyerMac),
+                    result.auth_token,
+                    destination,
+                );
+                setUiMessage(loginStarted
+                    ? "Voucher accepted. Connecting to the hotspot..."
+                    : `Voucher accepted for ${result.session_duration_seconds || 86400} seconds. Return to the hotspot login page to connect.`);
                 setVoucherCode("");
             } else {
                 const detail = typeof result === 'string' ? result : (result.detail || JSON.stringify(result));

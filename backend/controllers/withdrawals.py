@@ -5,22 +5,36 @@ from models.withdrawals import WithdrawalRequest, WithdrawalUpdate, WithdrawalRe
 from services.disbursements import DisbursementService
 import secrets
 
+def available_cash_balance(mobile_money_earned: float, total_withdrawn: float) -> float:
+    return round(max(0.0, float(mobile_money_earned or 0) - float(total_withdrawn or 0)), 2)
+
+
 class WithdrawalController:
     async def get_wallet_balance(self, tenant_id: int) -> Dict[str, Any]:
         conn = await connection()
         try:
             async with conn.cursor() as cursor:
                 await cursor.execute(
-                    "SELECT total_earned, total_withdrawn, current_balance FROM tenant_wallets WHERE tenant_id = %s;",
+                    "SELECT total_withdrawn FROM tenant_wallets WHERE tenant_id = %s;",
                     (tenant_id,)
                 )
                 wallet = await cursor.fetchone()
-                if not wallet:
-                    return {"total_earned": 0.0, "total_withdrawn": 0.0, "current_balance": 0.0}
+                total_withdrawn = float(wallet[0] or 0) if wallet else 0.0
+                await cursor.execute(
+                    """
+                    SELECT COALESCE(SUM(amount), 0)
+                    FROM payments
+                    WHERE tenant_id = %s
+                      AND status = 'completed'
+                      AND LOWER(payment_gateway) = 'azampay';
+                    """,
+                    (tenant_id,),
+                )
+                mobile_money_earned = float((await cursor.fetchone())[0] or 0)
                 return {
-                    "total_earned": float(wallet[0] or 0),
-                    "total_withdrawn": float(wallet[1] or 0),
-                    "current_balance": float(wallet[2] or 0)
+                    "total_earned": mobile_money_earned,
+                    "total_withdrawn": total_withdrawn,
+                    "current_balance": available_cash_balance(mobile_money_earned, total_withdrawn),
                 }
         finally:
             await conn.close()
@@ -30,7 +44,7 @@ class WithdrawalController:
         try:
             async with conn.cursor() as cursor:
                 await cursor.execute(
-                    "SELECT id, current_balance FROM tenant_wallets WHERE tenant_id = %s;",
+                    "SELECT id, total_withdrawn FROM tenant_wallets WHERE tenant_id = %s FOR UPDATE;",
                     (tenant_id,)
                 )
                 wallet = await cursor.fetchone()
@@ -38,7 +52,19 @@ class WithdrawalController:
                     raise HTTPException(status_code=404, detail="Wallet not found for this tenant.")
 
                 wallet_id = wallet[0]
-                current_balance = float(wallet[1] or 0)
+                total_withdrawn = float(wallet[1] or 0)
+                await cursor.execute(
+                    """
+                    SELECT COALESCE(SUM(amount), 0)
+                    FROM payments
+                    WHERE tenant_id = %s
+                      AND status = 'completed'
+                      AND LOWER(payment_gateway) = 'azampay';
+                    """,
+                    (tenant_id,),
+                )
+                mobile_money_earned = float((await cursor.fetchone())[0] or 0)
+                current_balance = available_cash_balance(mobile_money_earned, total_withdrawn)
 
                 if data.amount > current_balance:
                     raise HTTPException(status_code=400, detail="Insufficient wallet balance for this withdrawal.")
@@ -66,8 +92,13 @@ class WithdrawalController:
                 )
 
                 await cursor.execute(
-                    "UPDATE tenant_wallets SET total_withdrawn = total_withdrawn + %s, current_balance = current_balance - %s WHERE id = %s;",
-                    (data.amount, data.amount, wallet_id)
+                    """
+                    UPDATE tenant_wallets
+                    SET total_withdrawn = total_withdrawn + %s,
+                        current_balance = %s
+                    WHERE id = %s;
+                    """,
+                    (data.amount, available_cash_balance(mobile_money_earned, total_withdrawn + data.amount), wallet_id)
                 )
                 await conn.commit()
                 return {"message": "Withdrawal request submitted successfully.", "withdrawal_id": new_id}

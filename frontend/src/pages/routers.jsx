@@ -1,6 +1,7 @@
 import React, { useState, useEffect, useRef } from "react";
 import { Link, useNavigate, useLocation } from "react-router-dom";
 import { API_BASE_URL as API_ROOT } from "../api";
+import { clearTenantSession, getStoredTenantUser, getTenantId } from "../session";
 
 function Routers() {
     const navigate = useNavigate();
@@ -26,10 +27,10 @@ function Routers() {
 
     const API_BASE_URL = `${API_ROOT}/routers`;
 
-    const user = JSON.parse(localStorage.getItem("tenantUser") || "null");
+    const user = getStoredTenantUser();
 
     const logout = () => {
-        localStorage.removeItem("tenantUser");
+        clearTenantSession();
         navigate("/");
     };
 
@@ -50,8 +51,12 @@ function Routers() {
 
     const fetchRouters = async () => {
         try {
-            const u = JSON.parse(localStorage.getItem("tenantUser") || "{}");
-            const tenantId = u.id || 1;
+            const tenantId = getTenantId();
+            if (!tenantId) {
+                setRouterList([]);
+                setLoading(false);
+                return;
+            }
 
             const response = await fetch(`${API_BASE_URL}?tenant_id=${tenantId}`);
             if (response.ok) {
@@ -108,8 +113,11 @@ function Routers() {
         setUiMessage("");
         setProvisioningScript("");
 
-        const u = JSON.parse(localStorage.getItem("tenantUser") || "{}");
-        const tenantId = u.id || 1;
+        const tenantId = getTenantId();
+        if (!tenantId) {
+            setUiMessage("Tenant session is missing. Please login again.");
+            return;
+        }
 
         const routerData = {
             tenant_id: tenantId,

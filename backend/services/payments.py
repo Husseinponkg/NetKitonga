@@ -497,7 +497,6 @@ class PaymentService:
                 "status": "pending",
                 "payment_id": new_payment_id,
                 "gateway_reference": external_id,
-                "auth_token": auth_token,
                 "message": (
                     "AzamPay transaction initiated. "
                     "Please check your mobile phone "

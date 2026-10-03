@@ -6,6 +6,9 @@ from pathlib import Path
 from config.db import connection
 load_dotenv(Path(__file__).resolve().parent.parent / ".env")
 import os
+from services.freeradius import FreeRADIUSService
+
+freeradius_service = FreeRADIUSService()
 
 class RouterService:
     @staticmethod
@@ -42,6 +45,25 @@ class RouterService:
                     row = await cursor.fetchone()
                     if row:
                         return {"id": row[0], "tenant_id": row[1], "branch_id": row[2]}
+                return None
+        finally:
+            await conn.close()
+
+    async def get_router_by_nas_identifier(self, nas_identifier: str) -> Optional[dict]:
+        conn = await connection()
+        try:
+            async with conn.cursor() as cursor:
+                await cursor.execute(
+                    """
+                    SELECT id, tenant_id, branch_id
+                    FROM routers
+                    WHERE nas_identifier = %s AND driver_type = 'mikrotik_radius';
+                    """,
+                    (nas_identifier.strip(),),
+                )
+                row = await cursor.fetchone()
+                if row:
+                    return {"id": row[0], "tenant_id": row[1], "branch_id": row[2]}
                 return None
         finally:
             await conn.close()
@@ -108,8 +130,8 @@ class RouterService:
             automated_script = (
                 f"/radius remove [find];\n"
                 f"/radius add service=hotspot address={system_ip} secret=\"{radius_secret}\" authentication-port=1812 accounting-port=1813;\n"
-                f"/ip hotspot profile add name=SmartNetProfile hotspot-address=10.10.10.1 login-by=http-chap,cookie split-user-domain=no redirect-to=\"{portal_redirect_url}\";\n"
-                f"/ip hotspot profile set SmartNetProfile use-radius=yes radius-interim-update=00:02:00;\n"
+                f"/ip hotspot profile add name=SmartNetProfile hotspot-address=10.10.10.1 login-by=http-chap,http-pap,cookie split-user-domain=no redirect-to=\"{portal_redirect_url}\";\n"
+                f"/ip hotspot profile set SmartNetProfile use-radius=yes radius-accounting=yes radius-interim-update=00:02:00;\n"
                 f"/ip hotspot add name=\"Hotspot_{branch_id}\" interface=ether2 profile=SmartNetProfile disabled=no;\n"
                 f"/ip firewall mangle add chain=postrouting out-interface=ether1 action=change-ttl new-ttl=set:1 comment=\"Anti-Hotspot-Sharing\";\n"
                 f"/system script remove [find name=\"CloudPing\"];\n"
@@ -118,13 +140,26 @@ class RouterService:
                 f"/system scheduler add name=\"Run_CloudPing\" interval=1m start-time=startup on-event=\"/system script run CloudPing\";\n"
                 f"/system script run CloudPing;"
             )
-            
-            return {
+
+            payload = {
                 "url": api_url,
                 "router": router_payload,
                 "provision_method": "Paste into MikroTik Terminal",
-                "hardware_config_block": automated_script
+                "hardware_config_block": automated_script,
             }
+
+            # FreeRADIUS clients config for this router
+            clients_config = freeradius_service.build_clients_config([
+                {
+                    "router_name": router_name,
+                    "ip_address": str(ip_address),
+                    "nas_identifier": nas_identifier,
+                    "radius_secret": radius_secret,
+                }
+            ])
+            payload["freeradius_clients_config"] = clients_config
+
+            return payload
 
         # 3. AUTOMATED PARAMETERS FOR RUIJIE / OPENWRT / TP-LINK (WIFIDOG HTTP PATH)
         elif driver_type == "wifidog_http":

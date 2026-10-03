@@ -175,7 +175,7 @@ Returns tenant payment history.
 GET  /api/payments/income/stats?tenant_id={tenant_id}
 Returns income totals and payment statistics.
 
-POST /api/payments/webhook/callback
+POST /payments/webhook/callback
 Body: AzamPay callback JSON
 Required fields include externalId and transactionStatus.
 Public payment gateway callback endpoint.

@@ -1,23 +1,24 @@
 import React, { useEffect, useState } from "react";
 import { Link, useNavigate, useLocation } from "react-router-dom";
 import { API_BASE_URL } from "../api";
+import { clearTenantSession, getStoredTenantUser, getTenantId } from "../session";
 
 function Sessions() {
     const navigate = useNavigate();
     const location = useLocation();
     const [sidebarOpen, setSidebarOpen] = useState(false);
 
-    const user = JSON.parse(localStorage.getItem("tenantUser") || "{}");
-    const tenantId = user.id || 1;
+    const user = getStoredTenantUser();
+    const tenantId = getTenantId();
     const [sessions, setSessions] = useState([]);
     const [message, setMessage] = useState("");
     const [loading, setLoading] = useState(true);
     const [terminatingId, setTerminatingId] = useState(null);
 
-    const currentUser = JSON.parse(localStorage.getItem("tenantUser") || "null");
+    const currentUser = getStoredTenantUser();
 
     const logout = () => {
-        localStorage.removeItem("tenantUser");
+        clearTenantSession();
         navigate("/");
     };
 
@@ -39,6 +40,12 @@ function Sessions() {
     const loadSessions = async () => {
         try {
             setLoading(true);
+            if (!tenantId) {
+                setSessions([]);
+                setMessage("Tenant session is missing. Please login again.");
+                setLoading(false);
+                return;
+            }
             const response = await fetch(`${API_BASE_URL}/sessions/active?tenant_id=${tenantId}`);
             if (!response.ok) throw new Error("Could not load active sessions.");
             setSessions(await response.json());
@@ -57,6 +64,11 @@ function Sessions() {
         
         try {
             setTerminatingId(sessionId);
+            if (!tenantId) {
+                setMessage("Tenant session is missing. Please login again.");
+                setTerminatingId(null);
+                return;
+            }
             const response = await fetch(`${API_BASE_URL}/sessions/terminate`, {
                 method: "POST",
                 headers: { "Content-Type": "application/json" },

@@ -1,6 +1,7 @@
 import React, { useEffect, useState } from "react";
 import { Link, useNavigate, useLocation } from "react-router-dom";
 import { API_BASE_URL } from "../api";
+import { clearTenantSession, getStoredTenantUser, getTenantId } from "../session";
 
 function Income() {
     const navigate = useNavigate();
@@ -16,15 +17,19 @@ function Income() {
         failed_total: 0,
         total_count: 0,
         total_amount: 0,
+        voucher_completed_count: 0,
+        voucher_completed_total: 0,
+        azampay_completed_count: 0,
+        azampay_completed_total: 0,
     });
     const [payments, setPayments] = useState([]);
     const [loading, setLoading] = useState(true);
     const [error, setError] = useState("");
 
-    const user = JSON.parse(localStorage.getItem("tenantUser") || "null");
+    const user = getStoredTenantUser();
 
     const logout = () => {
-        localStorage.removeItem("tenantUser");
+        clearTenantSession();
         navigate("/");
     };
 
@@ -43,23 +48,31 @@ function Income() {
         { to: "/settings", label: "Settings", icon: "M19.14 12.94c.04-.3.06-.61.06-.94 0-.32-.02-.64-.07-.94l2.03-1.58c.18-.14.23-.41.12-.61l-1.92-3.32c-.12-.22-.37-.29-.59-.22l-2.39.96c-.5-.38-1.03-.7-1.62-.94l-.36-2.54c-.04-.24-.24-.41-.48-.41h-3.84c-.24 0-.43.17-.47.41l-.36 2.54c-.59.24-1.13.57-1.62.94l-2.39-.96c-.22-.08-.47 0-.59.22L2.74 8.87c-.12.21-.08.47.12.61l2.03 1.58c-.05.3-.09.63-.09.94s.02.64.07.94l-2.03 1.58c-.18.14-.23.41-.12.61l1.92 3.32c.12.22.37.29.59.22l2.39-.96c.5.38 1.03.7 1.62.94l.36 2.54c.05.24.24.41.48.41h3.84c.24 0 .44-.17.47-.41l.36-2.54c.59-.24 1.13-.56 1.62-.94l2.39.96c.22.08.47 0 .59-.22l1.92-3.32c.12-.22.07-.47-.12-.61l-2.01-1.58zM12 15.6c-1.98 0-3.6-1.62-3.6-3.6s1.62-3.6 3.6-3.6 3.6 1.62 3.6 3.6-1.62 3.6-3.6 3.6z" },
     ];
 
-    const getTenantId = () => {
-        const u = JSON.parse(localStorage.getItem("tenantUser") || "{}");
-        return u.id || 1;
-    };
+    const getSessionTenantId = () => getTenantId();
 
     const fetchData = async () => {
         setLoading(true);
         setError("");
-        const tenantId = getTenantId();
+        const tenantId = getSessionTenantId();
+        if (!tenantId) {
+            setLoading(false);
+            setError("Tenant session is missing. Please login again.");
+            return;
+        }
         try {
             const [statsRes, historyRes] = await Promise.all([
-                fetch(`${API_BASE_URL}/api/payments/income/stats?tenant_id=${tenantId}`),
-                fetch(`${API_BASE_URL}/api/payments/history?tenant_id=${tenantId}`),
+                fetch(`${API_BASE_URL}/payments/income/stats?tenant_id=${tenantId}`),
+                fetch(`${API_BASE_URL}/payments/history?tenant_id=${tenantId}`),
             ]);
 
-            if (!statsRes.ok) throw new Error("Failed to load income stats");
-            if (!historyRes.ok) throw new Error("Failed to load payment history");
+            if (!statsRes.ok) {
+                const text = await statsRes.text();
+                throw new Error(`Failed to load income stats: ${statsRes.status} ${text}`);
+            }
+            if (!historyRes.ok) {
+                const text = await historyRes.text();
+                throw new Error(`Failed to load payment history: ${historyRes.status} ${text}`);
+            }
 
             const statsData = await statsRes.json();
             setStats(statsData);
@@ -85,7 +98,9 @@ function Income() {
         }).format(n || 0);
 
     const statCards = [
-        { label: "Total Revenue", value: fmt(stats.completed_total), color: "#46d369", icon: "💰" },
+        { label: "Combined Income", value: fmt(stats.completed_total), color: "#46d369", icon: "💰" },
+        { label: "Mobile Money Income", value: fmt(stats.azampay_completed_total), color: "#e50914", icon: "📱" },
+        { label: "Voucher Income", value: fmt(stats.voucher_completed_total), color: "#fbc02d", icon: "🎟️" },
         { label: "Completed", value: `${stats.completed_count}`, color: "#46d369", icon: "✓" },
         { label: "Pending", value: `${stats.pending_count}`, color: "#fbc02d", icon: "⏳" },
         { label: "Failed", value: `${stats.failed_count}`, color: "#ff5252", icon: "✕" },

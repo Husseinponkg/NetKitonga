@@ -1,11 +1,11 @@
 from pydantic import BaseModel, Field
-from typing import Optional
+from typing import Literal, Optional
 from datetime import datetime
 
 class WithdrawalRequest(BaseModel):
     amount: float = Field(..., gt=0, description="Amount to withdraw, must be greater than 0")
     mobile_money_number: str = Field(..., max_length=30)
-    payout_provider: str = Field(..., description="e.g. Mpesa, AirtelMoney")
+    payout_provider: Literal["Mpesa", "Tigo", "Airtel", "Halopesa", "Azampesa"]
 
 class WithdrawalUpdate(BaseModel):
     withdrawal_id: int

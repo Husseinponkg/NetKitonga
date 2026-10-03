@@ -1,6 +1,7 @@
 import React, { useState } from "react";
 import { useNavigate } from "react-router-dom";
 import { API_BASE_URL } from "./api";
+import { saveTenantUser, clearTenantSession } from "./session";
 
 function Login() {
     const navigate = useNavigate();
@@ -8,12 +9,18 @@ function Login() {
     const [password, setPassword] = useState("");
     const [loading, setLoading] = useState(false);
     const [error, setError] = useState(null);
+    const [loginType, setLoginType] = useState("tenant");
 
-    const loginUser = async (e) => {
+    const handleSubmit = async (e) => {
         e.preventDefault();
         setLoading(true);
+        setError(null);
+
         try {
-            const response = await fetch(`${API_BASE_URL}/auth/login`, {
+            const isAdmin = loginType === "admin";
+            const endpoint = isAdmin ? "/admin/login" : "/auth/login";
+
+            const response = await fetch(`${API_BASE_URL}${endpoint}`, {
                 method: "POST",
                 headers: {
                     "Content-Type": "application/json",
@@ -24,22 +31,36 @@ function Login() {
             const data = await response.json().catch(() => ({}));
 
             if (!response.ok) {
-                throw new Error(data.detail || data.message || "Failed to login user");
+                throw new Error(data.detail || data.message || "Failed to login");
             }
 
-            if (data.user) {
-                localStorage.setItem("tenantUser", JSON.stringify(data.user));
+            if (isAdmin) {
+                if (data.admin) {
+                    localStorage.setItem("adminUser", JSON.stringify(data.admin));
+                }
+                navigate("/admin");
+            } else {
+                if (data.user) {
+                    saveTenantUser(data.user);
+                }
+                navigate("/dashboard");
             }
-
-            navigate("/dashboard");
-        }
-        catch (error) {
-            console.error("Error logging in user:", error);
+        } catch (error) {
+            console.error("Error during login:", error);
             setError(error.message);
-        }
-        finally {
+        } finally {
             setLoading(false);
         }
+    };
+
+    const switchToAdmin = () => {
+        setLoginType("admin");
+        setError(null);
+    };
+
+    const switchToTenant = () => {
+        setLoginType("tenant");
+        setError(null);
     };
 
     return (
@@ -74,15 +95,6 @@ function Login() {
                     }
                 }
 
-                @keyframes pulse {
-                    0%, 100% {
-                        opacity: 1;
-                    }
-                    50% {
-                        opacity: 0.6;
-                    }
-                }
-
                 @keyframes spin {
                     0% {
                         transform: rotate(0deg);
@@ -114,7 +126,7 @@ function Login() {
                     font-weight: 700;
                     color: #ffffff;
                     margin: 0;
-                    letter-spacing: -0.5px;
+                    letter-spacing: "-0.5px";
                 }
 
                 .brand-subtitle {
@@ -227,31 +239,6 @@ function Login() {
                     animation: spin 0.8s linear infinite;
                 }
 
-                .register-section {
-                    margin-top: 24px;
-                    text-align: center;
-                    font-size: 0.9rem;
-                    color: #b3b3b3;
-                }
-
-                .register-link {
-                    background: none;
-                    border: none;
-                    color: #e5e5e5;
-                    font-weight: 600;
-                    cursor: pointer;
-                    font-family: 'Inter', system-ui, sans-serif;
-                    font-size: 0.9rem;
-                    padding: 0;
-                    transition: all 0.2s ease;
-                    text-decoration: underline;
-                }
-
-                .register-link:hover {
-                    color: #ffffff;
-                    opacity: 0.8;
-                }
-
                 .error-message {
                     background: rgba(229, 9, 20, 0.15);
                     border: 1px solid rgba(229, 9, 20, 0.3);
@@ -263,6 +250,35 @@ function Login() {
                     margin-top: 14px;
                     text-align: center;
                     animation: fadeIn 0.3s ease-out;
+                }
+
+                .toggle-section {
+                    margin-top: 24px;
+                    display: flex;
+                    justify-content: center;
+                    gap: 8px;
+                }
+
+                .toggle-button {
+                    padding: 8px 14px;
+                    border-radius: 6px;
+                    border: 1px solid rgba(255, 255, 255, 0.2);
+                    background: transparent;
+                    color: #ffffff;
+                    cursor: pointer;
+                    font-weight: 700;
+                    font-size: 0.85rem;
+                    transition: all 0.2s ease;
+                }
+
+                .toggle-button.active {
+                    background: #e50914;
+                    border-color: #e50914;
+                }
+
+                .toggle-button:hover:not(.active) {
+                    border-color: rgba(229, 9, 20, 0.5);
+                    color: #ffffff;
                 }
 
                 .info-section {
@@ -366,10 +382,6 @@ function Login() {
                     .info-text {
                         font-size: 0.8rem;
                     }
-
-                    .register-section {
-                        font-size: 0.85rem;
-                    }
                 }
 
                 /* Extra small devices */
@@ -405,12 +417,14 @@ function Login() {
                 </div>
 
                 <div className="login-box">
-                    <h2 className="login-title">Sign In</h2>
+                    <h2 className="login-title">{loginType === "admin" ? "Admin Sign In" : "Sign In"}</h2>
                     <p className="login-description">
-                        Enter your email and password to access your account
+                        {loginType === "admin"
+                            ? "Enter your admin credentials to manage the system"
+                            : "Enter your email and password to access your account"}
                     </p>
 
-                    <form onSubmit={loginUser}>
+                    <form onSubmit={handleSubmit}>
                         <div className="form-group">
                             <label htmlFor="email">Email</label>
                             <input
@@ -443,22 +457,28 @@ function Login() {
                             {loading ? (
                                 <>
                                     <span className="spinner"></span>
-                                    Signing in...
+                                    {loginType === "admin" ? "Signing in..." : "Signing in..."}
                                 </>
                             ) : (
-                                "Sign In"
+                                loginType === "admin" ? "Admin Sign In" : "Sign In"
                             )}
                         </button>
                     </form>
 
-                    <div className="register-section">
-                        Don't have an account?{" "}
+                    <div className="toggle-section">
                         <button
                             type="button"
-                            className="register-link"
-                            onClick={() => navigate("/register")}
+                            className={`toggle-button ${loginType === "tenant" ? "active" : ""}`}
+                            onClick={switchToTenant}
                         >
-                            Register here
+                            Tenant
+                        </button>
+                        <button
+                            type="button"
+                            className={`toggle-button ${loginType === "admin" ? "active" : ""}`}
+                            onClick={switchToAdmin}
+                        >
+                            Admin
                         </button>
                     </div>
 
@@ -470,7 +490,7 @@ function Login() {
 
                     <div className="info-section">
                         <p className="info-text">
-                            <strong>Net Kitonga</strong> is your trusted partner in hotspot supply. 
+                            <strong>Net Kitonga</strong> is your trusted partner in hotspot supply.
                             We connect local businesses with premium quality essentials.
                         </p>
                     </div>
