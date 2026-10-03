@@ -90,7 +90,7 @@ function Customers() {
                 fetchCustomers();
             } else {
                 setIsSuccess(false);
-                setUiMessage(`Action failed: ${result.detail || "Server constraint error"}`);
+                setUiMessage(`Action failed: ${typeof result.detail === 'string' ? result.detail : JSON.stringify(result.detail || result.message || "Server constraint error")}`);
             }
         } catch (error) {
             setIsSuccess(false);
@@ -112,8 +112,8 @@ function Customers() {
                     margin: 0;
                     padding: 0;
                     background: #000000;
-                    overflow: hidden;
-                    height: 100%;
+                    overflow-y: auto;
+                    min-height: 100vh;
                     -webkit-font-smoothing: antialiased;
                 }
 

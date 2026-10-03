@@ -336,3 +336,201 @@ class AdminController:
                 return [dict(zip(cols, r)) for r in rows]
         finally:
             await conn.close()
+
+    async def update_tenant_status(self, tenant_id: int, status: str) -> Dict[str, Any]:
+        conn = await connection()
+        try:
+            async with conn.cursor() as cursor:
+                await cursor.execute(
+                    "UPDATE tenants SET status = %s WHERE id = %s RETURNING id;",
+                    (status, tenant_id),
+                )
+                updated = await cursor.fetchone()
+                if not updated:
+                    raise HTTPException(status_code=404, detail="Tenant not found.")
+                await conn.commit()
+                return {"message": "Tenant updated successfully."}
+        except HTTPException:
+            raise
+        except Exception as e:
+            await conn.rollback()
+            raise HTTPException(status_code=500, detail=f"Database error: {str(e)}")
+        finally:
+            await conn.close()
+
+    async def delete_tenant(self, tenant_id: int) -> Dict[str, Any]:
+        conn = await connection()
+        try:
+            async with conn.cursor() as cursor:
+                await cursor.execute("DELETE FROM tenants WHERE id = %s RETURNING id;", (tenant_id,))
+                deleted = await cursor.fetchone()
+                if not deleted:
+                    raise HTTPException(status_code=404, detail="Tenant not found.")
+                await conn.commit()
+                return {"message": "Tenant deleted successfully."}
+        except HTTPException:
+            raise
+        except Exception as e:
+            await conn.rollback()
+            raise HTTPException(status_code=500, detail=f"Database error: {str(e)}")
+        finally:
+            await conn.close()
+
+    async def update_router_status(self, router_id: int, status: str) -> Dict[str, Any]:
+        conn = await connection()
+        try:
+            async with conn.cursor() as cursor:
+                await cursor.execute(
+                    "UPDATE routers SET status = %s WHERE id = %s RETURNING id;",
+                    (status, router_id),
+                )
+                updated = await cursor.fetchone()
+                if not updated:
+                    raise HTTPException(status_code=404, detail="Router not found.")
+                await conn.commit()
+                return {"message": "Router updated successfully."}
+        except HTTPException:
+            raise
+        except Exception as e:
+            await conn.rollback()
+            raise HTTPException(status_code=500, detail=f"Database error: {str(e)}")
+        finally:
+            await conn.close()
+
+    async def delete_router(self, router_id: int) -> Dict[str, Any]:
+        conn = await connection()
+        try:
+            async with conn.cursor() as cursor:
+                await cursor.execute("DELETE FROM routers WHERE id = %s RETURNING id;", (router_id,))
+                deleted = await cursor.fetchone()
+                if not deleted:
+                    raise HTTPException(status_code=404, detail="Router not found.")
+                await conn.commit()
+                return {"message": "Router deleted successfully."}
+        except HTTPException:
+            raise
+        except Exception as e:
+            await conn.rollback()
+            raise HTTPException(status_code=500, detail=f"Database error: {str(e)}")
+        finally:
+            await conn.close()
+
+    async def update_package_status(self, package_id: int, status: str) -> Dict[str, Any]:
+        conn = await connection()
+        try:
+            async with conn.cursor() as cursor:
+                await cursor.execute(
+                    "UPDATE packages SET status = %s WHERE id = %s RETURNING id;",
+                    (status, package_id),
+                )
+                updated = await cursor.fetchone()
+                if not updated:
+                    raise HTTPException(status_code=404, detail="Package not found.")
+                await conn.commit()
+                return {"message": "Package updated successfully."}
+        except HTTPException:
+            raise
+        except Exception as e:
+            await conn.rollback()
+            raise HTTPException(status_code=500, detail=f"Database error: {str(e)}")
+        finally:
+            await conn.close()
+
+    async def delete_package(self, package_id: int) -> Dict[str, Any]:
+        conn = await connection()
+        try:
+            async with conn.cursor() as cursor:
+                await cursor.execute("DELETE FROM packages WHERE id = %s RETURNING id;", (package_id,))
+                deleted = await cursor.fetchone()
+                if not deleted:
+                    raise HTTPException(status_code=404, detail="Package not found.")
+                await conn.commit()
+                return {"message": "Package deleted successfully."}
+        except HTTPException:
+            raise
+        except Exception as e:
+            await conn.rollback()
+            raise HTTPException(status_code=500, detail=f"Database error: {str(e)}")
+        finally:
+            await conn.close()
+
+    async def update_voucher_status(self, voucher_id: int, status: str) -> Dict[str, Any]:
+        conn = await connection()
+        try:
+            async with conn.cursor() as cursor:
+                await cursor.execute(
+                    "UPDATE vouchers SET status = %s WHERE id = %s RETURNING id;",
+                    (status, voucher_id),
+                )
+                updated = await cursor.fetchone()
+                if not updated:
+                    raise HTTPException(status_code=404, detail="Voucher not found.")
+                await conn.commit()
+                return {"message": "Voucher updated successfully."}
+        except HTTPException:
+            raise
+        except Exception as e:
+            await conn.rollback()
+            raise HTTPException(status_code=500, detail=f"Database error: {str(e)}")
+        finally:
+            await conn.close()
+
+    async def delete_voucher(self, voucher_id: int) -> Dict[str, Any]:
+        conn = await connection()
+        try:
+            async with conn.cursor() as cursor:
+                await cursor.execute("DELETE FROM vouchers WHERE id = %s RETURNING id;", (voucher_id,))
+                deleted = await cursor.fetchone()
+                if not deleted:
+                    raise HTTPException(status_code=404, detail="Voucher not found.")
+                await conn.commit()
+                return {"message": "Voucher deleted successfully."}
+        except HTTPException:
+            raise
+        except Exception as e:
+            await conn.rollback()
+            raise HTTPException(status_code=500, detail=f"Database error: {str(e)}")
+        finally:
+            await conn.close()
+
+    async def update_payment_status(self, payment_id: int, status: str) -> Dict[str, Any]:
+        conn = await connection()
+        try:
+            async with conn.cursor() as cursor:
+                await cursor.execute(
+                    "UPDATE payments SET status = %s WHERE id = %s RETURNING id;",
+                    (status, payment_id),
+                )
+                updated = await cursor.fetchone()
+                if not updated:
+                    raise HTTPException(status_code=404, detail="Payment not found.")
+                await conn.commit()
+                return {"message": "Payment updated successfully."}
+        except HTTPException:
+            raise
+        except Exception as e:
+            await conn.rollback()
+            raise HTTPException(status_code=500, detail=f"Database error: {str(e)}")
+        finally:
+            await conn.close()
+
+    async def terminate_session(self, session_id: str) -> Dict[str, Any]:
+        conn = await connection()
+        try:
+            async with conn.cursor() as cursor:
+                await cursor.execute(
+                    "UPDATE active_sessions SET status = 'terminated' WHERE session_id = %s RETURNING session_id;",
+                    (session_id,),
+                )
+                terminated = await cursor.fetchone()
+                if not terminated:
+                    raise HTTPException(status_code=404, detail="Session not found.")
+                await conn.commit()
+                return {"message": "Session terminated successfully."}
+        except HTTPException:
+            raise
+        except Exception as e:
+            await conn.rollback()
+            raise HTTPException(status_code=500, detail=f"Database error: {str(e)}")
+        finally:
+            await conn.close()

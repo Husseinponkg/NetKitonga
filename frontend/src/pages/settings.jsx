@@ -79,7 +79,10 @@ function Settings() {
                 body: JSON.stringify({ tenant_id: tenantId, ...form }),
             });
             const result = await response.json();
-            if (!response.ok) throw new Error(result.detail || "Could not save settings.");
+            if (!response.ok) {
+                const detail = typeof result.detail === 'string' ? result.detail : JSON.stringify(result.detail || result.message || {});
+                throw new Error(detail || "Could not save settings.");
+            }
             
             localStorage.setItem("tenantUser", JSON.stringify({ 
                 ...currentUser, 
@@ -105,8 +108,8 @@ function Settings() {
                     margin: 0;
                     padding: 0;
                     background: #000000;
-                    overflow: hidden;
-                    height: 100%;
+                    overflow-y: auto;
+                    min-height: 100vh;
                     -webkit-font-smoothing: antialiased;
                 }
 

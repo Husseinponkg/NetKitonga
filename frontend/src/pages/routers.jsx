@@ -151,7 +151,8 @@ function Routers() {
                 clearForm();
                 fetchRouters();
             } else {
-                setUiMessage(`Registration failed: ${result.detail || result.message}`);
+                const detail = typeof result.detail === 'string' ? result.detail : JSON.stringify(result.detail || result.message || {});
+                setUiMessage(`Registration failed: ${detail}`);
             }
         } catch (error) {
             setUiMessage("Could not communicate with the billing server engine.");
@@ -184,7 +185,8 @@ function Routers() {
             clearForm();
             fetchRouters();
         } else {
-            setUiMessage(`Update failed: ${result.detail || result.message}`);
+            const detail = typeof result.detail === 'string' ? result.detail : JSON.stringify(result.detail || result.message || {});
+            setUiMessage(`Update failed: ${detail}`);
         }
     };
 
@@ -200,7 +202,8 @@ function Routers() {
                 setUiMessage("Router deleted successfully.");
                 fetchRouters();
             } else {
-                setUiMessage(`Delete failed: ${result.detail || result.message}`);
+                const detail = typeof result.detail === 'string' ? result.detail : JSON.stringify(result.detail || result.message || {});
+                setUiMessage(`Delete failed: ${detail}`);
             }
         } catch (error) {
             console.error("Error deleting router:", error);
@@ -244,8 +247,8 @@ function Routers() {
                     margin: 0;
                     padding: 0;
                     background: #000000;
-                    overflow: hidden;
-                    height: 100%;
+                    overflow-y: auto;
+                    min-height: 100vh;
                     -webkit-font-smoothing: antialiased;
                 }
 

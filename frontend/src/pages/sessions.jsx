@@ -75,7 +75,10 @@ function Sessions() {
                 body: JSON.stringify({ tenant_id: tenantId, session_id: sessionId }),
             });
             const result = await response.json();
-            if (!response.ok) throw new Error(result.detail || "Could not terminate session.");
+            if (!response.ok) {
+                const detail = typeof result.detail === 'string' ? result.detail : JSON.stringify(result.detail || result.message || {});
+                throw new Error(detail || "Could not terminate session.");
+            }
             setMessage(result.message || "Session terminated successfully!");
             loadSessions();
         } catch (error) {
@@ -136,8 +139,8 @@ function Sessions() {
                     margin: 0;
                     padding: 0;
                     background: #000000;
-                    overflow: hidden;
-                    height: 100%;
+                    overflow-y: auto;
+                    min-height: 100vh;
                     -webkit-font-smoothing: antialiased;
                 }
 

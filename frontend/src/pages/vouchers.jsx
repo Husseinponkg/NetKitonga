@@ -99,7 +99,8 @@ function Vouchers() {
       });
       const result = await response.json();
       if (!response.ok) {
-        throw new Error(result.detail || "Voucher creation failed.");
+        const detail = typeof result.detail === 'string' ? result.detail : JSON.stringify(result.detail || result.message || {});
+        throw new Error(detail || "Voucher creation failed.");
       }
 
       setMessage(`${result.length} voucher${result.length === 1 ? "" : "s"} created successfully.`);
@@ -122,8 +123,8 @@ function Vouchers() {
           margin: 0;
           padding: 0;
           background: #000000;
-          overflow: hidden;
-          height: 100%;
+          overflow-y: auto;
+          min-height: 100vh;
           -webkit-font-smoothing: antialiased;
         }
 

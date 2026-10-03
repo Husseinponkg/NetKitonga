@@ -178,8 +178,8 @@ function Withdrawals() {
                     margin: 0;
                     padding: 0;
                     background: #000000;
-                    overflow: hidden;
-                    height: 100%;
+                    overflow-y: auto;
+                    min-height: 100vh;
                     -webkit-font-smoothing: antialiased;
                 }
 

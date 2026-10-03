@@ -18,6 +18,7 @@ CREATE TABLE tenants (
     system_name VARCHAR(100) DEFAULT 'My Hotspot Billing', -- White-label name
     email VARCHAR(150) NOT NULL UNIQUE,
     password_hash VARCHAR(255) NOT NULL,
+    status VARCHAR(20) DEFAULT 'active',
     created_at TIMESTAMP DEFAULT CURRENT_TIMESTAMP
 );
 

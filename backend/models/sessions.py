@@ -18,4 +18,4 @@ class SessionResponse(BaseModel):
 
 class SessionTerminate(BaseModel):
     tenant_id: int
-    session_id: int
+    session_id: str

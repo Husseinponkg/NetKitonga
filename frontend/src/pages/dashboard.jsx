@@ -72,7 +72,9 @@ function Dashboard() {
           margin: 0;
           padding: 0;
           background: #000000;
-          overflow-x: hidden;
+          overflow-y: auto;
+          min-height: 100vh;
+          -webkit-font-smoothing: antialiased;
         }
 
         ::-webkit-scrollbar { width: 8px; height: 8px; }
@@ -961,32 +963,6 @@ function Dashboard() {
 
       {/* ===== MAIN ===== */}
       <div className="main-wrapper">
-        <header className="topbar">
-          <div className="topbar-left">
-            <button
-              className="hamburger"
-              onClick={() => setSidebarOpen((prev) => !prev)}
-            >
-              ☰
-            </button>
-            <div>
-              <h1 className="topbar-title">
-                Welcome, <span>{user?.business_name || "Valued Partner"}</span>
-              </h1>
-              <p className="topbar-breadcrumb">Dashboard / Overview</p>
-            </div>
-          </div>
-          <div className="topbar-right">
-            <div className="topbar-status">
-              <span className="status-dot"></span>
-              Online
-            </div>
-            <div className="topbar-avatar">
-              {user?.business_name ? user.business_name.charAt(0).toUpperCase() : "?"}
-            </div>
-          </div>
-        </header>
-
         <main className="content-area">
           {/* Page Header */}
           <div className="page-header">
