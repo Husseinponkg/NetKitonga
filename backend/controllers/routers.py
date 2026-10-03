@@ -186,10 +186,16 @@ class RouterController:
         conn = await connection()
         try:
             async with conn.cursor() as cursor:
-                await cursor.execute(
-                    "SELECT id, router_name, driver_type, nas_identifier, radius_secret, gw_id, mac_address, ip_address, is_licensed, status, last_heartbeat_at FROM routers WHERE tenant_id = %s ORDER BY id",
-                    (tenant_id,)
-                )
+                await cursor.execute("""
+                    SELECT r.id, r.tenant_id, r.branch_id, b.branch_name, r.router_name, r.driver_type,
+                           r.nas_identifier, r.radius_secret, r.gw_id, r.mac_address, r.ip_address,
+                           r.is_licensed, r.status, r.last_heartbeat_at,
+                           b.router_username, b.router_password
+                    FROM routers r
+                    LEFT JOIN branches b ON b.id = r.branch_id
+                    WHERE r.tenant_id = %s
+                    ORDER BY r.id
+                """, (tenant_id,))
                 routers = await cursor.fetchall()
                 cols = [d[0] for d in (cursor.description or [])]
                 return {"routers": [dict(zip(cols, r)) for r in routers]}

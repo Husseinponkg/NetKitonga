@@ -15,18 +15,18 @@ function Dashboard() {
   };
 
   const navItems = [
-    { to: "/dashboard", label: "Dashboard", icon: "M3 13h8V3H3v10zm0 8h8v-6H3v6zm10 0h8V11h-8v10zm0-18v6h8V3h-8z" },
-    { to: "/income", label: "Revenue", icon: "M12 2C6.48 2 2 6.48 2 12s4.48 10 10 10 10-4.48 10-10S17.52 2 12 2zm1.41 16.09V20h-2.67v-1.93c-1.71-.36-3.16-1.46-3.27-3.4h1.96c.1.79.72 1.49 1.97 1.49 1.28 0 1.72-.68 1.72-1.36 0-.83-.44-1.28-1.72-1.7-1.84-.58-3.67-1.13-3.67-3.44 0-1.71 1.24-2.83 2.83-3.21V4.5h2.67v1.94c1.66.36 2.77 1.5 2.88 3.09h-1.96c-.1-.79-.68-1.42-1.86-1.42-1.06 0-1.66.55-1.66 1.28 0 .74.55 1.13 1.72 1.53 1.86.6 3.67 1.19 3.67 3.55 0 1.79-1.24 2.94-2.87 3.62z" },
-    { to: "/routers", label: "Routers", icon: "M12 21l-3-4h6l-3 4zm-6.36-6.36l1.41-1.41C8.66 11.62 10.24 11 12 11s3.34.62 4.95 2.23l1.41-1.41C16.37 9.83 14.28 9 12 9s-4.37.83-6.36 2.82zM2.93 11.93l1.41-1.41C6.31 8.55 9.02 7.5 12 7.5s5.69 1.05 7.66 3.02l1.41-1.41C18.66 6.7 15.49 5.5 12 5.5S5.34 6.7 2.93 9.09v2.84z" },
-    { to: "/packages", label: "Packages", icon: "M20 8h-3V4H3c-1.1 0-2 .9-2 2v11h2c0 1.66 1.34 3 3 3s3-1.34 3-3h6c0 1.66 1.34 3 3 3s3-1.34 3-3h2v-5l-3-4zM6 18.5c-.83 0-1.5-.67-1.5-1.5s.67-1.5 1.5-1.5 1.5.67 1.5 1.5-.67 1.5-1.5 1.5zm13.5-9l1.96 2.5H17V9.5h2.5zm-1.5 9c-.83 0-1.5-.67-1.5-1.5s.67-1.5 1.5-1.5 1.5.67 1.5 1.5-.67 1.5-1.5 1.5z" },
-    { to: "/vouchers", label: "Vouchers", icon: "M22 10V6c0-1.1-.9-2-2-2H4c-1.1 0-2 .9-2 2v4c1.1 0 2 .9 2 2s-.9 2-2 2v4c0 1.1.9 2 2 2h16c1.1 0 2-.9 2-2v-4c-1.1 0-2-.9-2-2s.9-2 2-2zm-9 5.5h-2v-2h2v2zm0-4h-2v-2h2v2zm0-4h-2v-2h2v2z" },
-    { to: "/payments", label: "Payments", icon: "M20 4H4c-1.11 0-1.99.89-1.99 2L2 18c0 1.11.89 2 2 2h16c1.11 0 2-.89 2-2V6c0-1.11-.89-2-2-2zm0 14H4v-6h16v6zm0-10H4V6h16v2z" },
-    { to: "/withdrawals", label: "Withdrawals", icon: "M11.8 10.9c-2.27-.59-3-1.2-3-2.15 0-1.09 1.01-1.85 2.7-1.85 1.78 0 2.44.85 2.5 2.1h2.21c-.07-1.72-1.12-3.3-3.21-3.81V3h-3v2.16c-1.94.42-3.5 1.68-3.5 3.61 0 2.31 1.91 3.46 4.7 4.13 2.5.6 3 1.48 3 2.41 0 .69-.49 1.79-2.7 1.79-2.06 0-2.87-.92-2.98-2.1h-2.2c.12 2.19 1.76 3.42 3.68 3.83V21h3v-2.15c1.95-.37 3.5-1.5 3.5-3.55 0-2.84-2.43-3.81-4.7-4.4z" },
-    { to: "/sessions", label: "Sessions", icon: "M11.99 2C6.47 2 2 6.48 2 12s4.47 10 9.99 10C17.52 22 22 17.52 22 12S17.52 2 11.99 2zM12 20c-4.42 0-8-3.58-8-8s3.58-8 8-8 8 3.58 8 8-3.58 8-8 8zm.5-13H11v6l5.25 3.15.75-1.23-4.5-2.67z" },
-    { to: "/customers", label: "Customers", icon: "M16 11c1.66 0 2.99-1.34 2.99-3S17.66 5 16 5c-1.66 0-3 1.34-3 3s1.34 3 3 3zm-8 0c1.66 0 2.99-1.34 2.99-3S9.66 5 8 5C6.34 5 5 6.34 5 8s1.34 3 3 3zm0 2c-2.33 0-7 1.17-7 3.5V19h14v-2.5c0-2.33-4.67-3.5-7-3.5zm8 0c-.29 0-.62.02-.97.05 1.16.84 1.97 1.97 1.97 3.45V19h6v-2.5c0-2.33-4.67-3.5-7-3.5z" },
-    { to: "/branch", label: "Branches", icon: "M12 7V3H2v18h20V7H12zM6 19H4v-2h2v2zm0-4H4v-2h2v2zm0-4H4V9h2v2zm0-4H4V5h2v2zm4 12H8v-2h2v2zm0-4H8v-2h2v2zm0-4H8V9h2v2zm0-4H8V5h2v2zm10 12h-8v-2h2v-2h-2v-2h2v-2h-2V9h8v10zm-2-8h-2v2h2v-2zm0 4h-2v2h2v-2z" },
-    { to: "/portal", label: "Portal", icon: "M19 3H5c-1.11 0-2 .9-2 2v14c0 1.1.89 2 2 2h14c1.1 0 2-.9 2-2V5c0-1.1-.9-2-2-2zm-5 14H7v-2h7v2zm3-4H7v-2h10v2zm0-4H7V7h10v2z" },
-    { to: "/settings", label: "Settings", icon: "M19.14 12.94c.04-.3.06-.61.06-.94 0-.32-.02-.64-.07-.94l2.03-1.58c.18-.14.23-.41.12-.61l-1.92-3.32c-.12-.22-.37-.29-.59-.22l-2.39.96c-.5-.38-1.03-.7-1.62-.94l-.36-2.54c-.04-.24-.24-.41-.48-.41h-3.84c-.24 0-.43.17-.47.41l-.36 2.54c-.59.24-1.13.57-1.62.94l-2.39-.96c-.22-.08-.47 0-.59.22L2.74 8.87c-.12.21-.08.47.12.61l2.03 1.58c-.05.3-.09.63-.09.94s.02.64.07.94l-2.03 1.58c-.18.14-.23.41-.12.61l1.92 3.32c.12.22.37.29.59.22l2.39-.96c.5.38 1.03.7 1.62.94l.36 2.54c.05.24.24.41.48.41h3.84c.24 0 .44-.17.47-.41l.36-2.54c.59-.24 1.13-.56 1.62-.94l2.39.96c.22.08.47 0 .59-.22l1.92-3.32c.12-.22.07-.47-.12-.61l-2.01-1.58zM12 15.6c-1.98 0-3.6-1.62-3.6-3.6s1.62-3.6 3.6-3.6 3.6 1.62 3.6 3.6-1.62 3.6-3.6 3.6z" },
+    { to: "/dashboard", label: "Dashboard", icon: "📊" },
+    { to: "/income", label: "Revenue", icon: "💰" },
+    { to: "/routers", label: "Routers", icon: "📡" },
+    { to: "/packages", label: "Packages", icon: "📦" },
+    { to: "/vouchers", label: "Vouchers", icon: "🎟️" },
+    { to: "/payments", label: "Payments", icon: "💳" },
+    { to: "/withdrawals", label: "Withdrawals", icon: "💸" },
+    { to: "/sessions", label: "Sessions", icon: "⏱️" },
+    { to: "/customers", label: "Customers", icon: "👥" },
+    { to: "/branch", label: "Branches", icon: "🏢" },
+    { to: "/portal", label: "Portal", icon: "🌐" },
+    { to: "/settings", label: "Settings", icon: "⚙️" },
   ];
 
   const stats = [
@@ -65,8 +65,68 @@ function Dashboard() {
       margin: 0,
       padding: 0,
       color: "#ffffff",
+      position: "relative",
+      overflow: "hidden",
     }}>
+      {/* Decorative background orbs */}
+      <div style={{
+        position: "fixed",
+        top: "-20%",
+        right: "-10%",
+        width: "600px",
+        height: "600px",
+        background: "radial-gradient(circle, rgba(229,9,20,0.08) 0%, transparent 70%)",
+        borderRadius: "50%",
+        pointerEvents: "none",
+        animation: "floatOrb 8s ease-in-out infinite",
+        zIndex: 0,
+      }} />
+      <div style={{
+        position: "fixed",
+        bottom: "-15%",
+        left: "-5%",
+        width: "500px",
+        height: "500px",
+        background: "radial-gradient(circle, rgba(229,9,20,0.05) 0%, transparent 70%)",
+        borderRadius: "50%",
+        pointerEvents: "none",
+        animation: "floatOrb 10s ease-in-out infinite reverse",
+        zIndex: 0,
+      }} />
+
       <style>{`
+        @keyframes floatOrb {
+          0%, 100% { transform: translate(0, 0) scale(1); }
+          33% { transform: translate(30px, -30px) scale(1.05); }
+          66% { transform: translate(-20px, 20px) scale(0.95); }
+        }
+
+        @keyframes fadeInUp {
+          from { opacity: 0; transform: translateY(20px); }
+          to { opacity: 1; transform: translateY(0); }
+        }
+
+        @keyframes slideInLeft {
+          from { opacity: 0; transform: translateX(-20px); }
+          to { opacity: 1; transform: translateX(0); }
+        }
+
+        @keyframes pulseGlow {
+          0%, 100% { box-shadow: 0 0 5px rgba(229,9,20,0.3); }
+          50% { box-shadow: 0 0 20px rgba(229,9,20,0.6); }
+        }
+
+        @keyframes shimmer {
+          0% { background-position: -200% center; }
+          100% { background-position: 200% center; }
+        }
+
+        @keyframes gradientShift {
+          0% { background-position: 0% 50%; }
+          50% { background-position: 100% 50%; }
+          100% { background-position: 0% 50%; }
+        }
+
         * { box-sizing: border-box; }
         body {
           margin: 0;
@@ -96,6 +156,7 @@ function Dashboard() {
           z-index: 100;
           transition: transform 0.3s cubic-bezier(0.16, 1, 0.3, 1);
           overflow-y: auto;
+          animation: slideInLeft 0.5s ease-out;
         }
 
         .sidebar-brand {
@@ -908,7 +969,7 @@ function Dashboard() {
               onClick={() => setSidebarOpen(false)}
             >
               <span className="nav-icon">
-                <svg viewBox="0 0 24 24"><path d={item.icon} /></svg>
+                <span style={{ fontSize: '1.1rem', lineHeight: 1 }}>{item.icon}</span>
               </span>
               {item.label}
             </Link>
@@ -923,7 +984,7 @@ function Dashboard() {
               onClick={() => setSidebarOpen(false)}
             >
               <span className="nav-icon">
-                <svg viewBox="0 0 24 24"><path d={item.icon} /></svg>
+                <span style={{ fontSize: '1.1rem', lineHeight: 1 }}>{item.icon}</span>
               </span>
               {item.label}
             </Link>
@@ -938,7 +999,7 @@ function Dashboard() {
               onClick={() => setSidebarOpen(false)}
             >
               <span className="nav-icon">
-                <svg viewBox="0 0 24 24"><path d={item.icon} /></svg>
+                <span style={{ fontSize: '1.1rem', lineHeight: 1 }}>{item.icon}</span>
               </span>
               {item.label}
             </Link>
@@ -958,6 +1019,7 @@ function Dashboard() {
           <button type="button" className="sidebar-logout" onClick={logout}>
             Logout
           </button>
+          <p style={{ margin: '8px 0 0', fontSize: '0.6rem', color: '#4d4d4d', textAlign: 'center', letterSpacing: '0.5px' }}>fontwandell co tz 2026</p>
         </div>
       </aside>
 
@@ -1055,7 +1117,7 @@ function Dashboard() {
               {navItems.slice(1).map((item) => (
                 <Link key={item.to} to={item.to} className="menu-card">
                   <div className="menu-card-icon">
-                    <svg viewBox="0 0 24 24"><path d={item.icon} /></svg>
+                    <span style={{ fontSize: '1.1rem', lineHeight: 1 }}>{item.icon}</span>
                   </div>
                   <p className="menu-label">{item.label}</p>
                 </Link>
@@ -1064,14 +1126,11 @@ function Dashboard() {
           </div>
 
           {/* Footer */}
-          <div className="footer-section">
-            <p className="footer-text">
-              <strong>Net Kitonga</strong> — Internet & Billing Management
-            </p>
-            <p className="footer-copyright">
-              © {new Date().getFullYear()} Net Kitonga. All rights reserved.
-            </p>
-          </div>
+<div className="footer-section">
+  <p className="footer-text">
+    <strong>fontwandell co tz 2026</strong>
+  </p>
+</div>
         </main>
       </div>
     </div>

@@ -1,4 +1,4 @@
-from fastapi import APIRouter
+from fastapi import APIRouter, Query
 
 from backend.controllers.branch import BranchController
 from backend.models.branch import BranchRegister, BranchUpdate, BranchDelete
@@ -13,7 +13,7 @@ async def create_branch(branch: BranchRegister) -> dict:
         branch_name=branch.branch_name,
         branch_location=branch.branch_location,
         branch_email=branch.branch_email,
-        branch_phone=branch.branch_phone,
+        branch_phone=branch.phone,
         branch_manager=branch.branch_manager,
     )
     return result
@@ -45,6 +45,12 @@ async def delete_branch(branch: BranchDelete) -> dict:
 async def getall_branches(tenant_id: int) -> dict:
     branch_controller = BranchController()
     result = await branch_controller.getall_branches(tenant_id=tenant_id)
+    return result
+
+@router.get("/earnings")
+async def get_branch_earnings(tenant_id: int) -> dict:
+    branch_controller = BranchController()
+    result = await branch_controller.get_branch_earnings(tenant_id=tenant_id)
     return result
 
 @router.get("")

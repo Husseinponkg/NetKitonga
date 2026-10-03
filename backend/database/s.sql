@@ -31,6 +31,8 @@ CREATE TABLE branches (
     branch_email VARCHAR(150) NOT NULL UNIQUE,
     branch_phone VARCHAR(20) NOT NULL,
     branch_manager VARCHAR(100) NULL,
+    router_username VARCHAR(100) NULL UNIQUE,
+    router_password VARCHAR(255) NULL,
     created_at TIMESTAMP DEFAULT CURRENT_TIMESTAMP
 );
 
