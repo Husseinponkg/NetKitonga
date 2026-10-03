@@ -29,6 +29,7 @@ function Admin() {
     const [loading, setLoading] = useState(false);
     const [message, setMessage] = useState("");
     const [adminUser, setAdminUser] = useState(null);
+    const [newAdmin, setNewAdmin] = useState({ name: "", email: "", password: "" });
 
     useEffect(() => {
         const storedAdmin = localStorage.getItem("adminUser");
@@ -172,6 +173,25 @@ function Admin() {
         navigate("/");
     };
 
+    const handleCreateAdmin = async (e) => {
+        e.preventDefault();
+        setMessage("");
+        try {
+            const res = await fetch(`${API_BASE_URL}/admin/admins`, {
+                method: "POST",
+                headers: { "Content-Type": "application/json" },
+                body: JSON.stringify(newAdmin),
+            });
+            const data = await res.json();
+            if (!res.ok) throw new Error(data.detail || data.message || "Failed to create admin");
+            setMessage(data.message || "Admin created successfully");
+            setNewAdmin({ name: "", email: "", password: "" });
+            loadAdmins();
+        } catch (err) {
+            setMessage(err.message);
+        }
+    };
+
     const handleAction = async (url, options = {}) => {
         try {
             const res = await fetch(`${API_BASE_URL}${url}`, {
@@ -216,6 +236,8 @@ function Admin() {
                 .msg { padding: 10px 14px; border-radius: 8px; margin-bottom: 14px; font-size: 0.85rem; font-weight: 700; }
                 .msg.success { background: rgba(70,211,105,0.1); border: 1px solid rgba(70,211,105,0.3); color: #46d369; }
                 .msg.error { background: rgba(229,9,20,0.1); border: 1px solid rgba(229,9,20,0.3); color: #ff5252; }
+                .form-input { padding: 10px 12px; border-radius: 6px; border: 1px solid #1a1a1a; background: #0d0d0d; color: #fff; font-size: 0.85rem; }
+                .form-input:focus { outline: none; border-color: #e50914; }
             `}</style>
 
             <aside className="sidebar">
@@ -373,6 +395,12 @@ function Admin() {
                 {section === "admins" && (
                     <div className="card">
                         <h3 style={{ marginTop: 0 }}>Admin Accounts</h3>
+                        <form onSubmit={handleCreateAdmin} style={{ marginBottom: 16, display: "grid", gap: 10, gridTemplateColumns: "repeat(auto-fit, minmax(180px, 1fr))" }}>
+                            <input className="form-input" placeholder="Name" value={newAdmin.name} onChange={(e) => setNewAdmin({ ...newAdmin, name: e.target.value })} required />
+                            <input className="form-input" placeholder="Email" type="email" value={newAdmin.email} onChange={(e) => setNewAdmin({ ...newAdmin, email: e.target.value })} required />
+                            <input className="form-input" placeholder="Password" type="password" value={newAdmin.password} onChange={(e) => setNewAdmin({ ...newAdmin, password: e.target.value })} required />
+                            <button type="submit" className="btn">Create Admin</button>
+                        </form>
                         {admins.length === 0 ? <p style={{ color: "rgba(255,255,255,0.4)" }}>No admins found.</p> : (
                             <table>
                                 <thead><tr><th>ID</th><th>Name</th><th>Email</th><th>Created At</th><th>Actions</th></tr></thead>
