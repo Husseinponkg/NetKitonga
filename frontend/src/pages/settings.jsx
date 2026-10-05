@@ -44,13 +44,18 @@ function Settings() {
                     setLoading(false);
                     return;
                 }
-                const response = await fetch(`${API_BASE_URL}/settings?tenant_id=${tenantId}`);
-                const data = await response.json();
-                if (!response.ok) throw new Error(data.detail || "Could not load settings.");
+                const url = `${API_BASE_URL}/settings?tenant_id=${encodeURIComponent(tenantId)}&_ts=${Date.now()}`;
+                const response = await fetch(url);
+                const data = await response.json().catch(() => ({}));
+                if (!response.ok) {
+                    const detail = typeof data.detail === 'string' ? data.detail : JSON.stringify(data.detail || data.message || {});
+                    throw new Error(detail || "Could not load settings.");
+                }
                 setForm({ ...data, password: "" });
                 setMessage("");
             } catch (error) {
-                setMessage(error.message);
+                console.error("Failed to load settings:", error);
+                setMessage(error.message || "Could not load settings.");
             } finally {
                 setLoading(false);
             }

@@ -1217,7 +1217,7 @@ function Portal() {
                     color: "rgba(255,255,255,0.08)",
                     letterSpacing: "0.5px"
                 }}>
-                    © {new Date().getFullYear()} Net Kitonga — Secure Payment Gateway
+                    © {new Date().getFullYear()} Net Kitonga — Secure Payment Gateway- Fontawandel  
                 </div>
             </div>
         </div>

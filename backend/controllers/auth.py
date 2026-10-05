@@ -42,7 +42,12 @@ class AuthController:
 
                 user_id, user_email, stored_hash, business_name = user
 
-                if checkpw(password.encode("utf-8"), stored_hash.encode("utf-8")):
+                try:
+                    password_valid = checkpw(password.encode("utf-8"), stored_hash.encode("utf-8"))
+                except Exception:
+                    return {"message": "Invalid email or password"}
+
+                if password_valid:
                     return {
                         "message": "Login successful",
                         "user": {

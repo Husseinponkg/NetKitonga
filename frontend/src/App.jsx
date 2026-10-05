@@ -1,4 +1,4 @@
-import React from "react";
+import React, { useState, useEffect } from "react";
 import { BrowserRouter, Routes, Route, Navigate } from "react-router-dom";
 import { getStoredTenantUser, hasValidTenantSession } from "./session";
 import Login from "./log";
@@ -38,9 +38,10 @@ class ErrorBoundary extends React.Component {
       const errorMessage = this.state.error ? this.state.error.toString() : "Unknown error";
       const stack = this.state.errorInfo?.componentStack || "No stack trace available";
       return (
-        <div style={{ padding: '20px', background: '#f8d7da', color: '#721c24', border: '1px solid #f5c6cb', borderRadius: '4px' }}>
+        <div style={{ padding: '20px', background: '#f8d7da', color: '#721c24', border: '1px solid #f5c6cb', borderRadius: '4px', minHeight: '100vh', display: 'flex', flexDirection: 'column', justifyContent: 'center' }}>
           <h2>Something went wrong.</h2>
           <pre style={{ whiteSpace: 'pre-wrap' }}>{errorMessage}{"\n"}{stack}</pre>
+          <button onClick={() => window.location.href = "/"} style={{ marginTop: '16px', padding: '8px 16px', cursor: 'pointer' }}>Go to Login</button>
         </div>
       );
     }
@@ -50,7 +51,11 @@ class ErrorBoundary extends React.Component {
 
 function ProtectedRoute({ children }) {
   const user = getStoredTenantUser();
-  return user && hasValidTenantSession() ? <Layout>{children}</Layout> : <Navigate to="/" replace />;
+  console.log("[ProtectedRoute]", { path: window.location.pathname, hasUser: !!user, valid: hasValidTenantSession() });
+  if (!user || !hasValidTenantSession()) {
+    return <Navigate to="/" replace />;
+  }
+  return <Layout>{children}</Layout>;
 }
 
 function AdminRoute({ children }) {
@@ -79,6 +84,7 @@ function App() {
           <Route path="/sessions" element={<ProtectedRoute><Sessions /></ProtectedRoute>} />
           <Route path="/settings" element={<ProtectedRoute><Settings /></ProtectedRoute>} />
           <Route path="/admin" element={<AdminRoute><Admin /></AdminRoute>} />
+          <Route path="*" element={<Login />} />
         </Routes>
       </ErrorBoundary>
     </BrowserRouter>

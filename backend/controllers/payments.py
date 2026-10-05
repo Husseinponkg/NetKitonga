@@ -151,10 +151,10 @@ class PaymentController:
                         COALESCE(SUM(amount) FILTER (WHERE status = 'failed'), 0) AS failed_total,
                         COUNT(*) AS total_count,
                         COALESCE(SUM(amount), 0) AS total_amount,
-                        COUNT(*) FILTER (WHERE status = 'completed' AND LOWER(payment_gateway) = 'voucher') AS voucher_completed_count,
-                        COALESCE(SUM(amount) FILTER (WHERE status = 'completed' AND LOWER(payment_gateway) = 'voucher'), 0) AS voucher_completed_total,
-                        COUNT(*) FILTER (WHERE status = 'completed' AND LOWER(payment_gateway) = 'azampay') AS azampay_completed_count,
-                        COALESCE(SUM(amount) FILTER (WHERE status = 'completed' AND LOWER(payment_gateway) = 'azampay'), 0) AS azampay_completed_total
+                        COUNT(*) FILTER (WHERE status = 'completed' AND LOWER(payment_gateway::text) = 'voucher') AS voucher_completed_count,
+                        COALESCE(SUM(amount) FILTER (WHERE status = 'completed' AND LOWER(payment_gateway::text) = 'voucher'), 0) AS voucher_completed_total,
+                        COUNT(*) FILTER (WHERE status = 'completed' AND LOWER(payment_gateway::text) = 'azampay') AS azampay_completed_count,
+                        COALESCE(SUM(amount) FILTER (WHERE status = 'completed' AND LOWER(payment_gateway::text) = 'azampay'), 0) AS azampay_completed_total
                     FROM payments
                     WHERE tenant_id = %s;
                 """, (tenant_id,))

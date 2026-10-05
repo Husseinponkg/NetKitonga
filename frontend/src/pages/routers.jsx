@@ -16,6 +16,7 @@ function Routers() {
     const [macAddress, setMacAddress] = useState("");
     const [ipAddress, setIpAddress] = useState("");
     const [isLicensed, setIsLicensed] = useState(true);
+    const [selectedBranchId, setSelectedBranchId] = useState("");
 
     const [routerList, setRouterList] = useState([]);
     const routerListRef = useRef(routerList);
@@ -24,6 +25,8 @@ function Routers() {
     const [uiMessage, setUiMessage] = useState("");
     const [editingRouterId, setEditingRouterId] = useState(null);
     const [loading, setLoading] = useState(true);
+    const [branches, setBranches] = useState([]);
+    const scrollBodyRef = useRef(null);
 
     const API_BASE_URL = `${API_ROOT}/routers`;
 
@@ -70,8 +73,27 @@ function Routers() {
         }
     };
 
+    const fetchBranches = async () => {
+        try {
+            const tenantId = getTenantId();
+            if (!tenantId) return;
+            const response = await fetch(`${API_BASE_URL.replace(/\/routers$/, "")}/branch/all?tenant_id=${tenantId}`);
+            if (response.ok) {
+                const data = await response.json();
+                const branchList = Array.isArray(data.branches) ? data.branches : [];
+                setBranches(branchList);
+                if (branchList.length > 0 && !selectedBranchId) {
+                    setSelectedBranchId(String(branchList[0].id));
+                }
+            }
+        } catch (error) {
+            console.error("Error fetching branches:", error);
+        }
+    };
+
     useEffect(() => {
         fetchRouters();
+        fetchBranches();
     }, []);
 
     useEffect(() => {
@@ -121,7 +143,7 @@ function Routers() {
 
         const routerData = {
             tenant_id: tenantId,
-            branch_id: 1,
+            branch_id: Number(selectedBranchId),
             router_name: routerName,
             driver_type: driverType,
             nas_identifier: driverType === "mikrotik_radius" ? nasIdentifier : null,
@@ -133,6 +155,11 @@ function Routers() {
             status: "offline",
             last_heartbeat_at: null
         };
+
+        if (!selectedBranchId) {
+            setUiMessage("Please create a branch first before registering a router.");
+            return;
+        }
 
         try {
             const response = await fetch(`${API_BASE_URL}/register`, {
@@ -149,6 +176,7 @@ function Routers() {
                     setProvisioningScript(result.configuration.hardware_config_block);
                 }
                 clearForm();
+                scrollBodyRef.current?.scrollTo({ top: 0, behavior: "smooth" });
                 fetchRouters();
             } else {
                 const detail = typeof result.detail === 'string' ? result.detail : JSON.stringify(result.detail || result.message || {});
@@ -236,6 +264,9 @@ function Routers() {
         setIpAddress("");
         setEditingRouterId(null);
         setProvisioningScript("");
+        if (branches.length > 0) {
+            setSelectedBranchId(String(branches[0].id));
+        }
     };
 
     return (
@@ -1275,7 +1306,7 @@ function Routers() {
                 </div>
 
                 {/* Scrollable Body */}
-                <div className="scroll-body">
+                <div className="scroll-body" ref={scrollBodyRef}>
                     {uiMessage && (
                         <div className={`message-box ${uiMessage.includes("successfully") || uiMessage.includes("success") || uiMessage.includes("saved") || uiMessage.includes("updated") || uiMessage.includes("copied") ? "message-success" : "message-error"}`}>
                             {uiMessage}
@@ -1298,6 +1329,21 @@ function Routers() {
                                     <h3>{editingRouterId ? "Edit Router" : "Register Router"}</h3>
                                     <p>{editingRouterId ? "Update configuration" : "Add a new device"}</p>
                                 </div>
+                            </div>
+
+                            <div className="form-group">
+                                <label>Branch</label>
+                                <select
+                                    value={selectedBranchId}
+                                    onChange={(e) => setSelectedBranchId(e.target.value)}
+                                >
+                                    <option value="">Select branch</option>
+                                    {branches.map((branch) => (
+                                        <option key={branch.id} value={branch.id}>
+                                            {branch.branch_name}
+                                        </option>
+                                    ))}
+                                </select>
                             </div>
 
                             <div className="form-group">

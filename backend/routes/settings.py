@@ -1,5 +1,5 @@
 from typing import Dict
-from fastapi import APIRouter, HTTPException
+from fastapi import APIRouter, HTTPException, Query
 from pydantic import BaseModel, EmailStr
 from config.db import connection
 
@@ -19,7 +19,9 @@ class SettingsUpdate(BaseModel):
     password: str | None = None
 
 @settings_endpoints.get("", response_model=SettingsResponse)
-async def get_settings(tenant_id: int):
+async def get_settings(tenant_id: int = Query(..., description="The tenant ID from the logged-in session")):
+    if not tenant_id:
+        raise HTTPException(status_code=400, detail="tenant_id is required.")
     conn = await connection()
     try:
         async with conn.cursor() as cursor:

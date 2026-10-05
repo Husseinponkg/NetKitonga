@@ -1,7 +1,7 @@
-CREATE DATABASE one;
+CREATE DATABASE netkitonga;
 
 
-\c one;
+\c netkitonga;
 -- 1. GLOBAL SYSTEM OWNER (ADMINS)
 CREATE TABLE admins (
     id SERIAL PRIMARY KEY,
@@ -61,6 +61,13 @@ CREATE TABLE routers (
     last_heartbeat_at TIMESTAMP NULL,        -- Dynamic monitoring update window
     created_at TIMESTAMP DEFAULT CURRENT_TIMESTAMP
 );
+
+-- Migration for existing databases missing router columns
+-- Run these if your database was created from an older schema:
+-- ALTER TABLE routers ADD COLUMN IF NOT EXISTS branch_id INT REFERENCES branches(id) ON DELETE CASCADE;
+-- ALTER TABLE routers ADD COLUMN IF NOT EXISTS ip_address INET;
+-- ALTER TABLE routers ADD COLUMN IF NOT EXISTS is_licensed BOOLEAN DEFAULT TRUE;
+-- ALTER TABLE routers ADD COLUMN IF NOT EXISTS last_heartbeat_at TIMESTAMP NULL;
 
 -- 5. PACKAGES (TENANT CUSTOM INTERNET BUNDLES)
 CREATE TABLE packages (
@@ -156,7 +163,7 @@ CREATE TABLE tenant_wallets (
 CREATE TABLE withdrawals (
     id SERIAL PRIMARY KEY,
     tenant_id INT NOT NULL REFERENCES tenants(id) ON DELETE CASCADE,
-    wallet_id INT NOT REFERENCES tenant_wallets(id) ON DELETE CASCADE,
+    wallet_id INT NOT NULL REFERENCES tenant_wallets(id) ON DELETE CASCADE,
     
     amount DECIMAL(10, 2) NOT NULL,
     mobile_money_number VARCHAR(30) NOT NULL,

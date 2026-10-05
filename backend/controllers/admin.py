@@ -19,7 +19,15 @@ class AdminController:
                     raise HTTPException(status_code=400, detail="Invalid admin credentials.")
 
                 admin_id, admin_email, stored_hash, name = admin
-                if not checkpw(password.encode("utf-8"), stored_hash.encode("utf-8")):
+                if not stored_hash or not stored_hash.strip():
+                    raise HTTPException(status_code=400, detail="Invalid admin credentials.")
+
+                try:
+                    password_valid = checkpw(password.encode("utf-8"), stored_hash.encode("utf-8"))
+                except Exception:
+                    raise HTTPException(status_code=400, detail="Invalid admin credentials.")
+
+                if not password_valid:
                     raise HTTPException(status_code=400, detail="Invalid admin credentials.")
 
                 return {

@@ -19,9 +19,9 @@ export function getTenantId() {
   if (!user) return null;
 
   const tenantId = user.id ?? user.tenant_id;
-  if (tenantId === undefined || tenantId === null || tenantId === "") {
-    return null;
-  }
+  if (tenantId === undefined || tenantId === null || tenantId === "") return null;
+
+  if (typeof tenantId === "number") return Number.isFinite(tenantId) ? tenantId : null;
 
   const parsed = Number(tenantId);
   return Number.isFinite(parsed) ? parsed : null;

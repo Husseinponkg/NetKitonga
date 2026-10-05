@@ -7,9 +7,13 @@ function Login() {
     const navigate = useNavigate();
     const [email, setEmail] = useState("");
     const [password, setPassword] = useState("");
+    const [businessName, setBusinessName] = useState("");
+    const [systemName, setSystemName] = useState("");
+    const [confirmPassword, setConfirmPassword] = useState("");
     const [loading, setLoading] = useState(false);
     const [error, setError] = useState(null);
     const [loginType, setLoginType] = useState("tenant");
+    const [isRegistering, setIsRegistering] = useState(false);
 
     const handleSubmit = async (e) => {
         e.preventDefault();
@@ -53,13 +57,78 @@ function Login() {
         }
     };
 
+    const handleRegister = async (e) => {
+        e.preventDefault();
+        setLoading(true);
+        setError(null);
+
+        if (!businessName.trim() || !systemName.trim() || !email.trim() || !password.trim()) {
+            setError("Please fill in all fields");
+            setLoading(false);
+            return;
+        }
+
+        if (password !== confirmPassword) {
+            setError("Passwords do not match");
+            setLoading(false);
+            return;
+        }
+
+        try {
+            const response = await fetch(`${API_BASE_URL}/auth/register`, {
+                method: "POST",
+                headers: {
+                    "Content-Type": "application/json",
+                },
+                body: JSON.stringify({
+                    business_name: businessName.trim(),
+                    system_name: systemName.trim(),
+                    email: email.trim(),
+                    password: password,
+                }),
+            });
+
+            const data = await response.json().catch(() => ({}));
+
+            if (!response.ok) {
+                throw new Error(data.detail || data.message || "Registration failed");
+            }
+
+            setError(null);
+            setIsRegistering(false);
+            setEmail(email.trim());
+            setPassword("");
+            setBusinessName("");
+            setSystemName("");
+            setConfirmPassword("");
+            alert("Registration successful! Please sign in with your credentials.");
+        } catch (error) {
+            console.error("Error during registration:", error);
+            setError(error.message);
+        } finally {
+            setLoading(false);
+        }
+    };
+
     const switchToAdmin = () => {
         setLoginType("admin");
         setError(null);
+        setIsRegistering(false);
     };
 
     const switchToTenant = () => {
         setLoginType("tenant");
+        setError(null);
+        setIsRegistering(false);
+    };
+
+    const showRegister = () => {
+        setIsRegistering(true);
+        setError(null);
+    };
+
+    const showLogin = () => {
+        setIsRegistering(false);
         setError(null);
     };
 
@@ -411,76 +480,159 @@ function Login() {
 
             <div className="login-container">
                 <div className="logo-section">
-                    <div className="logo">🏨</div>
+                    <div className="logo">🛜</div>
                     <h1 className="brand-name">Net Kitonga</h1>
                     <p className="brand-subtitle">Hotspot Supply Co.</p>
                 </div>
 
                 <div className="login-box">
-                    <h2 className="login-title">{loginType === "admin" ? "Admin Sign In" : "Sign In"}</h2>
+                    <h2 className="login-title">{isRegistering ? "Create Account" : (loginType === "admin" ? "Admin Sign In" : "Sign In")}</h2>
                     <p className="login-description">
-                        {loginType === "admin"
-                            ? "Enter your admin credentials to manage the system"
-                            : "Enter your email and password to access your account"}
+                        {isRegistering
+                            ? "Register your business to get started"
+                            : (loginType === "admin"
+                                ? "Enter your admin credentials to manage the system"
+                                : "Enter your email and password to access your account")}
                     </p>
 
-                    <form onSubmit={handleSubmit}>
-                        <div className="form-group">
-                            <label htmlFor="email">Email</label>
-                            <input
-                                id="email"
-                                type="email"
-                                placeholder="you@example.com"
-                                value={email}
-                                onChange={(e) => setEmail(e.target.value)}
-                                required
-                            />
+                    {!isRegistering ? (
+                        <form onSubmit={handleSubmit}>
+                            <div className="form-group">
+                                <label htmlFor="email">Email</label>
+                                <input
+                                    id="email"
+                                    type="email"
+                                    placeholder="you@example.com"
+                                    value={email}
+                                    onChange={(e) => setEmail(e.target.value)}
+                                    required
+                                />
+                            </div>
+
+                            <div className="form-group">
+                                <label htmlFor="password">Password</label>
+                                <input
+                                    id="password"
+                                    type="password"
+                                    placeholder="••••••••"
+                                    value={password}
+                                    onChange={(e) => setPassword(e.target.value)}
+                                    required
+                                />
+                            </div>
+
+                            <button
+                                type="submit"
+                                className="login-button"
+                                disabled={loading}
+                            >
+                                {loading ? (
+                                    <>
+                                        <span className="spinner"></span>
+                                        {loginType === "admin" ? "Signing in..." : "Signing in..."}
+                                    </>
+                                ) : (
+                                    loginType === "admin" ? "Admin Sign In" : "Sign In"
+                                )}
+                            </button>
+                        </form>
+                    ) : (
+                        <form onSubmit={handleRegister}>
+                            <div className="form-group">
+                                <label htmlFor="businessName">Business Name</label>
+                                <input
+                                    id="businessName"
+                                    type="text"
+                                    placeholder="Your Business Name"
+                                    value={businessName}
+                                    onChange={(e) => setBusinessName(e.target.value)}
+                                    required
+                                />
+                            </div>
+
+                            <div className="form-group">
+                                <label htmlFor="systemName">System Name</label>
+                                <input
+                                    id="systemName"
+                                    type="text"
+                                    placeholder="My Hotspot"
+                                    value={systemName}
+                                    onChange={(e) => setSystemName(e.target.value)}
+                                    required
+                                />
+                            </div>
+
+                            <div className="form-group">
+                                <label htmlFor="regEmail">Email</label>
+                                <input
+                                    id="regEmail"
+                                    type="email"
+                                    placeholder="you@example.com"
+                                    value={email}
+                                    onChange={(e) => setEmail(e.target.value)}
+                                    required
+                                />
+                            </div>
+
+                            <div className="form-group">
+                                <label htmlFor="regPassword">Password</label>
+                                <input
+                                    id="regPassword"
+                                    type="password"
+                                    placeholder="••••••••"
+                                    value={password}
+                                    onChange={(e) => setPassword(e.target.value)}
+                                    required
+                                />
+                            </div>
+
+                            <div className="form-group">
+                                <label htmlFor="confirmPassword">Confirm Password</label>
+                                <input
+                                    id="confirmPassword"
+                                    type="password"
+                                    placeholder="••••••••"
+                                    value={confirmPassword}
+                                    onChange={(e) => setConfirmPassword(e.target.value)}
+                                    required
+                                />
+                            </div>
+
+                            <button
+                                type="submit"
+                                className="login-button"
+                                disabled={loading}
+                            >
+                                {loading ? (
+                                    <>
+                                        <span className="spinner"></span>
+                                        Creating Account...
+                                    </>
+                                ) : (
+                                    "Create Account"
+                                )}
+                            </button>
+                        </form>
+                    )}
+
+                    {!isRegistering && (
+                        <div className="toggle-section">
+                            <button
+                                type="button"
+                                className={`toggle-button ${loginType === "tenant" ? "active" : ""}`}
+                                onClick={switchToTenant}
+                            >
+                                Tenant
+                            </button>
+                            <button
+                                type="button"
+                                className={`toggle-button ${loginType === "admin" ? "active" : ""}`}
+                                onClick={switchToAdmin}
+                            >
+                                Admin
+                            </button>
                         </div>
-
-                        <div className="form-group">
-                            <label htmlFor="password">Password</label>
-                            <input
-                                id="password"
-                                type="password"
-                                placeholder="••••••••"
-                                value={password}
-                                onChange={(e) => setPassword(e.target.value)}
-                                required
-                            />
-                        </div>
-
-                        <button
-                            type="submit"
-                            className="login-button"
-                            disabled={loading}
-                        >
-                            {loading ? (
-                                <>
-                                    <span className="spinner"></span>
-                                    {loginType === "admin" ? "Signing in..." : "Signing in..."}
-                                </>
-                            ) : (
-                                loginType === "admin" ? "Admin Sign In" : "Sign In"
-                            )}
-                        </button>
-                    </form>
-
-                    <div className="toggle-section">
-                        <button
-                            type="button"
-                            className={`toggle-button ${loginType === "tenant" ? "active" : ""}`}
-                            onClick={switchToTenant}
-                        >
-                            Tenant
-                        </button>
-                        <button
-                            type="button"
-                            className={`toggle-button ${loginType === "admin" ? "active" : ""}`}
-                            onClick={switchToAdmin}
-                        >
-                            Admin
-                        </button>
-                    </div>
+                    )}
 
                     {error && (
                         <div className="error-message">
@@ -489,10 +641,53 @@ function Login() {
                     )}
 
                     <div className="info-section">
-                        <p className="info-text">
-                            <strong>Net Kitonga</strong> is your trusted partner in hotspot supply.
-                            We connect local businesses with premium quality essentials.
-                        </p>
+                        {isRegistering ? (
+                            <p className="info-text">
+                                Already have an account?{" "}
+                                <button
+                                    type="button"
+                                    onClick={showLogin}
+                                    style={{
+                                        background: "none",
+                                        border: "none",
+                                        color: "#e50914",
+                                        cursor: "pointer",
+                                        fontWeight: 700,
+                                        fontSize: "0.85rem",
+                                        textDecoration: "underline",
+                                        padding: 0,
+                                    }}
+                                >
+                                    Sign in here
+                                </button>
+                            </p>
+                        ) : (
+                            <>
+                                <p className="info-text">
+                                    <strong>Not registered yet?</strong>{" "}
+                                    <button
+                                        type="button"
+                                        onClick={showRegister}
+                                        style={{
+                                            background: "none",
+                                            border: "none",
+                                            color: "#e50914",
+                                            cursor: "pointer",
+                                            fontWeight: 700,
+                                            fontSize: "0.85rem",
+                                            textDecoration: "underline",
+                                            padding: 0,
+                                        }}
+                                    >
+                                        Register now
+                                    </button>
+                                </p>
+                                <p className="info-text" style={{ marginTop: "8px" }}>
+                                    <strong>Net Kitonga</strong> is your trusted partner in hotspot supply.
+                                    We connect local businesses with premium quality essentials.
+                                </p>
+                            </>
+                        )}
                     </div>
                 </div>
             </div>

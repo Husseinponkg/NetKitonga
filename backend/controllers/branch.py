@@ -82,7 +82,7 @@ class BranchController:
         try:
             async with conn.cursor(row_factory=dict_row) as cursor:
                 await cursor.execute(
-                    "SELECT id, branch_name, branch_location, branch_email, branch_phone, branch_manager, router_username, router_password FROM branches WHERE tenant_id = %s ORDER BY id",
+                    "SELECT id, branch_name, COALESCE(branch_location, '') AS branch_location, COALESCE(branch_email, '') AS branch_email, COALESCE(branch_phone, '') AS branch_phone, COALESCE(branch_manager, '') AS branch_manager, COALESCE(router_username, '') AS router_username, COALESCE(router_password, '') AS router_password FROM branches WHERE tenant_id = %s ORDER BY id",
                     (tenant_id,)
                 )
                 branches = await cursor.fetchall()
@@ -95,7 +95,7 @@ class BranchController:
         try:
             async with conn.cursor(row_factory=dict_row) as cursor:
                 await cursor.execute(
-                    "SELECT id, branch_name, branch_location, branch_email, branch_phone, branch_manager, router_username, router_password FROM branches WHERE tenant_id = %s AND id = %s",
+                    "SELECT id, branch_name, COALESCE(branch_location, '') AS branch_location, COALESCE(branch_email, '') AS branch_email, COALESCE(branch_phone, '') AS branch_phone, COALESCE(branch_manager, '') AS branch_manager, COALESCE(router_username, '') AS router_username, COALESCE(router_password, '') AS router_password FROM branches WHERE tenant_id = %s AND id = %s",
                     (tenant_id, branch_id)
                 )
                 branch = await cursor.fetchone()
@@ -125,63 +125,5 @@ class BranchController:
                 """, (tenant_id,))
                 rows = await cursor.fetchall()
                 return {"branches": [dict(r) for r in rows]}
-        finally:
-            await conn.close()
-
-    async def update_branch(self, tenant_id: int, branch_id: int, branch_name: str, branch_location: str, branch_email: str, branch_phone: str, branch_manager: str):
-        conn = await connection()
-        try:
-            async with conn.cursor(row_factory=dict_row) as cursor:
-                await cursor.execute(
-                    "UPDATE branches SET branch_name = %s, branch_location = %s, branch_email = %s, branch_phone = %s, branch_manager = %s WHERE id = %s AND tenant_id = %s",
-                    (branch_name, branch_location, branch_email, branch_phone, branch_manager, branch_id, tenant_id)
-                )
-                if cursor.rowcount == 0:
-                    return {"message": "Branch not found for this tenant"}
-            await conn.commit()
-            return {"message": "Branch updated successfully"}
-        finally:
-            await conn.close()
-
-    async def delete_branch(self, tenant_id: int, branch_id: int):
-        conn = await connection()
-        try:
-            async with conn.cursor(row_factory=dict_row) as cursor:
-                await cursor.execute(
-                    "DELETE FROM branches WHERE id = %s AND tenant_id = %s",
-                    (branch_id, tenant_id)
-                )
-                if cursor.rowcount == 0:
-                    return {"message": "Branch not found for this tenant"}
-            await conn.commit()
-            return {"message": "Branch deleted successfully"}
-        finally:
-            await conn.close()
-
-    async def getall_branches(self, tenant_id: int):
-        conn = await connection()
-        try:
-            async with conn.cursor(row_factory=dict_row) as cursor:
-                await cursor.execute(
-                    "SELECT id, branch_name, branch_location, branch_email, branch_phone, branch_manager, router_username, router_password FROM branches WHERE tenant_id = %s ORDER BY id",
-                    (tenant_id,)
-                )
-                branches = await cursor.fetchall()
-                return {"branches": branches}
-        finally:
-            await conn.close()
-
-    async def get_branch(self, tenant_id: int, branch_id: int):
-        conn = await connection()
-        try:
-            async with conn.cursor(row_factory=dict_row) as cursor:
-                await cursor.execute(
-                    "SELECT id, branch_name, branch_location, branch_email, branch_phone, branch_manager, router_username, router_password FROM branches WHERE tenant_id = %s AND id = %s",
-                    (tenant_id, branch_id)
-                )
-                branch = await cursor.fetchone()
-                if branch:
-                    return {"branch": dict(branch)}
-                return {"message": "Branch not found for this tenant"}
         finally:
             await conn.close()

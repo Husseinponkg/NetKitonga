@@ -36,8 +36,12 @@ async def handle_router_resolve(
 #  SECTION 1: DASHBOARD CRUD OPERATION PATHS (Frontend Form Handling)
 # =====================================================================
 
-@router.get("/", response_model=Dict[str, Any])
+@router.get("")
 async def handle_router_listing(tenant_id: int = Query(..., description="The tenant owning the routers")):
+    return await controller.list_routers(tenant_id)
+
+@router.get("/")
+async def handle_router_listing_slash(tenant_id: int = Query(..., description="The tenant owning the routers")):
     return await controller.list_routers(tenant_id)
 
 @router.post("/register", response_model=Dict[str, Any], status_code=status.HTTP_201_CREATED)
@@ -65,6 +69,10 @@ async def handle_get_device_status(router_id: int = Query(..., description="The 
     Exposes a validated status query endpoint for the frontend dashboard interface.
     Flipped to 'offline' automatically if its heartbeat has flatlined over 120s.
     """
+    return await controller.get_device_status(router_id)
+
+@router.get("/status/")
+async def handle_get_device_status_slash(router_id: int = Query(..., description="The unique ID of the router")):
     return await controller.get_device_status(router_id)
 
 # =====================================================================

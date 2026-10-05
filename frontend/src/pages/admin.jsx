@@ -32,19 +32,6 @@ function Admin() {
     const [newAdmin, setNewAdmin] = useState({ name: "", email: "", password: "" });
 
     useEffect(() => {
-        const storedAdmin = localStorage.getItem("adminUser");
-        if (!storedAdmin) {
-            navigate("/");
-        } else {
-            try {
-                setAdminUser(JSON.parse(storedAdmin));
-            } catch {
-                setAdminUser({ email: "admin" });
-            }
-        }
-    }, [navigate]);
-
-    useEffect(() => {
         if (section === "dashboard") loadDashboard();
         else if (section === "logs") loadLogs();
         else if (section === "tenants") loadTenants();
