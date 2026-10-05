@@ -26,7 +26,6 @@ function Routers() {
     const [editingRouterId, setEditingRouterId] = useState(null);
     const [loading, setLoading] = useState(true);
     const [branches, setBranches] = useState([]);
-    const scrollBodyRef = useRef(null);
 
     const API_BASE_URL = `${API_ROOT}/routers`;
 
@@ -171,12 +170,11 @@ function Routers() {
             const result = await response.json();
 
             if (response.ok) {
-                setUiMessage("Router successfully saved to PostgreSQL!");
+                setUiMessage("Router successfully saved");
                 if (result.configuration && result.configuration.hardware_config_block) {
                     setProvisioningScript(result.configuration.hardware_config_block);
                 }
                 clearForm();
-                scrollBodyRef.current?.scrollTo({ top: 0, behavior: "smooth" });
                 fetchRouters();
             } else {
                 const detail = typeof result.detail === 'string' ? result.detail : JSON.stringify(result.detail || result.message || {});
@@ -1306,7 +1304,7 @@ function Routers() {
                 </div>
 
                 {/* Scrollable Body */}
-                <div className="scroll-body" ref={scrollBodyRef}>
+                <div className="scroll-body">
                     {uiMessage && (
                         <div className={`message-box ${uiMessage.includes("successfully") || uiMessage.includes("success") || uiMessage.includes("saved") || uiMessage.includes("updated") || uiMessage.includes("copied") ? "message-success" : "message-error"}`}>
                             {uiMessage}
