@@ -30,6 +30,7 @@ function Admin() {
     const [message, setMessage] = useState("");
     const [adminUser, setAdminUser] = useState(null);
     const [newAdmin, setNewAdmin] = useState({ name: "", email: "", password: "" });
+    const [sidebarOpen, setSidebarOpen] = useState(false);
 
     useEffect(() => {
         if (section === "dashboard") loadDashboard();
@@ -225,13 +226,44 @@ function Admin() {
                 .msg.error { background: rgba(229,9,20,0.1); border: 1px solid rgba(229,9,20,0.3); color: #ff5252; }
                 .form-input { padding: 10px 12px; border-radius: 6px; border: 1px solid #1a1a1a; background: #0d0d0d; color: #fff; font-size: 0.85rem; }
                 .form-input:focus { outline: none; border-color: #e50914; }
+                .hamburger { display: none; background: none; border: none; color: #fff; font-size: 1.5rem; cursor: pointer; padding: 8px; }
+                .sidebar-overlay { display: none; position: fixed; inset: 0; background: rgba(0,0,0,0.5); z-index: 98; }
+                .table-wrapper { overflow-x: auto; -webkit-overflow-scrolling: touch; }
+                .table-wrapper table { min-width: 600px; }
+                .action-buttons { display: flex; gap: 6px; flex-wrap: wrap; }
+
+                @media (max-width: 768px) {
+                    .sidebar { position: fixed; top: 0; left: 0; bottom: 0; z-index: 99; transform: translateX(-100%); transition: transform 0.3s ease; }
+                    .sidebar.open { transform: translateX(0); }
+                    .sidebar-overlay { display: block; }
+                    .hamburger { display: block; }
+                    .main { padding: 16px; width: 100%; }
+                    .stats-grid { grid-template-columns: repeat(auto-fit, minmax(140px, 1fr)); gap: 10px; }
+                    .stat-value { font-size: 1.3rem; }
+                    .card { padding: 16px; }
+                    table { font-size: 0.75rem; }
+                    th, td { padding: 8px 6px; }
+                    .btn { padding: 6px 10px; font-size: 0.7rem; }
+                }
+
+                @media (max-width: 480px) {
+                    .stats-grid { grid-template-columns: 1fr 1fr; gap: 8px; }
+                    .stat-card { padding: 12px; }
+                    .stat-value { font-size: 1.1rem; }
+                    .stat-label { font-size: 0.65rem; }
+                    table { font-size: 0.7rem; }
+                    th, td { padding: 6px 4px; }
+                    .btn { padding: 5px 8px; font-size: 0.65rem; }
+                }
             `}</style>
 
-            <aside className="sidebar">
+            <button className="hamburger" onClick={() => setSidebarOpen(!sidebarOpen)}>☰</button>
+            <div className={`sidebar-overlay ${sidebarOpen ? 'open' : ''}`} onClick={() => setSidebarOpen(false)}></div>
+            <aside className={`sidebar ${sidebarOpen ? 'open' : ''}`}>
                 <div className="sidebar-title">Admin Panel</div>
                 <nav>
                     {SECTIONS.map((s) => (
-                        <div key={s.key} className={`nav-item ${section === s.key ? "active" : ""}`} onClick={() => { setSection(s.key); setMessage(""); }}>
+                        <div key={s.key} className={`nav-item ${section === s.key ? "active" : ""}`} onClick={() => { setSection(s.key); setMessage(""); setSidebarOpen(false); }}>
                             {s.label}
                         </div>
                     ))}
@@ -264,14 +296,16 @@ function Admin() {
                         <div className="card">
                             <h3 style={{ marginTop: 0 }}>Recent System Logs</h3>
                             {logs.length === 0 ? <p style={{ color: "rgba(255,255,255,0.4)" }}>No recent logs found.</p> : (
-                                <table>
+                                <div className="table-wrapper">
+                                    <table>
                                     <thead><tr><th>Action</th><th>Entity</th><th>Entity ID</th><th>Tenant</th><th>Created At</th></tr></thead>
                                     <tbody>
                                         {logs.slice(0, 10).map((log) => (
                                             <tr key={log.id}><td>{log.action}</td><td>{log.entity_type}</td><td>{log.entity_id ?? "-"}</td><td>{log.business_name || `Tenant ${log.tenant_id || "-"}`}</td><td>{log.created_at ? new Date(log.created_at).toLocaleString() : "-"}</td></tr>
                                         ))}
                                     </tbody>
-                                </table>
+                                    </table>
+                                </div>
                             )}
                         </div>
                     </>
@@ -281,7 +315,8 @@ function Admin() {
                     <div className="card">
                         <h3 style={{ marginTop: 0 }}>All Tenants</h3>
                         {tenants.length === 0 ? <p style={{ color: "rgba(255,255,255,0.4)" }}>No tenants found.</p> : (
-                            <table>
+                            <div className="table-wrapper">
+                                <table>
                                 <thead><tr><th>ID</th><th>Business Name</th><th>System Name</th><th>Email</th><th>Created At</th><th>Actions</th></tr></thead>
                                 <tbody>
                                     {tenants.map((t) => (
@@ -290,6 +325,7 @@ function Admin() {
                                     ))}
                                 </tbody>
                             </table>
+                            </div>
                         )}
                     </div>
                 )}
@@ -298,7 +334,8 @@ function Admin() {
                     <div className="card">
                         <h3 style={{ marginTop: 0 }}>All Routers</h3>
                         {routers.length === 0 ? <p style={{ color: "rgba(255,255,255,0.4)" }}>No routers found.</p> : (
-                            <table>
+                            <div className="table-wrapper">
+                                <table>
                                 <thead><tr><th>ID</th><th>Tenant</th><th>Router Name</th><th>IP Address</th><th>Status</th><th>Actions</th></tr></thead>
                                 <tbody>
                                     {routers.map((r) => (
@@ -307,6 +344,7 @@ function Admin() {
                                     ))}
                                 </tbody>
                             </table>
+                            </div>
                         )}
                     </div>
                 )}
@@ -315,7 +353,8 @@ function Admin() {
                     <div className="card">
                         <h3 style={{ marginTop: 0 }}>All Packages</h3>
                         {packages.length === 0 ? <p style={{ color: "rgba(255,255,255,0.4)" }}>No packages found.</p> : (
-                            <table>
+                            <div className="table-wrapper">
+                                <table>
                                 <thead><tr><th>ID</th><th>Tenant</th><th>Package</th><th>Price</th><th>Status</th><th>Actions</th></tr></thead>
                                 <tbody>
                                     {packages.map((p) => (
@@ -324,6 +363,7 @@ function Admin() {
                                     ))}
                                 </tbody>
                             </table>
+                            </div>
                         )}
                     </div>
                 )}
@@ -332,7 +372,8 @@ function Admin() {
                     <div className="card">
                         <h3 style={{ marginTop: 0 }}>All Vouchers</h3>
                         {vouchers.length === 0 ? <p style={{ color: "rgba(255,255,255,0.4)" }}>No vouchers found.</p> : (
-                            <table>
+                            <div className="table-wrapper">
+                                <table>
                                 <thead><tr><th>ID</th><th>Tenant</th><th>Package</th><th>Code</th><th>Status</th><th>Actions</th></tr></thead>
                                 <tbody>
                                     {vouchers.map((v) => (
@@ -341,6 +382,7 @@ function Admin() {
                                     ))}
                                 </tbody>
                             </table>
+                            </div>
                         )}
                     </div>
                 )}
@@ -349,7 +391,8 @@ function Admin() {
                     <div className="card">
                         <h3 style={{ marginTop: 0 }}>All Payments</h3>
                         {payments.length === 0 ? <p style={{ color: "rgba(255,255,255,0.4)" }}>No payments found.</p> : (
-                            <table>
+                            <div className="table-wrapper">
+                                <table>
                                 <thead><tr><th>ID</th><th>Tenant</th><th>Amount</th><th>Gateway</th><th>Status</th><th>Actions</th></tr></thead>
                                 <tbody>
                                     {payments.map((p) => (
@@ -358,6 +401,7 @@ function Admin() {
                                     ))}
                                 </tbody>
                             </table>
+                            </div>
                         )}
                     </div>
                 )}
@@ -366,7 +410,8 @@ function Admin() {
                     <div className="card">
                         <h3 style={{ marginTop: 0 }}>All Sessions</h3>
                         {sessions.length === 0 ? <p style={{ color: "rgba(255,255,255,0.4)" }}>No sessions found.</p> : (
-                            <table>
+                            <div className="table-wrapper">
+                                <table>
                                 <thead><tr><th>ID</th><th>Tenant</th><th>Router</th><th>Buyer MAC</th><th>IP</th><th>Status</th><th>Actions</th></tr></thead>
                                 <tbody>
                                     {sessions.map((s) => (
@@ -375,6 +420,7 @@ function Admin() {
                                     ))}
                                 </tbody>
                             </table>
+                            </div>
                         )}
                     </div>
                 )}
@@ -389,7 +435,8 @@ function Admin() {
                             <button type="submit" className="btn">Create Admin</button>
                         </form>
                         {admins.length === 0 ? <p style={{ color: "rgba(255,255,255,0.4)" }}>No admins found.</p> : (
-                            <table>
+                            <div className="table-wrapper">
+                                <table>
                                 <thead><tr><th>ID</th><th>Name</th><th>Email</th><th>Created At</th><th>Actions</th></tr></thead>
                                 <tbody>
                                     {admins.map((a) => (
@@ -398,6 +445,7 @@ function Admin() {
                                     ))}
                                 </tbody>
                             </table>
+                            </div>
                         )}
                     </div>
                 )}
@@ -406,7 +454,8 @@ function Admin() {
                     <div className="card">
                         <h3 style={{ marginTop: 0 }}>System Logs</h3>
                         {logs.length === 0 ? <p style={{ color: "rgba(255,255,255,0.4)" }}>No logs found.</p> : (
-                            <table>
+                            <div className="table-wrapper">
+                                <table>
                                 <thead><tr><th>ID</th><th>Action</th><th>Entity</th><th>Entity ID</th><th>Tenant</th><th>Created At</th><th>Actions</th></tr></thead>
                                 <tbody>
                                     {logs.map((log) => (
@@ -415,6 +464,7 @@ function Admin() {
                                     ))}
                                 </tbody>
                             </table>
+                            </div>
                         )}
                     </div>
                 )}
