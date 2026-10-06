@@ -1,30 +1,20 @@
-
 import os
-from datetime import datetime, timezone
+from datetime import datetime
 from typing import Any, Dict, List, Optional
+from zoneinfo import ZoneInfo
 
 from config.db import connection
 
 
+TANZANIA_TZ = ZoneInfo("Africa/Dar_es_Salaam")
+
+
 class FreeRADIUSService:
-    """
-    FreeRADIUS integration service.
-
-    NetKitonga uses active_sessions as the source of truth for
-    customer authorization.
-
-    Flow:
-        MikroTik
-            ↓
-        FreeRADIUS
-            ↓
-        NetKitonga REST API
-            ↓
-        PostgreSQL active_sessions
-    """
-
     def __init__(self) -> None:
-        self.system_domain = os.getenv("SYSTEM_SERVER_IP", "127.0.0.1")
+        self.system_domain = os.getenv(
+            "SYSTEM_SERVER_IP",
+            "127.0.0.1",
+        )
 
         self.api_scheme = (
             "https"
@@ -35,8 +25,73 @@ class FreeRADIUSService:
         self.api_port = "" if self.api_scheme == "https" else ":8000"
 
         self.api_base_url = (
-            f"{self.api_scheme}://{self.system_domain}{self.api_port}"
+            f"{self.api_scheme}://"
+            f"{self.system_domain}"
+            f"{self.api_port}"
         )
+
+    # ============================================================
+    # NORMALIZE MAC ADDRESS
+    # ============================================================
+
+    @staticmethod
+    def _normalize_mac(mac_address: str) -> str:
+        return (
+            str(mac_address or "")
+            .strip()
+            .upper()
+            .replace(":", "")
+            .replace("-", "")
+            .replace(".", "")
+        )
+
+    # ============================================================
+    # CALCULATE REMAINING SESSION TIME
+    #
+    # IMPORTANT:
+    # RADIUS Session-Timeout expects SECONDS remaining.
+    #
+    # PostgreSQL/session timestamps in this system are treated
+    # as Tanzania local time: Africa/Dar_es_Salaam.
+    # ============================================================
+
+    @staticmethod
+    def _remaining_seconds(expiration_time: Any) -> int:
+        if not expiration_time:
+            return 0
+
+        try:
+            if isinstance(expiration_time, datetime):
+
+                # If PostgreSQL returned a timezone-naive timestamp,
+                # interpret it as Tanzania time.
+                if expiration_time.tzinfo is None:
+                    expiration_time = expiration_time.replace(
+                        tzinfo=TANZANIA_TZ
+                    )
+                else:
+                    # Convert an already timezone-aware timestamp
+                    # to Tanzania time.
+                    expiration_time = expiration_time.astimezone(
+                        TANZANIA_TZ
+                    )
+
+                now = datetime.now(TANZANIA_TZ)
+
+                remaining = int(
+                    (expiration_time - now).total_seconds()
+                )
+
+                return max(0, remaining)
+
+            return 0
+
+        except Exception:
+            return 0
+
+    # ============================================================
+    # GET ACTIVE SESSION FOR MAC
+    # ============================================================
 
     async def get_active_session_for_mac(
         self,
@@ -44,23 +99,8 @@ class FreeRADIUSService:
         mac_address: str,
         router_id: Optional[int] = None,
     ) -> Optional[Dict[str, Any]]:
-        """
-        Find an active internet session for a customer's MAC address.
 
-        The database remains the source of truth.
-
-        tenant_id is retained for compatibility with the existing
-        service interface. Router identification is currently used
-        to identify the correct NAS/router.
-        """
-
-        normalized_mac = (
-            str(mac_address or "")
-            .strip()
-            .upper()
-            .replace(":", "")
-            .replace("-", "")
-        )
+        normalized_mac = self._normalize_mac(mac_address)
 
         if not normalized_mac:
             return None
@@ -70,12 +110,17 @@ class FreeRADIUSService:
         try:
             async with conn.cursor() as cursor:
 
-                params: List[Any] = [normalized_mac]
+                params: List[Any] = [
+                    normalized_mac
+                ]
 
                 router_filter = ""
 
                 if router_id:
-                    router_filter = "AND s.router_id = %s"
+                    router_filter = """
+                        AND s.router_id = %s
+                    """
+
                     params.append(router_id)
 
                 query = f"""
@@ -93,16 +138,23 @@ class FreeRADIUSService:
                         r.nas_identifier,
                         r.ip_address
                     FROM active_sessions s
+
                     JOIN routers r
                         ON r.id = s.router_id
+
                     JOIN payments pay
                         ON pay.id = s.payment_id
+
                     JOIN packages p
                         ON p.id = pay.package_id
+
                     JOIN buyers b
                         ON b.id = s.buyer_id
+
                     WHERE s.status = 'active'
+
                       AND s.expiration_time > NOW()
+
                       AND REPLACE(
                             REPLACE(
                                 UPPER(b.buyer_mac),
@@ -112,12 +164,18 @@ class FreeRADIUSService:
                             '-',
                             ''
                           ) = %s
+
                       {router_filter}
+
                     ORDER BY s.start_time DESC
+
                     LIMIT 1;
                 """
 
-                await cursor.execute(query, tuple(params))
+                await cursor.execute(
+                    query,
+                    tuple(params),
+                )
 
                 row = await cursor.fetchone()
 
@@ -158,40 +216,9 @@ class FreeRADIUSService:
         finally:
             await conn.close()
 
-    @staticmethod
-    def _remaining_seconds(expiration_time: Any) -> int:
-        """
-        Convert an expiration timestamp into the number of seconds
-        remaining from now.
-
-        IMPORTANT:
-        RADIUS Session-Timeout expects a duration in seconds,
-        NOT a Unix timestamp.
-        """
-
-        if not expiration_time:
-            return 86400
-
-        try:
-            if isinstance(expiration_time, datetime):
-
-                if expiration_time.tzinfo is None:
-                    expiration_time = expiration_time.replace(
-                        tzinfo=timezone.utc
-                    )
-
-                now = datetime.now(timezone.utc)
-
-                remaining = int(
-                    (expiration_time - now).total_seconds()
-                )
-
-                return max(0, remaining)
-
-            return 86400
-
-        except Exception:
-            return 86400
+    # ============================================================
+    # AUTHENTICATE USER
+    # ============================================================
 
     async def authenticate(
         self,
@@ -202,35 +229,28 @@ class FreeRADIUSService:
         nas_ip_address: Optional[str] = None,
         framed_ip_address: Optional[str] = None,
     ) -> Dict[str, Any]:
-        """
-        Authorize a customer using an active NetKitonga session.
 
-        The returned JSON uses FreeRADIUS rlm_rest attribute syntax:
-
-            control:Auth-Type
-            reply:Session-Timeout
-            reply:Reply-Message
-            reply:Framed-IP-Address
-            reply:Mikrotik-Rate-Limit
-        """
-
-        mac_address = (
+        # MikroTik normally sends the client MAC through
+        # Calling-Station-Id.
+        mac_address = self._normalize_mac(
             calling_station_id
             or username
             or ""
-        ).strip().upper().replace(":", "").replace("-", "")
+        )
 
         if not mac_address:
             return {
                 "control:Auth-Type": "Reject",
-                "reply:Reply-Message": "Missing customer identity.",
+                "reply:Reply-Message": (
+                    "Missing customer identity."
+                ),
             }
 
-        # ---------------------------------------------------------
-        # Find the MikroTik router using NAS-Identifier
-        # ---------------------------------------------------------
+        # ========================================================
+        # FIND ROUTER USING NAS IDENTIFIER
+        # ========================================================
 
-        router_id = None
+        router_id: Optional[int] = None
 
         if nas_identifier:
 
@@ -247,7 +267,9 @@ class FreeRADIUSService:
                           AND driver_type = 'mikrotik_radius'
                         LIMIT 1;
                         """,
-                        (str(nas_identifier).strip(),),
+                        (
+                            str(nas_identifier).strip(),
+                        ),
                     )
 
                     router_row = await cursor.fetchone()
@@ -258,9 +280,9 @@ class FreeRADIUSService:
             finally:
                 await conn.close()
 
-        # ---------------------------------------------------------
-        # Find active customer session
-        # ---------------------------------------------------------
+        # ========================================================
+        # FIND ACTIVE INTERNET SESSION
+        # ========================================================
 
         session = await self.get_active_session_for_mac(
             tenant_id=0,
@@ -268,29 +290,29 @@ class FreeRADIUSService:
             router_id=router_id,
         )
 
-        # ---------------------------------------------------------
-        # No active session = reject
-        # ---------------------------------------------------------
-
         if not session:
 
             return {
                 "control:Auth-Type": "Reject",
                 "reply:Reply-Message": (
                     "No active internet session found. "
-                    "Please purchase a package or redeem a voucher."
+                    "Please purchase a package or redeem "
+                    "a voucher."
                 ),
             }
 
-        # ---------------------------------------------------------
-        # Calculate remaining session time
-        # ---------------------------------------------------------
+        # ========================================================
+        # CHECK SESSION EXPIRATION
+        # ========================================================
 
-        remaining_seconds = self._remaining_seconds(
-            session.get("expiration_time")
+        expiration_time = session.get(
+            "expiration_time"
         )
 
-        # Session expired
+        remaining_seconds = self._remaining_seconds(
+            expiration_time
+        )
+
         if remaining_seconds <= 0:
 
             return {
@@ -301,97 +323,106 @@ class FreeRADIUSService:
                 ),
             }
 
-        # ---------------------------------------------------------
-        # Access-Accept response
-        # ---------------------------------------------------------
+        # ========================================================
+        # ACCESS ACCEPT
+        # ========================================================
 
         response: Dict[str, Any] = {
             "control:Auth-Type": "Accept",
+
+            # VERY IMPORTANT:
+            # Session-Timeout is duration in seconds,
+            # NOT Unix timestamp.
             "reply:Session-Timeout": remaining_seconds,
+
             "reply:Reply-Message": (
                 "Access granted by NetKitonga billing backend."
             ),
         }
 
-        # ---------------------------------------------------------
-        # Assigned IP
-        # ---------------------------------------------------------
+        # ========================================================
+        # ASSIGNED IP
+        # ========================================================
 
         if session.get("assigned_ip"):
 
-            response["reply:Framed-IP-Address"] = (
-                session["assigned_ip"]
-            )
+            response[
+                "reply:Framed-IP-Address"
+            ] = session["assigned_ip"]
 
         elif framed_ip_address:
 
-            response["reply:Framed-IP-Address"] = (
-                framed_ip_address
-            )
+            response[
+                "reply:Framed-IP-Address"
+            ] = framed_ip_address
 
-        # ---------------------------------------------------------
-        # MikroTik rate limit
-        # ---------------------------------------------------------
+        # ========================================================
+        # MIKROTIK RATE LIMIT
+        # ========================================================
 
         if session.get("mikrotik_rate_limit"):
 
-            response["reply:Mikrotik-Rate-Limit"] = (
-                session["mikrotik_rate_limit"]
-            )
+            response[
+                "reply:Mikrotik-Rate-Limit"
+            ] = session[
+                "mikrotik_rate_limit"
+            ]
 
         return response
 
+    # ============================================================
+    # ACCOUNTING
+    # ============================================================
+
     async def accounting(
         self,
-        username: str,
+        username: Optional[str] = None,
         calling_station_id: Optional[str] = None,
         nas_identifier: Optional[str] = None,
         session_id: Optional[str] = None,
         framed_ip_address: Optional[str] = None,
         acct_status_type: Optional[str] = None,
-        acct_input_octets: Optional[int] = None,
-        acct_output_octets: Optional[int] = None,
-        acct_session_time: Optional[int] = None,
-        event_timestamp: Optional[str] = None,
+        acct_input_octets: Optional[Any] = None,
+        acct_output_octets: Optional[Any] = None,
+        acct_session_time: Optional[Any] = None,
+        event_timestamp: Optional[Any] = None,
     ) -> Dict[str, Any]:
-        """
-        RADIUS accounting handler.
 
-        Updates traffic usage and session lifecycle information
-        inside active_sessions.
-        """
-
-        mac_address = (
+        mac_address = self._normalize_mac(
             calling_station_id
             or username
             or ""
-        ).strip().upper().replace(":", "").replace("-", "")
+        )
 
         if not mac_address:
 
             return {
                 "status": "ignored",
-                "reason": "missing_identity",
+                "message": "Missing customer identity.",
             }
 
         conn = await connection()
 
         try:
+
             async with conn.cursor() as cursor:
+
+                # ====================================================
+                # FIND ACTIVE SESSION
+                # ====================================================
 
                 await cursor.execute(
                     """
                     SELECT
                         s.id,
                         s.session_id,
-                        s.buyer_id,
-                        s.router_id,
-                        s.tenant_id
+                        s.status
                     FROM active_sessions s
+
                     JOIN buyers b
                         ON b.id = s.buyer_id
-                    WHERE s.status = 'active'
-                      AND REPLACE(
+
+                    WHERE REPLACE(
                             REPLACE(
                                 UPPER(b.buyer_mac),
                                 ':',
@@ -400,13 +431,14 @@ class FreeRADIUSService:
                             '-',
                             ''
                           ) = %s
+
                       AND (
-                            s.session_id = COALESCE(
-                                %s,
-                                s.session_id
-                            )
-                            OR %s IS NULL
+                          s.session_id = %s
+                          OR %s IS NULL
                       )
+
+                    ORDER BY s.start_time DESC
+
                     LIMIT 1;
                     """,
                     (
@@ -416,95 +448,104 @@ class FreeRADIUSService:
                     ),
                 )
 
-                session_row = await cursor.fetchone()
+                row = await cursor.fetchone()
 
-                if not session_row:
-
-                    return {
-                        "status": "ignored",
-                        "reason": "no_active_session",
-                    }
-
-                (
-                    local_session_id,
-                    db_session_id,
-                    buyer_id,
-                    router_id,
-                    tenant_id,
-                ) = session_row
-
-                if not acct_status_type:
+                if not row:
 
                     return {
                         "status": "ignored",
-                        "reason": "missing_status_type",
+                        "message": (
+                            "No matching session found."
+                        ),
                     }
 
-                normalized_status = (
-                    str(acct_status_type)
-                    .strip()
-                    .lower()
+                db_session_id = row[0]
+                stored_session_id = row[1]
+                stored_status = row[2]
+
+                # ====================================================
+                # SAFE INTEGER CONVERSION
+                # ====================================================
+
+                def safe_int(value: Any) -> int:
+
+                    try:
+                        if value is None:
+                            return 0
+
+                        return int(value)
+
+                    except (
+                        ValueError,
+                        TypeError,
+                    ):
+                        return 0
+
+                input_octets = safe_int(
+                    acct_input_octets
                 )
 
-                uploaded = acct_input_octets or 0
-                downloaded = acct_output_octets or 0
+                output_octets = safe_int(
+                    acct_output_octets
+                )
 
-                # -------------------------------------------------
-                # START / INTERIM UPDATE
-                # -------------------------------------------------
+                session_time = safe_int(
+                    acct_session_time
+                )
 
-                if normalized_status in (
-                    "start",
-                    "interim-update",
+                # ====================================================
+                # ACCOUNTING START / INTERIM / UPDATE
+                # ====================================================
+
+                if acct_status_type in (
+                    "Start",
+                    "Interim-Update",
+                    "Accounting-On",
                 ):
 
                     await cursor.execute(
                         """
                         UPDATE active_sessions
                         SET
-                            bytes_uploaded =
-                                bytes_uploaded + %s,
-                            bytes_downloaded =
-                                bytes_downloaded + %s
+                            bytes_uploaded = %s,
+                            bytes_downloaded = %s
                         WHERE id = %s;
                         """,
                         (
-                            uploaded,
-                            downloaded,
-                            local_session_id,
+                            input_octets,
+                            output_octets,
+                            db_session_id,
                         ),
                     )
 
-                # -------------------------------------------------
-                # STOP / ACCOUNTING OFF
-                # -------------------------------------------------
+                # ====================================================
+                # ACCOUNTING STOP
+                # ====================================================
 
-                elif normalized_status in (
-                    "stop",
-                    "accounting-off",
+                elif acct_status_type in (
+                    "Stop",
+                    "Accounting-Off",
                 ):
 
                     await cursor.execute(
                         """
                         UPDATE active_sessions
                         SET
-                            status = 'terminated',
-                            bytes_uploaded =
-                                bytes_uploaded + %s,
-                            bytes_downloaded =
-                                bytes_downloaded + %s
+                            bytes_uploaded = %s,
+                            bytes_downloaded = %s,
+                            status = 'terminated'
                         WHERE id = %s;
                         """,
                         (
-                            uploaded,
-                            downloaded,
-                            local_session_id,
+                            input_octets,
+                            output_octets,
+                            db_session_id,
                         ),
                     )
 
-                # -------------------------------------------------
-                # OTHER ACCOUNTING EVENTS
-                # -------------------------------------------------
+                # ====================================================
+                # OTHER ACCOUNTING UPDATE
+                # ====================================================
 
                 else:
 
@@ -512,118 +553,51 @@ class FreeRADIUSService:
                         """
                         UPDATE active_sessions
                         SET
-                            bytes_uploaded =
-                                bytes_uploaded + %s,
-                            bytes_downloaded =
-                                bytes_downloaded + %s
+                            bytes_uploaded = %s,
+                            bytes_downloaded = %s
                         WHERE id = %s;
                         """,
                         (
-                            uploaded,
-                            downloaded,
-                            local_session_id,
+                            input_octets,
+                            output_octets,
+                            db_session_id,
                         ),
                     )
 
                 await conn.commit()
 
                 return {
-                    "status": "recorded",
-                    "session_id": db_session_id,
-                    "local_session_id": local_session_id,
+                    "status": "success",
+                    "message": (
+                        "Accounting information "
+                        "processed successfully."
+                    ),
+                    "session_id": (
+                        stored_session_id
+                    ),
+                    "session_status": (
+                        stored_status
+                    ),
+                    "acct_status_type": (
+                        acct_status_type
+                    ),
+                    "acct_input_octets": (
+                        input_octets
+                    ),
+                    "acct_output_octets": (
+                        output_octets
+                    ),
+                    "acct_session_time": (
+                        session_time
+                    ),
                 }
 
+        except Exception:
+
+            await conn.rollback()
+
+            raise
+
         finally:
+
             await conn.close()
-
-    def build_clients_config(
-        self,
-        routers: List[Dict[str, Any]],
-    ) -> str:
-        """
-        Generate a FreeRADIUS clients.conf configuration.
-        """
-
-        lines = [
-            "# Net Kitonga FreeRADIUS clients",
-            "",
-        ]
-
-        for router in routers:
-
-            name = (
-                router.get("router_name")
-                or router.get("nas_identifier")
-                or router.get("ip_address")
-                or "unknown"
-            )
-
-            ip_address = router.get("ip_address")
-
-            radius_secret = (
-                router.get("radius_secret")
-                or os.getenv("RADIUS_GLOBAL_SECRET")
-                or "CHANGE_ME"
-            )
-
-            lines.extend(
-                [
-                    f"client {name} {{",
-                    f"    ipaddr = {ip_address}",
-                    f"    secret = {radius_secret}",
-                    "    require_message_authenticator = no",
-                    "    nastype = other",
-                    "}",
-                    "",
-                ]
-            )
-
-        return "\n".join(lines)
-
-    def build_users_config(
-        self,
-        users: List[Dict[str, Any]],
-    ) -> str:
-        """
-        Generate a FreeRADIUS users-style configuration.
-
-        NetKitonga normally uses active_sessions for authorization,
-        so no fake/test users are created here.
-        """
-
-        lines = [
-            "# Net Kitonga users",
-            "",
-        ]
-
-        for user in users:
-
-            mac = (
-                user.get("mac_address")
-                or user.get("buyer_mac")
-            )
-
-            if not mac:
-                continue
-
-            mac_clean = (
-                str(mac)
-                .upper()
-                .replace(":", "")
-                .replace("-", "")
-            )
-
-            lines.extend(
-                [
-                    f'"{mac_clean}" Cleartext-Password := "{mac_clean}"',
-                    "    Service-Type = Framed-User,",
-                    "    Framed-Protocol = PPP,",
-                    "    Framed-IP-Address = 255.255.255.254,",
-                    "    Framed-IP-Netmask = 255.255.255.0,",
-                    "    Framed-Routing = Broadcast-Listen,",
-                    '    Framed-Filter-ID = "default-outbound-acl"',
-                    "",
-                ]
-            )
-
-        return "\n".join(lines)
