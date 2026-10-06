@@ -226,7 +226,7 @@ function Admin() {
                 .msg.error { background: rgba(229,9,20,0.1); border: 1px solid rgba(229,9,20,0.3); color: #ff5252; }
                 .form-input { padding: 10px 12px; border-radius: 6px; border: 1px solid #1a1a1a; background: #0d0d0d; color: #fff; font-size: 0.85rem; }
                 .form-input:focus { outline: none; border-color: #e50914; }
-                .hamburger { display: none; background: none; border: none; color: #fff; font-size: 1.5rem; cursor: pointer; padding: 8px; }
+                .hamburger { display: none; background: none; border: none; color: #fff; font-size: 1.5rem; cursor: pointer; padding: 8px; position: fixed; top: 10px; left: 10px; z-index: 100; }
                 .sidebar-overlay { display: none; position: fixed; inset: 0; background: rgba(0,0,0,0.5); z-index: 98; }
                 .table-wrapper { overflow-x: auto; -webkit-overflow-scrolling: touch; }
                 .table-wrapper table { min-width: 600px; }
@@ -235,9 +235,10 @@ function Admin() {
                 @media (max-width: 768px) {
                     .sidebar { position: fixed; top: 0; left: 0; bottom: 0; z-index: 99; transform: translateX(-100%); transition: transform 0.3s ease; }
                     .sidebar.open { transform: translateX(0); }
-                    .sidebar-overlay { display: block; }
+                    .sidebar-overlay { display: none; }
+                    .sidebar-overlay.open { display: block; }
                     .hamburger { display: block; }
-                    .main { padding: 16px; width: 100%; }
+                    .main { padding: 16px; padding-top: 56px; width: 100%; }
                     .stats-grid { grid-template-columns: repeat(auto-fit, minmax(140px, 1fr)); gap: 10px; }
                     .stat-value { font-size: 1.3rem; }
                     .card { padding: 16px; }
