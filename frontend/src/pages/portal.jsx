@@ -195,6 +195,51 @@ function submitHotspotLogin(
     return true;
 }
 
+/**
+ * Send the buyer back to the WiFiDog/OpenWrt gateway after a successful
+ * payment or voucher redemption.
+ *
+ * Wifidog re-runs its /auth check on the auth server when the client
+ * hits /wifidog/login, so redirecting there re-triggers the session
+ * check and grants access when a valid session exists.
+ */
+function submitWifidogLogin(
+    gatewayIp,
+    gwId,
+    mac,
+    destination
+) {
+    const rawGatewayIp = String(gatewayIp || "")
+        .trim()
+        .replace(/^https?:\/\//i, "")
+        .replace(/\/+$/, "");
+
+    if (!rawGatewayIp || !gwId) {
+        console.warn(
+            "Could not determine WiFiDog gateway login URL.",
+            { gatewayIp, gwId }
+        );
+        return false;
+    }
+
+    const params = new URLSearchParams({
+        gw_id: gwId,
+        mac: normalizeMac(mac),
+    });
+
+    if (destination) {
+        params.set("url", destination);
+    }
+
+    const loginUrl = `http://${rawGatewayIp}/wifidog/login?${params.toString()}`;
+
+    console.log("Redirecting to WiFiDog gateway login:", loginUrl);
+
+    window.location.href = loginUrl;
+
+    return true;
+}
+
 function Portal() {
     const location = useLocation();
 
@@ -251,6 +296,14 @@ function Portal() {
         queryParams.get("nas_id") ||
         "";
 
+    const gwId =
+        queryParams.get("gw_id") ||
+        "";
+
+    const clientIp =
+        queryParams.get("ip") ||
+        "";
+
     // ================================================================
     // IMPORTANT:
     //
@@ -294,7 +347,7 @@ function Portal() {
 
     const resolveRouterFromIp = async () => {
         if (
-            (!routerIp && !nasId) ||
+            (!routerIp && !nasId && !gwId) ||
             routerId ||
             (tenantId && branchId)
         ) {
@@ -302,9 +355,15 @@ function Portal() {
         }
 
         try {
-            const lookup = nasId
-                ? `nas_id=${encodeURIComponent(nasId)}`
-                : `ip_address=${encodeURIComponent(routerIp)}`;
+            let lookup;
+
+            if (gwId) {
+                lookup = `gw_id=${encodeURIComponent(gwId)}`;
+            } else if (nasId) {
+                lookup = `nas_id=${encodeURIComponent(nasId)}`;
+            } else {
+                lookup = `ip_address=${encodeURIComponent(routerIp)}`;
+            }
 
             const response = await fetch(
                 `${API_BASE_URL}/routers/resolve?${lookup}`
@@ -319,7 +378,7 @@ function Portal() {
             setResolvedRouter(data);
         } catch (error) {
             console.error(
-                "Failed to resolve router by IP:",
+                "Failed to resolve router by gateway ID, NAS ID, or IP:",
                 error
             );
         }
@@ -330,6 +389,7 @@ function Portal() {
     }, [
         routerIp,
         nasId,
+        gwId,
         routerId,
         tenantId,
         branchId,
@@ -346,6 +406,20 @@ function Portal() {
     const effectiveRouterId =
         routerId ||
         resolvedRouter?.router_id;
+
+    const effectiveGatewayIp =
+        routerIp ||
+        resolvedRouter?.router_ip ||
+        "";
+
+    const effectiveGwId =
+        gwId ||
+        resolvedRouter?.gw_id ||
+        "";
+
+    const isWifidogGateway =
+        resolvedRouter?.driver_type === "wifidog_http" ||
+        Boolean(effectiveGwId);
 
     // ================================================================
     // FETCH PACKAGES
@@ -476,8 +550,14 @@ function Portal() {
                             null
                         );
 
-                        const loginStarted =
-                            submitHotspotLogin(
+                        const loginStarted = isWifidogGateway
+                            ? submitWifidogLogin(
+                                effectiveGatewayIp,
+                                effectiveGwId,
+                                buyerMac,
+                                destination
+                            )
+                            : submitHotspotLogin(
                                 linkLogin,
                                 routerIp,
                                 normalizeMac(buyerMac),
@@ -540,6 +620,9 @@ function Portal() {
         linkLogin,
         routerIp,
         destination,
+        isWifidogGateway,
+        effectiveGatewayIp,
+        effectiveGwId,
         API_BASE_URL,
     ]);
 
@@ -795,6 +878,7 @@ function Portal() {
 
                                 assigned_ip:
                                     routerIp ||
+                                    clientIp ||
                                     null,
                             }),
                         }
@@ -814,13 +898,17 @@ function Portal() {
                     // authentication request.
                     // =================================================
 
-                    const loginStarted =
-                        submitHotspotLogin(
+                    const loginStarted = isWifidogGateway
+                        ? submitWifidogLogin(
+                            effectiveGatewayIp,
+                            effectiveGwId,
+                            buyerMac,
+                            destination
+                        )
+                        : submitHotspotLogin(
                             linkLogin,
                             routerIp,
-                            normalizeMac(
-                                buyerMac
-                            ),
+                            normalizeMac(buyerMac),
                             result.auth_token,
                             destination
                         );

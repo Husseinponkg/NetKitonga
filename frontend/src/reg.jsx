@@ -112,172 +112,132 @@ function Register() {
         <main className="nk-register-page">
             <style>{`
                 .nk-register-page,
-                .nk-register-page * {
-                    box-sizing: border-box;
-                }
+                .nk-register-page * { box-sizing: border-box; }
 
                 .nk-register-page {
                     min-height: 100vh;
                     display: flex;
-                    justify-content: center;
                     align-items: center;
-                    padding: 32px 16px;
-
+                    justify-content: center;
+                    padding: 48px 20px;
                     background:
-                        radial-gradient(
-                            ellipse at top,
-                            rgba(229, 9, 20, 0.10),
-                            transparent 45%
-                        ),
-                        linear-gradient(
-                            135deg,
-                            #0b0b0d 0%,
-                            #171719 55%,
-                            #101012 100%
-                        );
-
-                    color: #f5f5f5;
-                    font-family:
-                        Inter,
-                        "Segoe UI",
-                        system-ui,
-                        -apple-system,
-                        sans-serif;
+                        radial-gradient(ellipse at 12% 18%, rgba(59,130,246,.08), transparent 34%),
+                        linear-gradient(180deg, #fafaff 0%, #f5f6fa 100%);
+                    color: #17172b;
+                    font-family: Inter, "Segoe UI", system-ui, -apple-system, sans-serif;
                 }
 
                 .nk-register-container {
                     width: 100%;
-                    max-width: 460px;
-                    animation: nkRegisterFadeIn .45s ease-out;
+                    max-width: 470px;
+                    animation: nkRegisterEnter .42s ease-out both;
                 }
 
-                /* BRAND */
-
-                .nk-register-brand {
-                    text-align: center;
-                    margin-bottom: 26px;
-                }
+                .nk-register-brand { text-align: center; margin-bottom: 24px; }
 
                 .nk-register-logo {
-                    width: 58px;
-                    height: 58px;
+                    width: 54px;
+                    height: 54px;
                     display: grid;
                     place-items: center;
-                    margin: 0 auto 12px;
-                    border-radius: 17px;
-
-                    background: linear-gradient(
-                        135deg,
-                        #ed1c24,
-                        #a80710
-                    );
-
-                    box-shadow: 0 10px 28px rgba(229, 9, 20, .25);
-                    font-size: 27px;
+                    margin: 0 auto 13px;
+                    border-radius: 16px;
+                    background: linear-gradient(145deg, #4388f5, #2865d9);
+                    color: #fff;
+                    box-shadow: 0 9px 20px rgba(54,117,226,.22);
+                    font-size: 25px;
                 }
 
                 .nk-register-brand h1 {
                     margin: 0;
-                    font-size: 2rem;
+                    color: #15152b;
+                    font-size: 1.9rem;
                     line-height: 1.2;
                     font-weight: 750;
-                    letter-spacing: -.7px;
-                    color: #fff;
+                    letter-spacing: -.75px;
                 }
 
                 .nk-register-brand p {
                     margin: 7px 0 0;
-                    color: #a7a7ad;
+                    color: #777b8d;
                     font-size: .9rem;
                 }
 
-                /* REGISTER CARD */
-
                 .nk-register-card {
-                    padding: 30px;
-                    border: 1px solid rgba(255,255,255,.10);
-                    border-radius: 16px;
-                    background: rgba(24,24,27,.96);
-                    box-shadow: 0 22px 65px rgba(0,0,0,.35);
+                    padding: 32px;
+                    border: 1px solid #e8eaf1;
+                    border-radius: 18px;
+                    background: rgba(255,255,255,.96);
+                    box-shadow: 0 18px 55px rgba(31,42,76,.08), 0 2px 8px rgba(31,42,76,.025);
                 }
 
                 .nk-register-card h2 {
                     margin: 0 0 8px;
+                    color: #17172b;
                     font-size: 1.65rem;
                     line-height: 1.3;
-                    font-weight: 700;
-                    color: #fff;
+                    font-weight: 720;
+                    letter-spacing: -.45px;
                 }
 
                 .nk-register-description {
                     margin: 0 0 25px;
-                    color: #a7a7ad;
+                    color: #777b8d;
                     font-size: .92rem;
-                    line-height: 1.55;
+                    line-height: 1.6;
                 }
 
-                /* FORM FIELDS */
-
-                .nk-register-field {
-                    margin-bottom: 17px;
-                }
+                .nk-register-field { margin-bottom: 17px; }
 
                 .nk-register-field label {
                     display: block;
                     margin-bottom: 8px;
-                    color: #e5e5e7;
-                    font-size: .87rem;
-                    font-weight: 600;
+                    color: #34364b;
+                    font-size: .86rem;
+                    font-weight: 650;
                 }
 
                 .nk-register-field input {
                     display: block;
                     width: 100%;
-                    min-height: 47px;
+                    min-height: 48px;
                     padding: 12px 14px;
-                    border: 1px solid #3b3b40;
-                    border-radius: 8px;
+                    border: 1px solid #dfe3ec;
+                    border-radius: 9px;
                     outline: none;
-                    background: #202024;
-                    color: #fff;
+                    background: #fff;
+                    color: #17172b;
                     font: inherit;
-                    font-size: .94rem;
-
-                    transition:
-                        border-color .18s ease,
-                        box-shadow .18s ease;
+                    font-size: .93rem;
+                    box-shadow: 0 1px 2px rgba(20,30,60,.02);
+                    transition: border-color .18s ease, box-shadow .18s ease, background .18s ease;
                 }
 
-                .nk-register-field input::placeholder {
-                    color: #77777f;
-                }
+                .nk-register-field input::placeholder { color: #a0a4b2; }
+
+                .nk-register-field input:hover { border-color: #c4ccdc; }
 
                 .nk-register-field input:focus {
-                    border-color: #e50914;
-                    box-shadow: 0 0 0 3px rgba(229,9,20,.14);
+                    border-color: #4388f5;
+                    box-shadow: 0 0 0 3px rgba(67,136,245,.13);
+                    background: #fff;
                 }
-
-                /* LEGAL ACCEPTANCE */
 
                 .nk-legal-box {
                     display: flex;
                     align-items: flex-start;
                     gap: 11px;
                     margin: 10px 0;
-                    padding: 14px;
-
-                    border: 1px solid rgba(255,255,255,.12);
-                    border-radius: 9px;
-                    background: rgba(255,255,255,.035);
-
-                    transition:
-                        border-color .2s ease,
-                        background .2s ease;
+                    padding: 13px 14px;
+                    border: 1px solid #e9ebf2;
+                    border-radius: 10px;
+                    background: #fafbfe;
+                    transition: border-color .18s ease, background .18s ease;
                 }
 
                 .nk-legal-box:focus-within {
-                    border-color: rgba(229,9,20,.65);
-                    background: rgba(229,9,20,.045);
+                    border-color: #9bbdf8;
+                    background: #f7faff;
                 }
 
                 .nk-legal-checkbox {
@@ -285,62 +245,54 @@ function Register() {
                     height: 17px;
                     flex: 0 0 17px;
                     margin: 3px 0 0;
-                    accent-color: #e50914;
+                    accent-color: #3478e5;
                     cursor: pointer;
                 }
 
                 .nk-legal-copy {
-                    color: #d2d2d6;
-                    font-size: .86rem;
+                    color: #555a70;
+                    font-size: .83rem;
                     line-height: 1.65;
                     cursor: pointer;
                 }
 
                 .nk-legal-copy a {
-                    color: #fff;
+                    color: #276bd6;
                     font-weight: 650;
-                    text-decoration: underline;
-                    text-decoration-color: #e50914;
+                    text-decoration: none;
                     text-underline-offset: 3px;
-                    transition: color .18s ease;
                 }
 
-                .nk-legal-copy a:hover {
-                    color: #ff7379;
-                }
+                .nk-legal-copy a:hover { color: #174ca5; text-decoration: underline; }
 
                 .nk-legal-help {
                     display: block;
-                    margin-top: 5px;
-                    color: #9999a2;
-                    font-size: .78rem;
+                    margin-top: 4px;
+                    color: #9296a5;
+                    font-size: .77rem;
                     line-height: 1.5;
                 }
-
-                /* ERROR AND SUCCESS */
 
                 .nk-register-error,
                 .nk-register-success {
                     margin: 16px 0;
-                    padding: 11px 13px;
-                    border-radius: 8px;
+                    padding: 12px 14px;
+                    border-radius: 9px;
                     font-size: .86rem;
                     line-height: 1.5;
                 }
 
                 .nk-register-error {
-                    color: #ffb8bb;
-                    border: 1px solid rgba(255,89,97,.3);
-                    background: rgba(229,9,20,.10);
+                    color: #b42332;
+                    border: 1px solid #f4cbd0;
+                    background: #fff5f6;
                 }
 
                 .nk-register-success {
-                    color: #a7f3c0;
-                    border: 1px solid rgba(74,222,128,.25);
-                    background: rgba(34,197,94,.09);
+                    color: #167447;
+                    border: 1px solid #c7eed8;
+                    background: #f0fbf5;
                 }
-
-                /* SUBMIT BUTTON */
 
                 .nk-register-button {
                     display: flex;
@@ -348,38 +300,30 @@ function Register() {
                     align-items: center;
                     gap: 10px;
                     width: 100%;
-                    min-height: 48px;
+                    min-height: 49px;
                     margin-top: 22px;
                     padding: 12px 16px;
                     border: 0;
-                    border-radius: 8px;
-
-                    background: linear-gradient(
-                        135deg,
-                        #e50914,
-                        #b80710
-                    );
-
+                    border-radius: 9px;
+                    background: #101126;
                     color: #fff;
                     font: inherit;
-                    font-size: .96rem;
+                    font-size: .94rem;
                     font-weight: 700;
                     cursor: pointer;
-
-                    transition:
-                        transform .18s ease,
-                        filter .18s ease;
+                    box-shadow: 0 5px 12px rgba(18,20,48,.12);
+                    transition: transform .18s ease, background .18s ease, box-shadow .18s ease;
                 }
 
                 .nk-register-button:hover:not(:disabled) {
-                    filter: brightness(1.12);
+                    background: #286bd8;
+                    box-shadow: 0 8px 18px rgba(40,107,216,.2);
                     transform: translateY(-1px);
                 }
 
-                .nk-register-button:disabled {
-                    opacity: .72;
-                    cursor: wait;
-                }
+                .nk-register-button:active:not(:disabled) { transform: translateY(0); }
+
+                .nk-register-button:disabled { opacity: .7; cursor: wait; }
 
                 .nk-register-spinner {
                     width: 16px;
@@ -390,129 +334,76 @@ function Register() {
                     animation: nkRegisterSpin .7s linear infinite;
                 }
 
-                /* SIGN IN */
-
                 .nk-register-login {
                     margin-top: 22px;
-                    color: #a7a7ad;
+                    color: #777b8d;
                     text-align: center;
-                    font-size: .9rem;
+                    font-size: .89rem;
                 }
 
                 .nk-register-login button {
                     padding: 0;
                     border: 0;
                     background: none;
-                    color: #fff;
+                    color: #276bd6;
                     font: inherit;
-                    font-weight: 650;
+                    font-weight: 700;
                     cursor: pointer;
-                    text-decoration: underline;
-                    text-decoration-color: #e50914;
-                    text-underline-offset: 3px;
                 }
 
-                .nk-register-login button:hover {
-                    color: #ff7379;
-                }
+                .nk-register-login button:hover { color: #174ca5; text-decoration: underline; }
 
                 .nk-register-info {
                     margin-top: 22px;
-                    color: #85858d;
+                    color: #85899a;
                     text-align: center;
                     font-size: .79rem;
                     line-height: 1.7;
                 }
 
-                .nk-register-info strong {
-                    color: #c8c8ce;
-                }
+                .nk-register-info strong { color: #4b5065; }
 
                 .nk-register-footer {
                     margin-top: 20px;
                     padding-top: 17px;
-                    border-top: 1px solid rgba(255,255,255,.08);
+                    border-top: 1px solid #eceef4;
                     text-align: center;
-                    color: #85858d;
+                    color: #8b8fa0;
                     font-size: .78rem;
                     line-height: 1.8;
                 }
 
                 .nk-register-footer a {
-                    color: #b9b9c0;
+                    color: #73788d;
                     text-decoration: none;
                     transition: color .18s ease;
                 }
 
-                .nk-register-footer a:hover {
-                    color: #ff7379;
+                .nk-register-footer a:hover { color: #276bd6; }
+                .nk-register-footer span { margin: 0 7px; color: #c3c7d2; }
+
+                @keyframes nkRegisterEnter {
+                    from { opacity: 0; transform: translateY(10px); }
+                    to { opacity: 1; transform: translateY(0); }
                 }
 
-                .nk-register-footer span {
-                    margin: 0 7px;
-                    color: #55555c;
-                }
+                @keyframes nkRegisterSpin { to { transform: rotate(360deg); } }
 
-                @keyframes nkRegisterFadeIn {
-                    from {
-                        opacity: 0;
-                        transform: translateY(12px);
-                    }
-
-                    to {
-                        opacity: 1;
-                        transform: translateY(0);
-                    }
-                }
-
-                @keyframes nkRegisterSpin {
-                    to {
-                        transform: rotate(360deg);
-                    }
-                }
-
-                @media (max-width: 480px) {
-                    .nk-register-page {
-                        padding: 22px 12px;
-                        align-items: flex-start;
-                    }
-
-                    .nk-register-container {
-                        margin: auto 0;
-                    }
-
-                    .nk-register-card {
-                        padding: 23px 19px;
-                    }
-
-                    .nk-register-brand h1 {
-                        font-size: 1.8rem;
-                    }
-
-                    .nk-register-card h2 {
-                        font-size: 1.5rem;
-                    }
-
-                    .nk-legal-copy {
-                        font-size: .82rem;
-                    }
+                @media (max-width: 520px) {
+                    .nk-register-page { padding: 25px 13px; align-items: flex-start; }
+                    .nk-register-container { margin: auto 0; }
+                    .nk-register-card { padding: 24px 19px; border-radius: 15px; }
+                    .nk-register-brand h1 { font-size: 1.75rem; }
+                    .nk-register-card h2 { font-size: 1.48rem; }
+                    .nk-legal-copy { font-size: .81rem; }
                 }
 
                 @media (prefers-reduced-motion: reduce) {
-                    .nk-register-container {
-                        animation: none;
-                    }
-
-                    .nk-register-button,
-                    .nk-legal-box {
-                        transition: none;
-                    }
-
-                    .nk-register-spinner {
-                        animation-duration: 1.5s;
-                    }
+                    .nk-register-container { animation: none; }
+                    .nk-register-button, .nk-legal-box, .nk-register-field input { transition: none; }
+                    .nk-register-spinner { animation-duration: 1.5s; }
                 }
-            `}</style>
+`}</style>
 
             <div className="nk-register-container">
 
