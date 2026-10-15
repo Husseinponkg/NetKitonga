@@ -1,4 +1,4 @@
-import React, { useState, useEffect } from "react";
+import React, { useState, useEffect, useRef } from "react";
 import { useLocation } from "react-router-dom";
 import { API_BASE_URL as API_ROOT } from "../api";
 import { getStoredTenantUser, getTenantId as getSessionTenantId } from "../session";
@@ -31,6 +31,74 @@ function normalizeMac(value) {
     return compact.length === 12
         ? compact.match(/.{2}/g).join(":")
         : compact;
+}
+
+/**
+ * Turn a FastAPI error body into a human readable sentence.
+ *
+ * FastAPI returns `detail` either as a plain string ("Router profile not
+ * found"), or as a validation array of objects:
+ *
+ *   { "detail": [ { "loc": ["query", "router_id"], "msg": "..." } ] }
+ *
+ * Interpolating the array/object directly produced messages such as
+ * "Could not retrieve packages: [object Object]", which is useless to a
+ * buyer standing in front of the hotspot.
+ */
+function extractApiErrorMessage(errorData) {
+    if (!errorData) {
+        return "";
+    }
+
+    if (typeof errorData === "string") {
+        return errorData.trim();
+    }
+
+    const detail = errorData.detail;
+
+    if (typeof detail === "string") {
+        return detail.trim();
+    }
+
+    if (Array.isArray(detail)) {
+        const messages = detail
+            .map((entry) => {
+                if (!entry) {
+                    return "";
+                }
+
+                if (typeof entry === "string") {
+                    return entry;
+                }
+
+                const location = Array.isArray(entry.loc)
+                    ? entry.loc[entry.loc.length - 1]
+                    : "";
+
+                const message = entry.msg || entry.message || "";
+
+                if (location && message) {
+                    return `${location}: ${message}`;
+                }
+
+                return message;
+            })
+            .filter(Boolean);
+
+        if (messages.length > 0) {
+            return messages.join(", ");
+        }
+    }
+
+    if (detail && typeof detail === "object") {
+        return JSON.stringify(detail);
+    }
+
+    if (errorData.message) {
+        return String(errorData.message);
+    }
+
+    return "";
 }
 
 /**
@@ -258,6 +326,10 @@ function Portal() {
 
     const [resolvedRouter, setResolvedRouter] = useState(null);
 
+    // Remembers which catalog URL is already on screen so the effect that
+    // re-runs after a gateway resolution does not fetch it twice.
+    const loadedCatalogUrlRef = useRef(null);
+
     const API_BASE_URL = API_ROOT;
 
     // ================================================================
@@ -288,16 +360,30 @@ function Portal() {
         queryParams.get("mac") ||
         "unknown-device";
 
+    // ================================================================
+    // WiFiDog / RUIJIE PARAMETERS
+    //
+    // A WiFiDog gateway redirects the buyer to the portal with:
+    //   ?gw_id=<Gateway ID>&mac=<MAC>&ip=<client IP>&url=<original URL>
+    //
+    // It does NOT send router_id or router_ip, so the gateway has to be
+    // resolved through its Gateway ID. MikroTik keeps sending nas_id /
+    // router_ip / link_login exactly as before.
+    // ================================================================
+
+    const gwId =
+        queryParams.get("gw_id") ||
+        queryParams.get("gwid") ||
+        queryParams.get("gateway_id") ||
+        "";
+
     const routerIp =
         queryParams.get("router_ip") ||
+        queryParams.get("gateway_ip") ||
         "";
 
     const nasId =
         queryParams.get("nas_id") ||
-        "";
-
-    const gwId =
-        queryParams.get("gw_id") ||
         "";
 
     const clientIp =
@@ -322,9 +408,12 @@ function Portal() {
         queryParams.get("link-login-only") ||
         "";
 
+    // WiFiDog passes the originally requested page as "url", while
+    // MikroTik passes it as "dst" or "link-orig".
     const destination =
         queryParams.get("dst") ||
         queryParams.get("link-orig") ||
+        queryParams.get("url") ||
         "";
 
     // ================================================================
@@ -345,55 +434,58 @@ function Portal() {
     // RESOLVE ROUTER
     // ================================================================
 
-    const resolveRouterFromIp = async () => {
+    // ================================================================
+    // RESOLVE ROUTER
+    //
+    // WiFiDog (Ruijie) portal links only carry gw_id/mac/ip/url, so the
+    // gateway must be resolved by Gateway ID before anything else.
+    // MikroTik links keep working through nas_id / router_ip.
+    // Returns the resolution payload (or null when there is nothing to
+    // resolve) and also stores it in state for the payment flows.
+    // ================================================================
+
+    const resolveRouter = async (existingResolution = null) => {
         if (
             (!routerIp && !nasId && !gwId) ||
             routerId ||
             (tenantId && branchId)
         ) {
-            return;
+            return existingResolution || null;
         }
 
-        try {
-            let lookup;
+        // Already resolved for this link: reuse it instead of querying again.
+        if (existingResolution) {
+            return existingResolution;
+        }
 
-            if (gwId) {
-                lookup = `gw_id=${encodeURIComponent(gwId)}`;
-            } else if (nasId) {
-                lookup = `nas_id=${encodeURIComponent(nasId)}`;
-            } else {
-                lookup = `ip_address=${encodeURIComponent(routerIp)}`;
-            }
+        const lookup = gwId
+            ? `gw_id=${encodeURIComponent(gwId)}`
+            : nasId
+                ? `nas_id=${encodeURIComponent(nasId)}`
+                : `ip_address=${encodeURIComponent(routerIp)}`;
 
-            const response = await fetch(
-                `${API_BASE_URL}/routers/resolve?${lookup}`
-            );
+        const response = await fetch(
+            `${API_BASE_URL}/routers/resolve?${lookup}`
+        );
 
-            if (!response.ok) {
-                return;
-            }
+        if (!response.ok) {
+            const errorData =
+                await response
+                    .json()
+                    .catch(() => ({}));
 
-            const data = await response.json();
-
-            setResolvedRouter(data);
-        } catch (error) {
-            console.error(
-                "Failed to resolve router by gateway ID, NAS ID, or IP:",
-                error
+            throw new Error(
+                extractApiErrorMessage(errorData) ||
+                `Server returned ${response.status}`
             );
         }
+
+        const data = await response.json();
+
+        setResolvedRouter(data);
+
+        return data;
     };
-
-    useEffect(() => {
-        resolveRouterFromIp();
-    }, [
-        routerIp,
-        nasId,
-        gwId,
-        routerId,
-        tenantId,
-        branchId,
-    ]);
 
     const effectiveTenantId =
         tenantId ||
@@ -425,32 +517,84 @@ function Portal() {
     // FETCH PACKAGES
     // ================================================================
 
-    const fetchActivePackages = async () => {
-        try {
-            let url;
+    const fetchActivePackages = async (
+        existingResolution = null
+    ) => {
+        setUiMessage("");
 
+        try {
             const loggedInTenantId = getTenantId();
 
-            const resolvedRouterIp = routerIp;
+            // ----------------------------------------------------------
+            // 1. Resolve the gateway/router first.
+            //
+            // A WiFiDog gateway (Ruijie) forwards only gw_id/mac/ip/url,
+            // so without this step the portal has no tenant, branch or
+            // router_id and the catalog request cannot even be built.
+            // ----------------------------------------------------------
+
+            let routerResolution = null;
+
+            try {
+                routerResolution = await resolveRouter(
+                    existingResolution
+                );
+            } catch (error) {
+                console.error(
+                    "Failed to resolve router by gateway ID, NAS ID, or IP:",
+                    error
+                );
+
+                if (gwId) {
+                    setUiMessage(
+                        `This hotspot could not be identified (Gateway ID: ${gwId}). ` +
+                        `Please confirm the Ruijie router is registered on the ` +
+                        `dashboard with driver "Ruijie / OpenWrt (Wifidog)" and the ` +
+                        `same Gateway ID, then reconnect to the WiFi.`
+                    );
+                    return;
+                }
+            }
+
+            const effectiveRouter =
+                routerId || routerResolution?.router_id || null;
+
+            const effectiveRouterIp =
+                routerIp || routerResolution?.router_ip || "";
+
+            // ----------------------------------------------------------
+            // 2. Build the catalog URL.
+            // ----------------------------------------------------------
+
+            let url;
 
             if (loggedInTenantId) {
                 url =
                     `${API_BASE_URL}/packages/catalog` +
                     `?tenant_id=${loggedInTenantId}`;
-            } else if (effectiveRouterId) {
+            } else if (effectiveRouter) {
                 url =
                     `${API_BASE_URL}/packages/public` +
-                    `?router_id=${effectiveRouterId}`;
-            } else if (resolvedRouterIp) {
+                    `?router_id=${effectiveRouter}`;
+            } else if (effectiveRouterIp) {
                 url =
                     `${API_BASE_URL}/packages/public` +
                     `?router_ip=${encodeURIComponent(
-                        resolvedRouterIp
+                        effectiveRouterIp
                     )}`;
             } else {
                 throw new Error(
-                    "Missing tenant, router_id, or router_ip."
+                    "This portal link is missing hotspot details " +
+                    "(no Gateway ID, router ID or router IP). " +
+                    "Please reconnect to the WiFi so the gateway can " +
+                    "reopen the payment page."
                 );
+            }
+
+            // This exact catalog is already displayed (the effect re-runs
+            // once the gateway resolution lands in state).
+            if (loadedCatalogUrlRef.current === url) {
+                return;
             }
 
             const response = await fetch(url);
@@ -462,7 +606,7 @@ function Portal() {
                         .catch(() => ({}));
 
                 throw new Error(
-                    errorData.detail ||
+                    extractApiErrorMessage(errorData) ||
                     `Server returned ${response.status}`
                 );
             }
@@ -474,11 +618,21 @@ function Portal() {
                     ? data
                     : [];
 
+            loadedCatalogUrlRef.current = url;
+
             setPackageCatalog(packages);
+
+            // Clear any stale error now that the catalog is available.
+            setUiMessage("");
 
             if (packages.length > 0) {
                 setSelectedPackageId(
                     packages[0].id
+                );
+            } else {
+                setUiMessage(
+                    "No internet packages are available for this hotspot yet. " +
+                    "Please contact the hotspot owner."
                 );
             }
         } catch (error) {
@@ -494,10 +648,11 @@ function Portal() {
     };
 
     useEffect(() => {
-        fetchActivePackages();
+        fetchActivePackages(resolvedRouter);
     }, [
         effectiveRouterId,
         routerIp,
+        resolvedRouter,
     ]);
 
     // ================================================================
