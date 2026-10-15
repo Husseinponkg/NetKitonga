@@ -1,0 +1,118 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+
+    <title>NetKitonga WiFi</title>
+
+    <style>
+        * {
+            box-sizing: border-box;
+        }
+
+        html,
+        body {
+            margin: 0;
+            width: 100%;
+            height: 100%;
+        }
+
+        body {
+            background: #1a1a2e;
+            display: flex;
+            justify-content: center;
+            align-items: center;
+            font-family: Arial, sans-serif;
+            color: white;
+        }
+
+        .loader {
+            text-align: center;
+            padding: 30px;
+        }
+
+        .spinner {
+            width: 50px;
+            height: 50px;
+            border: 4px solid rgba(255, 255, 255, 0.25);
+            border-top: 4px solid #e94560;
+            border-radius: 50%;
+            animation: spin 1s linear infinite;
+            margin: 0 auto 20px;
+        }
+
+        h3 {
+            margin: 0;
+            font-size: 20px;
+        }
+
+        p {
+            color: #888;
+            font-size: 14px;
+            margin-top: 10px;
+        }
+
+        .small {
+            color: #555;
+            font-size: 11px;
+            margin-top: 25px;
+        }
+
+        @keyframes spin {
+            from {
+                transform: rotate(0deg);
+            }
+
+            to {
+                transform: rotate(360deg);
+            }
+        }
+    </style>
+</head>
+
+<body>
+
+<div class="loader">
+    <div class="spinner"></div>
+
+    <h3>Connecting to NetKitonga...</h3>
+
+    <p>Redirecting to WiFi packages</p>
+
+    <div class="small">
+        Please wait...
+    </div>
+</div>
+
+<script>
+(function () {
+
+    const params = new URLSearchParams();
+
+    // MikroTik / RADIUS information
+    params.set("nas_id", "nas-05");
+    params.set("router_ip", "$(server-address)");
+    params.set("mac", "$(mac)");
+    params.set("ip", "$(ip)");
+
+    // IMPORTANT:
+    // This is the MikroTik URL that must be used
+    // to authenticate the client after payment.
+    params.set("link_login", "$(link-login-only)");
+
+    params.set("dst", "$(link-orig)");
+    params.set("username", "$(username)");
+    params.set("error", "$(error)");
+
+    const portal =
+        "https://netkitonga.com/portal?" +
+        params.toString();
+
+    window.location.replace(portal);
+
+})();
+</script>
+
+</body>
+</html>

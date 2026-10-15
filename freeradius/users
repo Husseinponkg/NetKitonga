@@ -1,0 +1,6 @@
+# Net Kitonga generated users
+# Primary authorization is driven by active_sessions in the billing backend.
+# This file is optional and can remain minimal.
+
+DEFAULT
+    Reply-Message = "Please purchase a package or redeem a voucher to access the internet."

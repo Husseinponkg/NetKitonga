@@ -1,0 +1,346 @@
+/* ================================
+   NETKITONGA PRIVACY POLICY
+   Theme: Red, Black & White
+================================ */
+
+.privacy-page {
+  --privacy-red: #e50914;
+  --privacy-red-hover: #ff2430;
+  --privacy-bg: #080808;
+  --privacy-surface: #111111;
+  --privacy-border: #292929;
+  --privacy-text: #f5f5f5;
+  --privacy-muted: #a3a3a3;
+
+  min-height: 100vh;
+  padding: 48px 24px;
+  background: var(--privacy-bg);
+  color: var(--privacy-text);
+  font-family: Inter, -apple-system, BlinkMacSystemFont, "Segoe UI",
+    sans-serif;
+  line-height: 1.8;
+}
+
+/* Main container */
+
+.privacy-container {
+  width: 100%;
+  max-width: 900px;
+  margin: 0 auto;
+}
+
+/* Back navigation */
+
+.privacy-back {
+  display: inline-flex;
+  align-items: center;
+  gap: 8px;
+  margin-bottom: 42px;
+  color: var(--privacy-muted);
+  font-size: 14px;
+  font-weight: 500;
+  text-decoration: none;
+  transition: color 0.25s ease, transform 0.25s ease;
+}
+
+.privacy-back:hover {
+  color: var(--privacy-red-hover);
+  transform: translateX(-3px);
+}
+
+/* Header */
+
+.privacy-header {
+  position: relative;
+  margin-bottom: 48px;
+  padding: 42px 36px;
+  overflow: hidden;
+  background:
+    radial-gradient(
+      ellipse at top right,
+      rgba(229, 9, 20, 0.13),
+      transparent 55%
+    ),
+    var(--privacy-surface);
+  border: 1px solid var(--privacy-border);
+  border-radius: 20px;
+}
+
+/* Subtle red accent */
+
+.privacy-header::before {
+  position: absolute;
+  top: 0;
+  left: 36px;
+  width: 64px;
+  height: 3px;
+  background: var(--privacy-red);
+  border-radius: 0 0 4px 4px;
+  content: "";
+}
+
+.privacy-label {
+  display: inline-block;
+  margin-bottom: 18px;
+  color: var(--privacy-red-hover);
+  font-size: 11px;
+  font-weight: 800;
+  letter-spacing: 2.5px;
+}
+
+.privacy-header h1 {
+  margin: 0 0 20px;
+  color: #ffffff;
+  font-size: clamp(36px, 6vw, 54px);
+  font-weight: 800;
+  letter-spacing: -2px;
+  line-height: 1.15;
+}
+
+.privacy-header > p:not(.privacy-updated) {
+  max-width: 650px;
+  margin: 0;
+  color: var(--privacy-muted);
+  font-size: 16px;
+  line-height: 1.9;
+}
+
+.privacy-updated {
+  display: inline-flex;
+  align-items: center;
+  margin: 28px 0 0;
+  padding: 8px 12px;
+  background: rgba(229, 9, 20, 0.08);
+  border: 1px solid rgba(229, 9, 20, 0.2);
+  border-radius: 8px;
+  color: #d4d4d4;
+  font-size: 12px;
+}
+
+/* Policy sections */
+
+.privacy-container > section {
+  margin-bottom: 18px;
+  padding: 30px 32px;
+  background: var(--privacy-surface);
+  border: 1px solid var(--privacy-border);
+  border-radius: 14px;
+  transition:
+    border-color 0.25s ease,
+    background-color 0.25s ease;
+}
+
+.privacy-container > section:hover {
+  background: #131313;
+  border-color: #3a2526;
+}
+
+.privacy-container > section h2 {
+  position: relative;
+  margin: 0 0 18px;
+  padding-left: 16px;
+  color: #ffffff;
+  font-size: 19px;
+  font-weight: 700;
+  letter-spacing: -0.3px;
+  line-height: 1.5;
+}
+
+.privacy-container > section h2::before {
+  position: absolute;
+  top: 4px;
+  bottom: 4px;
+  left: 0;
+  width: 3px;
+  background: var(--privacy-red);
+  border-radius: 4px;
+  content: "";
+}
+
+.privacy-container > section p {
+  margin: 0 0 16px;
+  color: #b8b8b8;
+  font-size: 14px;
+  line-height: 1.95;
+}
+
+.privacy-container > section p:last-child {
+  margin-bottom: 0;
+}
+
+/* Lists */
+
+.privacy-container > section ul {
+  display: flex;
+  flex-direction: column;
+  gap: 12px;
+  margin: 18px 0 0;
+  padding: 0;
+  list-style: none;
+}
+
+.privacy-container > section li {
+  position: relative;
+  padding-left: 24px;
+  color: #b8b8b8;
+  font-size: 14px;
+  line-height: 1.9;
+}
+
+.privacy-container > section li::before {
+  position: absolute;
+  top: 11px;
+  left: 2px;
+  width: 6px;
+  height: 6px;
+  background: var(--privacy-red);
+  border-radius: 50%;
+  content: "";
+}
+
+.privacy-container > section li strong {
+  color: #f5f5f5;
+  font-weight: 650;
+}
+
+/* Links */
+
+.privacy-container > section a {
+  color: var(--privacy-red-hover);
+  font-weight: 600;
+  text-decoration: none;
+  overflow-wrap: anywhere;
+  transition: color 0.2s ease;
+}
+
+.privacy-container > section a:hover {
+  color: #ffffff;
+  text-decoration: underline;
+  text-underline-offset: 4px;
+}
+
+/* Footer */
+
+.privacy-footer {
+  margin-top: 40px;
+  padding: 24px 0 8px;
+  border-top: 1px solid var(--privacy-border);
+  text-align: center;
+}
+
+.privacy-footer p {
+  margin: 0;
+  color: #777777;
+  font-size: 12px;
+  letter-spacing: 0.2px;
+}
+
+/* Selection */
+
+.privacy-page ::selection {
+  background: var(--privacy-red);
+  color: #ffffff;
+}
+
+/* Keyboard accessibility */
+
+.privacy-page a:focus-visible {
+  outline: 2px solid var(--privacy-red-hover);
+  outline-offset: 5px;
+  border-radius: 4px;
+}
+
+/* ================================
+   RESPONSIVE DESIGN
+================================ */
+
+@media (max-width: 768px) {
+  .privacy-page {
+    padding: 28px 18px;
+  }
+
+  .privacy-back {
+    margin-bottom: 30px;
+  }
+
+  .privacy-header {
+    margin-bottom: 30px;
+    padding: 32px 24px;
+    border-radius: 16px;
+  }
+
+  .privacy-header::before {
+    left: 24px;
+  }
+
+  .privacy-header h1 {
+    font-size: 38px;
+    letter-spacing: -1.5px;
+  }
+
+  .privacy-header > p:not(.privacy-updated) {
+    font-size: 14px;
+  }
+
+  .privacy-container > section {
+    margin-bottom: 14px;
+    padding: 24px 22px;
+    border-radius: 12px;
+  }
+
+  .privacy-container > section h2 {
+    font-size: 17px;
+  }
+}
+
+@media (max-width: 480px) {
+  .privacy-page {
+    padding: 22px 14px;
+  }
+
+  .privacy-header {
+    padding: 28px 20px;
+  }
+
+  .privacy-header::before {
+    left: 20px;
+  }
+
+  .privacy-header h1 {
+    font-size: 32px;
+  }
+
+  .privacy-label {
+    font-size: 10px;
+    letter-spacing: 2px;
+  }
+
+  .privacy-updated {
+    font-size: 11px;
+  }
+
+  .privacy-container > section {
+    padding: 22px 18px;
+  }
+
+  .privacy-container > section p,
+  .privacy-container > section li {
+    font-size: 13px;
+  }
+
+  .privacy-footer p {
+    font-size: 11px;
+  }
+}
+
+/* Respect reduced-motion preferences */
+
+@media (prefers-reduced-motion: reduce) {
+  .privacy-page *,
+  .privacy-page *::before,
+  .privacy-page *::after {
+    scroll-behavior: auto !important;
+    transition: none !important;
+    animation: none !important;
+  }
+}

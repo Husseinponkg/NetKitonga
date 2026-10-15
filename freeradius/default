@@ -1,0 +1,55 @@
+# Default site configuration for FreeRADIUS with Net Kitonga backend
+# Place at: /etc/freeradius/3.0/sites-available/default
+
+authorize {
+    # Call the Net Kitonga backend to authorize the session
+    preprocess
+    preproxy
+
+    # Use REST module for authorization
+    rest netkitonga {
+        uri = "http://127.0.0.1:8000/radius/authorize/simple"
+        method = 'GET'
+        data = 'mac=%{Calling-Station-Id}&nas_id=%{NAS-Identifier}&nas_ip=%{NAS-IP-Address}&ip=%{Framed-IP-Address}'
+    }
+
+    if (not found) {
+        reject
+    }
+}
+
+authenticate {
+    # Allow the REST module to authenticate
+    Auth-Type rest {
+        rest {
+            uri = "http://127.0.0.1:8000/radius/authorize/simple"
+            method = 'GET'
+            data = 'mac=%{User-Name}&nas_id=%{NAS-Identifier}'
+        }
+    }
+}
+
+accounting {
+    # Send accounting updates to the Net Kitonga backend
+    rest {
+        uri = "http://127.0.0.1:8000/radius/accounting"
+        method = 'POST'
+        content_type = 'application/json'
+        data = '{
+            "username": "%{User-Name}",
+            "calling_station_id": "%{Calling-Station-Id}",
+            "nas_identifier": "%{NAS-Identifier}",
+            "session_id": "%{Acct-Session-Id}",
+            "framed_ip_address": "%{Framed-IP-Address}",
+            "acct_status_type": "%{Acct-Status-Type}",
+            "acct_input_octets": "%{Acct-Input-Octets}",
+            "acct_output_octets": "%{Acct-Output-Octets}",
+            "acct_session_time": "%{Acct-Session-Time}",
+            "event_timestamp": "%{Event-Timestamp}"
+        }'
+    }
+}
+
+session {
+    # Optional: session management
+}
