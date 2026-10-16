@@ -273,8 +273,8 @@ function submitHotspotLogin(
  */
 function submitWifidogLogin(
     gatewayIp,
-    gwId,
-    mac,
+    gatewayPort,
+    authToken,
     destination
 ) {
     const rawGatewayIp = String(gatewayIp || "")
@@ -282,29 +282,43 @@ function submitWifidogLogin(
         .replace(/^https?:\/\//i, "")
         .replace(/\/+$/, "");
 
-    if (!rawGatewayIp || !gwId) {
-        console.warn(
-            "Could not determine WiFiDog gateway login URL.",
-            { gatewayIp, gwId }
+    const token = String(authToken || "").trim();
+    const port = String(gatewayPort || "2060").trim();
+
+    if (!rawGatewayIp || !token) {
+        console.error(
+            "Cannot start WiFiDog login: gateway IP or authentication token is missing.",
+            {
+                gatewayIp,
+                hasAuthToken: Boolean(token),
+            }
         );
         return false;
     }
 
+    // Keep an explicitly configured port; otherwise use the port supplied
+    // by Ruijie in gw_port (2060 for this gateway).
+    const hasExplicitPort = /:\d+$/.test(rawGatewayIp);
+    const gatewayHost = hasExplicitPort || !port
+        ? rawGatewayIp
+        : `${rawGatewayIp}:${port}`;
+
+    // WiFiDog expects the authentication token at the gateway's auth endpoint.
+    // Do not send gw_id/mac to /wifidog/login: that was causing the gateway 404.
     const params = new URLSearchParams({
-        gw_id: gwId,
-        mac: normalizeMac(mac),
+        token,
     });
 
     if (destination) {
         params.set("url", destination);
     }
 
-    const loginUrl = `http://${rawGatewayIp}/wifidog/login?${params.toString()}`;
+    const loginUrl =
+        `http://${gatewayHost}/wifidog/auth?${params.toString()}`;
 
-    console.log("Redirecting to WiFiDog gateway login:", loginUrl);
+    console.log("Redirecting to WiFiDog token authentication:", loginUrl);
 
     window.location.href = loginUrl;
-
     return true;
 }
 
@@ -342,15 +356,26 @@ function Portal() {
         .split("/")
         .filter(Boolean);
 
-    const pathTenantId =
+    const pathTenantCandidate =
         pathParts[0] === "portal"
             ? pathParts[1] || null
             : null;
 
+    // Accept tenant IDs only when they are numeric.
+    // For example, /portal/login is a route, not tenant_id="login".
+    // WiFiDog/Ruijie should obtain its tenant from /routers/resolve?gw_id=...
+    const tenantIdCandidates = [
+        queryParams.get("tenant_id"),
+        pathTenantCandidate,
+    ];
+
     const tenantId =
-        queryParams.get("tenant_id") ||
-        pathTenantId ||
-        null;
+        tenantIdCandidates.find(
+            (value) =>
+                value !== null &&
+                value !== undefined &&
+                /^\d+$/.test(String(value).trim())
+        ) || null;
 
     const branchId = queryParams.get("branch_id");
 
@@ -376,11 +401,17 @@ function Portal() {
         queryParams.get("gwid") ||
         queryParams.get("gateway_id") ||
         "";
+const routerIp =
+    queryParams.get("gw_address") ||
+    queryParams.get("router_ip") ||
+    queryParams.get("gateway_ip") ||
+    "";
 
-    const routerIp =
-        queryParams.get("router_ip") ||
-        queryParams.get("gateway_ip") ||
-        "";
+const gatewayPort =
+    queryParams.get("gw_port") ||
+    queryParams.get("gateway_port") ||
+    "2060";
+
 
     const nasId =
         queryParams.get("nas_id") ||
@@ -708,8 +739,8 @@ function Portal() {
                         const loginStarted = isWifidogGateway
                             ? submitWifidogLogin(
                                 effectiveGatewayIp,
-                                effectiveGwId,
-                                buyerMac,
+                                gatewayPort,
+                                payment.auth_token,
                                 destination
                             )
                             : submitHotspotLogin(
@@ -857,8 +888,8 @@ function Portal() {
 
             if (!buyerResponse.ok) {
                 throw new Error(
-                    buyerResult.detail ||
-                    "Could not register this device."
+                    extractApiErrorMessage(buyerResult) ||
+                    `Could not register this device (HTTP ${buyerResponse.status}).`
                 );
             }
 
@@ -950,14 +981,8 @@ function Portal() {
                 );
             } else {
                 const detail =
-                    typeof result === "string"
-                        ? result
-                        : (
-                            result.detail ||
-                            JSON.stringify(
-                                result
-                            )
-                        );
+                    extractApiErrorMessage(result) ||
+                    `HTTP ${response.status}`;
 
                 setUiMessage(
                     `Checkout rejected: ${detail}`
@@ -1032,7 +1057,6 @@ function Portal() {
                                     ),
 
                                 assigned_ip:
-                                    routerIp ||
                                     clientIp ||
                                     null,
                             }),
@@ -1056,8 +1080,8 @@ function Portal() {
                     const loginStarted = isWifidogGateway
                         ? submitWifidogLogin(
                             effectiveGatewayIp,
-                            effectiveGwId,
-                            buyerMac,
+                            gatewayPort,
+                            result.auth_token,
                             destination
                         )
                         : submitHotspotLogin(
@@ -1084,14 +1108,8 @@ function Portal() {
                     setVoucherCode("");
                 } else {
                     const detail =
-                        typeof result === "string"
-                            ? result
-                            : (
-                                result.detail ||
-                                JSON.stringify(
-                                    result
-                                )
-                            );
+                        extractApiErrorMessage(result) ||
+                        `HTTP ${response.status}`;
 
                     setUiMessage(
                         `Voucher error: ${detail}`
@@ -1822,23 +1840,37 @@ function Portal() {
                         }}
                     >
                         <span
+                            aria-label="NetKitonga Wi-Fi"
                             style={{
-                                fontSize: "1.4rem",
                                 width: "36px",
                                 height: "36px",
-                                borderRadius: "6px",
-                                background:
-                                    "#e50914",
+                                borderRadius: "10px",
+                                background: "linear-gradient(135deg, #0ea5e9, #2563eb)",
                                 display: "flex",
-                                alignItems:
-                                    "center",
-                                justifyContent:
-                                    "center",
+                                alignItems: "center",
+                                justifyContent: "center",
                                 color: "#fff",
-                                fontWeight: 900,
+                                boxShadow: "0 5px 18px rgba(14,165,233,0.28)",
+                                flexShrink: 0,
                             }}
                         >
-                            ▶
+                            <svg
+                                xmlns="http://www.w3.org/2000/svg"
+                                width="24"
+                                height="24"
+                                viewBox="0 0 24 24"
+                                fill="none"
+                                stroke="currentColor"
+                                strokeWidth="2.2"
+                                strokeLinecap="round"
+                                strokeLinejoin="round"
+                                aria-hidden="true"
+                            >
+                                <path d="M2 8.82a15 15 0 0 1 20 0" />
+                                <path d="M5 12.86a10 10 0 0 1 14 0" />
+                                <path d="M8.5 16.43a5 5 0 0 1 7 0" />
+                                <path d="M12 20h.01" />
+                            </svg>
                         </span>
 
                         <h1
@@ -2583,7 +2615,24 @@ function Portal() {
                                 gap: "8px",
                             }}
                         >
-                            🎫 Activate Voucher
+                            <svg
+                                aria-hidden="true"
+                                viewBox="0 0 24 24"
+                                width="18"
+                                height="18"
+                                fill="none"
+                                stroke="currentColor"
+                                strokeWidth="2"
+                                strokeLinecap="round"
+                                strokeLinejoin="round"
+                                style={{ flexShrink: 0 }}
+                            >
+                                <path d="M5 9a11 11 0 0 1 14 0" />
+                                <path d="M8 12a6.5 6.5 0 0 1 8 0" />
+                                <path d="M11 15a2 2 0 0 1 2 0" />
+                                <circle cx="12" cy="18" r="1" fill="currentColor" stroke="none" />
+                            </svg>
+                            Activate Voucher
                         </button>
                     </form>
                 )}

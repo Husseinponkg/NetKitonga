@@ -1,4 +1,5 @@
 import os
+from urllib.parse import quote
 from fastapi import APIRouter, status, Query, HTTPException, Depends
 from fastapi.responses import PlainTextResponse, RedirectResponse
 from typing import Dict, Any, Optional
@@ -25,12 +26,15 @@ async def handle_router_lookup(ip_address: str = Query(..., description="Router 
 async def handle_router_resolve(
     ip_address: Optional[str] = Query(None, description="Client or router IP address"),
     nas_id: Optional[str] = Query(None, description="MikroTik NAS identifier"),
+    gw_id: Optional[str] = Query(None, description="WiFiDog/OpenWrt gateway ID"),
 ):
+    if gw_id:
+        return await controller.resolve_router_by_gw_id(gw_id)
     if nas_id:
         return await controller.resolve_router_by_nas_identifier(nas_id)
     if ip_address:
         return await controller.resolve_router_by_ip(ip_address)
-    raise HTTPException(status_code=400, detail="ip_address or nas_id is required.")
+    raise HTTPException(status_code=400, detail="ip_address, nas_id, or gw_id is required.")
 
 # =====================================================================
 #  SECTION 1: DASHBOARD CRUD OPERATION PATHS (Frontend Form Handling)
@@ -96,7 +100,29 @@ async def handle_wifidog_ping(gw_id: str = Query(..., description="Unique Gatewa
 # =====================================================================
 
 @wifidog_router.get("/ping")
-async def wifidog_ping():
+async def wifidog_ping(
+    gw_id: Optional[str] = Query(None, description="WiFiDog gateway ID"),
+    sys_uptime: Optional[str] = Query(None),
+    sys_memfree: Optional[str] = Query(None),
+    sys_load: Optional[str] = Query(None),
+    wifidog_uptime: Optional[str] = Query(None),
+):
+    """
+    WiFiDog heartbeat.
+
+    The gateway calls this every 60 seconds against the auth server
+    (netkitonga.com/wifidog/ping?gw_id=...). The gateway must always
+    receive the literal "Pong", so heartbeat bookkeeping failures must
+    never break the response.
+    """
+    if gw_id:
+        try:
+            await controller.process_device_heartbeat(gw_id, "wifidog_http")
+        except HTTPException:
+            pass
+        except Exception:
+            pass
+
     return PlainTextResponse("Pong")
 
 
@@ -106,22 +132,90 @@ async def wifidog_auth(
     mac: Optional[str] = Query(None),
     ip: Optional[str] = Query(None),
     url: Optional[str] = Query(None),
+    stage: Optional[str] = Query(None),
+    token: Optional[str] = Query(None),
 ):
-    client_mac = mac
-    if not gw_id or not client_mac:
-        return PlainTextResponse("Auth: 0")
+    """WiFiDog auth-server callback.
 
+    For stage=login, validate the token created during voucher/payment
+    activation against an unexpired active session. For normal gateway
+    auth checks, preserve the existing MAC/IP session lookup.
+    """
     conn = await connection()
     try:
         async with conn.cursor() as cursor:
-            await cursor.execute("SELECT id FROM routers WHERE gw_id = %s;", (gw_id,))
+            # WiFiDog gateway callback after the user completes portal login.
+            if stage == "login":
+                if not token or not gw_id:
+                    return PlainTextResponse("Auth: 0")
+
+                normalized_mac = normalize_mac(mac) if mac else None
+                await cursor.execute(
+                    """
+                    SELECT s.id
+                    FROM active_sessions AS s
+                    JOIN payments AS p ON p.id = s.payment_id
+                    JOIN routers AS r ON r.id = s.router_id
+                    JOIN buyers AS b ON b.id = s.buyer_id
+                    WHERE p.auth_token = %s
+                      AND LOWER(TRIM(r.gw_id)) = LOWER(TRIM(%s))
+                      AND s.status = 'active'
+                      AND s.expiration_time > NOW()
+                      AND (%s IS NULL OR b.buyer_mac = %s)
+                      AND (
+                          %s IS NULL
+                          OR s.assigned_ip = %s
+                          OR s.assigned_ip = '0.0.0.0'
+                      )
+                    LIMIT 1;
+                    """,
+                    (
+                        token,
+                        gw_id,
+                        normalized_mac,
+                        normalized_mac,
+                        ip,
+                        ip,
+                    ),
+                )
+                if await cursor.fetchone():
+                    return PlainTextResponse("Auth: 1")
+                return PlainTextResponse("Auth: 0")
+
+            # Standard WiFiDog status check by gateway ID and client MAC.
+            if not gw_id or not mac:
+                return PlainTextResponse("Auth: 0")
+
+            await cursor.execute(
+                """
+                SELECT id, tenant_id
+                FROM routers
+                WHERE gw_id IS NOT NULL
+                  AND LOWER(TRIM(gw_id)) = LOWER(TRIM(%s))
+                ORDER BY id
+                LIMIT 1;
+                """,
+                (str(gw_id).strip(),),
+            )
             router_row = await cursor.fetchone()
             if not router_row:
                 return PlainTextResponse("Auth: 0")
 
-            router_id = router_row[0]
+            router_id, router_tenant_id = router_row
+            normalized_mac = normalize_mac(mac)
+            if not normalized_mac:
+                return PlainTextResponse("Auth: 0")
 
-            await cursor.execute("SELECT id FROM buyers WHERE buyer_mac = %s;", (normalize_mac(client_mac),))
+            # Scope MAC lookup to this router's tenant.
+            await cursor.execute(
+                """
+                SELECT id
+                FROM buyers
+                WHERE tenant_id = %s AND buyer_mac = %s
+                LIMIT 1;
+                """,
+                (router_tenant_id, normalized_mac),
+            )
             buyer_row = await cursor.fetchone()
             if not buyer_row:
                 return PlainTextResponse("Auth: 0")
@@ -131,26 +225,35 @@ async def wifidog_auth(
             if ip:
                 await cursor.execute(
                     """
-                    SELECT id FROM active_sessions
-                    WHERE router_id = %s AND buyer_id = %s AND assigned_ip = %s AND status = 'active'
-                    AND expiration_time > NOW();
+                    SELECT id
+                    FROM active_sessions
+                    WHERE router_id = %s
+                      AND buyer_id = %s
+                      AND assigned_ip = %s
+                      AND status = 'active'
+                      AND expiration_time > NOW()
+                    LIMIT 1;
                     """,
                     (router_id, buyer_id, ip),
                 )
-                session = await cursor.fetchone()
-                if session:
+                if await cursor.fetchone():
                     return PlainTextResponse("Auth: 1")
 
+            # Some captive gateways report an IP that differs from the
+            # assigned IP, so retain the active-session MAC fallback.
             await cursor.execute(
                 """
-                SELECT id FROM active_sessions
-                WHERE router_id = %s AND buyer_id = %s AND status = 'active'
-                AND expiration_time > NOW();
+                SELECT id
+                FROM active_sessions
+                WHERE router_id = %s
+                  AND buyer_id = %s
+                  AND status = 'active'
+                  AND expiration_time > NOW()
+                LIMIT 1;
                 """,
                 (router_id, buyer_id),
             )
-            session = await cursor.fetchone()
-            if session:
+            if await cursor.fetchone():
                 return PlainTextResponse("Auth: 1")
 
             return PlainTextResponse("Auth: 0")
@@ -167,13 +270,13 @@ async def wifidog_login(
 ):
     params = []
     if gw_id:
-        params.append(f"gw_id={gw_id}")
+        params.append(f"gw_id={quote(str(gw_id), safe='')}")
     if mac:
-        params.append(f"mac={mac}")
+        params.append(f"mac={quote(str(mac), safe='')}")
     if ip:
-        params.append(f"ip={ip}")
+        params.append(f"ip={quote(str(ip), safe='')}")
     if url:
-        params.append(f"url={url}")
+        params.append(f"url={quote(str(url), safe='')}")
     query = f"?{'&'.join(params)}" if params else ""
     return RedirectResponse(url=f"{FRONTEND_URL}/portal{query}", status_code=302)
 
@@ -187,13 +290,13 @@ async def wifidog_portal(
 ):
     params = []
     if gw_id:
-        params.append(f"gw_id={gw_id}")
+        params.append(f"gw_id={quote(str(gw_id), safe='')}")
     if mac:
-        params.append(f"mac={mac}")
+        params.append(f"mac={quote(str(mac), safe='')}")
     if ip:
-        params.append(f"ip={ip}")
+        params.append(f"ip={quote(str(ip), safe='')}")
     if url:
-        params.append(f"url={url}")
+        params.append(f"url={quote(str(url), safe='')}")
     query = f"?{'&'.join(params)}" if params else ""
     return RedirectResponse(url=f"{FRONTEND_URL}/portal{query}", status_code=302)
 

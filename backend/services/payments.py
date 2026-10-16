@@ -573,6 +573,10 @@ class PaymentService:
 
         return ledger_collection
 
+    async def cleanup_expired_payments(self, days: int = 30) -> int:
+        """Deletes payment history older than the retention window."""
+        return await self.payment_controller.cleanup_expired_payments(days=days)
+
     # ================================================================
     # TENANT INCOME STATS
     # ================================================================

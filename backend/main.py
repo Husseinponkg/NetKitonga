@@ -13,6 +13,7 @@ if str(BACKEND_DIR) not in sys.path:
     sys.path.insert(0, str(BACKEND_DIR))
 
 import uvicorn
+import asyncio
 from fastapi import FastAPI, Request
 from fastapi.middleware.cors import CORSMiddleware
 from fastapi.responses import FileResponse
@@ -29,8 +30,26 @@ from backend.routes.settings import settings_endpoints
 from backend.routes.withdrawals import router as withdrawals_router
 from backend.routes.vouchers import router as vouchers_router
 from backend.routes.radius import radius_endpoints
+from backend.controllers.payments import PaymentController
 
 app = FastAPI()
+
+payment_retention_controller = PaymentController()
+
+
+async def payment_retention_loop():
+    """Permanently removes payment history older than 30 days every 24 hours."""
+    while True:
+        await asyncio.sleep(86400)
+        try:
+            await payment_retention_controller.cleanup_expired_payments(days=30)
+        except Exception:
+            pass
+
+
+@app.on_event("startup")
+async def start_payment_retention_loop():
+    asyncio.create_task(payment_retention_loop())
 
 # CORS Configuration - Fixed to allow hotspot clients
 app.add_middleware(

@@ -88,6 +88,7 @@ class PaymentController:
                     FROM payments p
                     INNER JOIN buyers b ON p.buyer_id = b.id
                     WHERE p.tenant_id = %s
+                      AND p.created_at >= NOW() - INTERVAL '30 days'
                     ORDER BY p.created_at DESC;
                 """
                 await cursor.execute(query, (tenant_id,))
@@ -306,3 +307,25 @@ class PaymentController:
             return False
         finally:
             await conn.close() # Clean async connection slot release
+
+    async def cleanup_expired_payments(self, days: int = 30) -> int:
+        """
+        Permanently removes payment history older than the retention window
+        so the ledger does not grow indefinitely.
+        """
+        conn = await connection()
+        try:
+            async with conn.cursor() as cursor:
+                await cursor.execute(
+                    "DELETE FROM payments WHERE created_at < NOW() - INTERVAL %s;",
+                    (f"{days} days",)
+                )
+                deleted = cursor.rowcount or 0
+                await conn.commit()
+                return deleted
+        except Exception as e:
+            await conn.rollback()
+            print(f"Payment history cleanup error: {str(e)}")
+            return 0
+        finally:
+            await conn.close()

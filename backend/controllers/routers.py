@@ -212,7 +212,13 @@ class RouterController:
         try:
             async with conn.cursor() as cursor:
                 if driver_protocol == "wifidog_http":
-                    query = "SELECT id FROM routers WHERE gw_id = %s;"
+                    query = """
+                        SELECT id FROM routers
+                        WHERE gw_id IS NOT NULL
+                          AND LOWER(TRIM(gw_id)) = LOWER(%s)
+                        ORDER BY id
+                        LIMIT 1;
+                    """
                 else:
                     query = "SELECT id FROM routers WHERE nas_identifier = %s;"
 
@@ -261,4 +267,17 @@ class RouterController:
             "router_id": router["id"],
             "tenant_id": router["tenant_id"],
             "branch_id": router.get("branch_id"),
+        }
+
+    async def resolve_router_by_gw_id(self, gw_id: str) -> dict:
+        router = await self.router_service.get_router_by_gw_id(gw_id)
+        if not router:
+            raise HTTPException(status_code=404, detail="Router profile not found for this gateway ID.")
+        return {
+            "router_id": router["id"],
+            "tenant_id": router["tenant_id"],
+            "branch_id": router.get("branch_id"),
+            "router_ip": router.get("ip_address"),
+            "driver_type": router.get("driver_type"),
+            "gw_id": gw_id,
         }

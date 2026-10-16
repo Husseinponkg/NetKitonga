@@ -132,6 +132,57 @@ class RouterService:
         finally:
             await conn.close()
 
+    async def get_router_by_gw_id(self, gw_id: str) -> Optional[dict]:
+        """
+        Resolve a WiFiDog/OpenWrt gateway by its Gateway ID.
+
+        Matching is trimmed and case-insensitive so a Ruijie gateway
+        configured with "RUIJIE-LOBBY" still resolves when wifidog
+        reports "ruijie-lobby". The driver_type filter is intentionally
+        not enforced here: gw_id is only ever stored for wifidog
+        registrations, and being permissive keeps the portal working
+        even when the row was created before the driver type was
+        recorded correctly.
+        """
+
+        cleaned_gw_id = str(gw_id or "").strip()
+
+        if not cleaned_gw_id:
+            return None
+
+        conn = await connection()
+
+        try:
+            async with conn.cursor() as cursor:
+
+                await cursor.execute(
+                    """
+                    SELECT id, tenant_id, branch_id, ip_address, driver_type
+                    FROM routers
+                    WHERE gw_id IS NOT NULL
+                      AND LOWER(TRIM(gw_id)) = LOWER(%s)
+                    ORDER BY id
+                    LIMIT 1;
+                    """,
+                    (cleaned_gw_id,)
+                )
+
+                row = await cursor.fetchone()
+
+                if row:
+                    return {
+                        "id": row[0],
+                        "tenant_id": row[1],
+                        "branch_id": row[2],
+                        "ip_address": str(row[3]) if row[3] else None,
+                        "driver_type": row[4],
+                    }
+
+                return None
+
+        finally:
+            await conn.close()
+
     async def router_connection(
         self,
         tenant_id: int,
