@@ -209,7 +209,8 @@ function Admin() {
                 .nav-item { display: block; padding: 10px 18px; color: #b3b3b3; text-decoration: none; font-size: 0.8rem; font-weight: 600; cursor: pointer; border-left: 3px solid transparent; }
                 .nav-item:hover, .nav-item.active { background: #141414; color: #fff; border-left-color: #e50914; }
                 .main { flex: 1; padding: 20px 24px; overflow-y: auto; }
-                .card { background: rgba(25,25,25,0.95); border: 1px solid #1a1a1a; border-radius: 12px; padding: 20px; margin-bottom: 16px; }
+                .page-container { max-width: 1280px; margin: 0 auto; width: 100%; }
+                .card { background: rgba(25,25,25,0.95); border: 1px solid #1a1a1a; border-radius: 12px; padding: 20px; margin-bottom: 20px; }
                 .stats-grid { display: grid; grid-template-columns: repeat(auto-fit, minmax(160px, 1fr)); gap: 12px; margin-bottom: 20px; }
                 .stat-card { background: #0d0d0d; border: 1px solid #1a1a1a; border-radius: 10px; padding: 16px; }
                 .stat-label { font-size: 0.7rem; color: #808080; text-transform: uppercase; letter-spacing: 1px; margin-bottom: 6px; }
@@ -275,6 +276,7 @@ function Admin() {
             </aside>
 
             <main className="main">
+                <div className="page-container">
                 <div style={{ display: "flex", justifyContent: "space-between", alignItems: "center", marginBottom: "20px" }}>
                     <div>
                         <h1 style={{ margin: 0, fontSize: "1.3rem", fontWeight: 900 }}>{SECTIONS.find(s => s.key === section)?.label}</h1>
@@ -469,6 +471,7 @@ function Admin() {
                         )}
                     </div>
                 )}
+            </div>
             </main>
         </div>
     );

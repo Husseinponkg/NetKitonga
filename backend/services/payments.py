@@ -266,8 +266,9 @@ class PaymentService:
             print("========================================")
             print("AZAMPAY TOKEN DEBUG")
             print("URL:", self.auth_url)
+            # Never log the complete token response: it contains a bearer token.
             print("STATUS:", response.status_code)
-            print("RESPONSE:", response.text)
+            print("TOKEN RESPONSE BODY: [REDACTED]")
             print("========================================")
 
             if response.status_code == 200:
@@ -384,7 +385,12 @@ class PaymentService:
         # 5. GET FRESH AZAMPAY TOKEN
         # ====================================================
 
-        token = self._get_bearer_token()
+        try:
+            token = self._get_bearer_token()
+        except HTTPException:
+            # Checkout has not been sent yet, so this payment is safe to mark failed.
+            await self.payment_controller.mark_payment_failed(new_payment_id)
+            raise
 
         # ====================================================
         # 6. BUILD AZAMPAY PAYLOAD
@@ -446,14 +452,18 @@ class PaymentService:
             print("ERROR:", str(err))
             print("========================================")
 
-            await self.payment_controller.mark_payment_failed(new_payment_id)
-
+            # The gateway may have accepted the request even though our read timed out.
+            # Keep the payment pending so the callback/status reconciliation can resolve it.
             raise HTTPException(
                 status_code=504,
-                detail=(
-                    "AzamPay checkout timed out after "
-                    f"{self.checkout_timeout} seconds."
-                ),
+                detail={
+                    "message": (
+                        "AzamPay did not respond before the timeout. "
+                        "The payment outcome is unknown; check status before retrying."
+                    ),
+                    "gateway_reference": external_id,
+                    "status": "pending",
+                },
             )
 
         except requests.exceptions.RequestException as err:
@@ -463,60 +473,91 @@ class PaymentService:
             print("ERROR:", str(err))
             print("========================================")
 
-            await self.payment_controller.mark_payment_failed(new_payment_id)
-
+            # Network errors can occur after the request reached the gateway.
+            # Preserve pending state and reconcile using the external reference.
             raise HTTPException(
                 status_code=502,
-                detail=(
-                    "Could not connect to AzamPay checkout: "
-                    f"{str(err)}"
-                ),
+                detail={
+                    "message": "Could not confirm the AzamPay checkout result. Check status before retrying.",
+                    "gateway_reference": external_id,
+                    "status": "pending",
+                },
             )
 
         # ====================================================
         # 8. LOG AZAMPAY RESPONSE
         # ====================================================
 
+        # Parse response defensively; do not log the complete body because it may
+        # contain phone numbers or gateway identifiers.
+        try:
+            response_body = response.json()
+        except ValueError:
+            response_body = None
+
+        response_message = None
+        response_success = None
+        if isinstance(response_body, dict):
+            response_message = response_body.get("message")
+            response_success = response_body.get("success")
+
         print("========================================")
         print("AZAMPAY CHECKOUT RESPONSE")
         print("STATUS:", response.status_code)
-        print("RESPONSE:", response.text)
+        print("SUCCESS FIELD:", response_success)
+        print("MESSAGE:", str(response_message)[:300] if response_message else "[not provided]")
+        print("EXTERNAL ID:", external_id)
         print("========================================")
 
-        # ====================================================
-        # 9. SUCCESS
-        # ====================================================
+        # Explicit gateway rejection: only this known response should mark failed.
+        if response.status_code in (200, 201, 202) and response_success is False:
+            await self.payment_controller.mark_payment_failed(new_payment_id)
+            raise HTTPException(
+                status_code=400,
+                detail={
+                    "message": response_message or "AzamPay rejected the checkout request.",
+                    "gateway_reference": external_id,
+                    "status": "failed",
+                },
+            )
 
-        if response.status_code in (
-            200,
-            201,
-            202
-        ):
-
+        if response.status_code in (200, 201, 202):
+            # HTTP success without a boolean success field is not proof of rejection.
+            # Keep pending; the asynchronous callback/status check is authoritative.
             return {
                 "status": "pending",
                 "payment_id": new_payment_id,
                 "gateway_reference": external_id,
                 "message": (
-                    "AzamPay transaction initiated. "
-                    "Please check your mobile phone "
-                    "and enter your mobile money PIN."
+                    response_message or
+                    "Checkout request was received. Awaiting confirmed payment status. "
+                    "Check your phone and do not retry while this transaction is pending."
                 ),
+                "gateway_success": response_success,
             }
 
-        # ====================================================
-        # 10. AZAMPAY REJECTED REQUEST
-        # ====================================================
-
-        await self.payment_controller.mark_payment_failed(new_payment_id)
+        # A gateway 4xx response is a request rejection. For 5xx, the gateway may
+        # have processed the request before failing, so preserve pending for reconciliation.
+        if 400 <= response.status_code < 500:
+            await self.payment_controller.mark_payment_failed(new_payment_id)
+            raise HTTPException(
+                status_code=400,
+                detail={
+                    "message": response_message or "AzamPay rejected the checkout request.",
+                    "gateway_http_status": response.status_code,
+                    "gateway_reference": external_id,
+                    "status": "failed",
+                },
+            )
 
         raise HTTPException(
-            status_code=400,
-            detail=(
-                "AzamPay checkout rejected the request. "
-                f"HTTP {response.status_code}. "
-                f"Response: {response.text[:1000]}"
-            ),
+            status_code=502,
+            detail={
+                "message": "AzamPay returned a server error; payment outcome is unconfirmed. Check status before retrying.",
+                "gateway_http_status": response.status_code,
+                "gateway_reference": external_id,
+                "status": "pending",
+            },
         )
 
     # ================================================================

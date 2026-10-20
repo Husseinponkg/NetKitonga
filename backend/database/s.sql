@@ -1,7 +1,6 @@
-CREATE DATABASE netkitonga;
 
 
-\c netkitonga;
+
 -- 1. GLOBAL SYSTEM OWNER (ADMINS)
 CREATE TABLE admins (
     id SERIAL PRIMARY KEY,
@@ -38,6 +37,7 @@ CREATE TABLE branches (
 
 -- 4. UNIVERSAL ROUTERS (SUPPORTS MIKROTIK & RUIJIE/WIFIDOG)
 CREATE TABLE routers (
+
     id SERIAL PRIMARY KEY,
     tenant_id INT NOT NULL REFERENCES tenants(id) ON DELETE CASCADE,
     branch_id INT NOT NULL REFERENCES branches(id) ON DELETE CASCADE,
@@ -186,3 +186,74 @@ CREATE TABLE IF NOT EXISTS system_logs (
 );
 CREATE INDEX IF NOT EXISTS idx_system_logs_tenant_id ON system_logs(tenant_id);
 CREATE INDEX IF NOT EXISTS idx_system_logs_created_at ON system_logs(created_at);
+
+
+-- 13. SUBSCRIPTIONS (TENANT SAAS SUBSCRIPTIONS)
+
+CREATE TABLE IF NOT EXISTS subscriptions (
+    id SERIAL PRIMARY KEY,
+
+    tenant_id INT NOT NULL
+        REFERENCES tenants(id) ON DELETE CASCADE,
+
+    plan_id INT NOT NULL
+        REFERENCES subscription_plans(id) ON DELETE RESTRICT,
+
+    status VARCHAR(20) NOT NULL DEFAULT 'pending',
+    -- pending, active, expired, cancelled, suspended
+
+    billing_cycle VARCHAR(20) NOT NULL DEFAULT 'monthly',
+
+    amount DECIMAL(12, 2) NOT NULL,
+
+    starts_at TIMESTAMP NULL,
+    expires_at TIMESTAMP NULL,
+
+    trial_ends_at TIMESTAMP NULL,
+    cancelled_at TIMESTAMP NULL,
+
+    auto_renew BOOLEAN NOT NULL DEFAULT FALSE,
+
+    payment_reference VARCHAR(150) NULL UNIQUE,
+
+    created_at TIMESTAMP NOT NULL DEFAULT CURRENT_TIMESTAMP,
+    updated_at TIMESTAMP NOT NULL DEFAULT CURRENT_TIMESTAMP,
+
+    CONSTRAINT chk_subscription_amount
+        CHECK (amount >= 0),
+
+    CONSTRAINT chk_subscription_status
+        CHECK (
+            status IN (
+                'pending',
+                'active',
+                'expired',
+                'cancelled',
+                'suspended'
+            )
+        ),
+
+    CONSTRAINT chk_subscription_billing_cycle
+        CHECK (billing_cycle IN ('monthly', 'quarterly', 'yearly')),
+
+    CONSTRAINT chk_subscription_dates
+        CHECK (
+            expires_at IS NULL
+            OR starts_at IS NULL
+            OR expires_at > starts_at
+        )
+);
+CREATE INDEX IF NOT EXISTS idx_subscriptions_tenant_id
+    ON subscriptions(tenant_id);
+
+CREATE INDEX IF NOT EXISTS idx_subscriptions_plan_id
+    ON subscriptions(plan_id);
+
+CREATE INDEX IF NOT EXISTS idx_subscriptions_status
+    ON subscriptions(status);
+
+CREATE INDEX IF NOT EXISTS idx_subscriptions_expiration
+    ON subscriptions(expires_at);
+
+CREATE INDEX IF NOT EXISTS idx_subscriptions_tenant_status
+    ON subscriptions(tenant_id, status);

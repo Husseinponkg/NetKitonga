@@ -242,15 +242,28 @@ class PaymentController:
         try:
             async with conn.cursor() as cursor:
                 # 1. Fetch current transaction payload context parameters safely
-                query = "SELECT id, tenant_id, amount, status, payment_gateway FROM payments WHERE gateway_reference = %s;"
+                query = """
+                    SELECT id, tenant_id, amount, status, payment_gateway
+                    FROM payments
+                    WHERE gateway_reference = %s
+                    FOR UPDATE;
+                """
                 await cursor.execute(query, (external_id,))
                 payment_row = await cursor.fetchone()
 
-                # Validation barrier: check if the row exists and is currently in a pending state
-                if not payment_row or payment_row[3] != 'pending':
+                if not payment_row:
                     return False
 
-                payment_id, tenant_id, amount, _, payment_gateway = payment_row
+                payment_id, tenant_id, amount, current_status, payment_gateway = payment_row
+
+                # Make callbacks idempotent: retries for a transaction already finalized
+                # are acknowledged without crediting the wallet or creating another session.
+                if current_status in ('completed', 'failed'):
+                    await conn.commit()
+                    return True
+
+                if current_status != 'pending':
+                    return False
                 resolved_status = 'completed' if is_successful else 'failed'
 
                 # 2. Persist the final transaction status update into the PostgreSQL database layer
