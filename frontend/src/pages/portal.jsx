@@ -954,6 +954,20 @@ const gatewayPort =
                     }
                 );
 
+            const contentType =
+                response.headers.get("content-type") || "";
+
+            if (!contentType.includes("application/json")) {
+                const text = await response.text();
+                console.error("Non-JSON response from", response.url, ":", text.slice(0, 200));
+                setUiMessage(
+                    "Server returned an invalid response (not JSON). " +
+                    "The API may be unreachable or misconfigured. Please contact support."
+                );
+                setIsLoading(false);
+                return;
+            }
+
             const result =
                 await response.json();
 
