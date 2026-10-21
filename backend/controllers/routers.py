@@ -257,6 +257,7 @@ class RouterController:
             "router_id": router["id"],
             "tenant_id": router["tenant_id"],
             "branch_id": router.get("branch_id"),
+            "phone_number": router.get("phone_number"),
         }
 
     async def resolve_router_by_nas_identifier(self, nas_identifier: str) -> dict:
@@ -267,6 +268,7 @@ class RouterController:
             "router_id": router["id"],
             "tenant_id": router["tenant_id"],
             "branch_id": router.get("branch_id"),
+            "phone_number": router.get("phone_number"),
         }
 
     async def resolve_router_by_gw_id(self, gw_id: str) -> dict:
@@ -280,4 +282,5 @@ class RouterController:
             "router_ip": router.get("ip_address"),
             "driver_type": router.get("driver_type"),
             "gw_id": gw_id,
+            "phone_number": router.get("phone_number"),
         }

@@ -977,7 +977,7 @@ const gatewayPort =
                     "AzamPay accepted the request. Please check your phone and enter your mobile money PIN to complete payment.";
 
                 setUiMessage(
-                    `✨ ${gatewayMessage}`
+                    ` ${gatewayMessage}`
                 );
 
                 if (
@@ -1476,7 +1476,7 @@ const gatewayPort =
                 }
 
                 .package-card.selected::after {
-                    content: '✓';
+                    content: "";
                     position: absolute;
                     top: -7px;
                     right: -7px;
@@ -1586,7 +1586,7 @@ const gatewayPort =
                 }
 
                 .provider-card.selected::after {
-                    content: '✓';
+                    content: "";
                     position: absolute;
                     top: -7px;
                     right: -7px;
@@ -1950,7 +1950,7 @@ const gatewayPort =
                                 "Validating"
                             ) ||
                             uiMessage.includes(
-                                "✨"
+                                ""
                             ) ||
                             uiMessage.includes(
                                 "Voucher accepted"
@@ -2130,7 +2130,7 @@ const gatewayPort =
                                                 "6px",
                                         }}
                                     >
-                                        ⏳
+                                        
                                     </span>
 
                                     Loading
@@ -2196,14 +2196,14 @@ const gatewayPort =
 
                                                     <div className="pkg-details">
                                                         <span>
-                                                            ⏱{" "}
+                                                            {" "}
                                                             {formatDurationText(
                                                                 pkg.duration_seconds
                                                             )}
                                                         </span>
 
                                                         <span>
-                                                            📊{" "}
+                                                            
                                                             {formatBytes(
                                                                 pkg.data_quota_bytes
                                                             )}
@@ -2211,7 +2211,7 @@ const gatewayPort =
 
                                                         {pkg.mikrotik_rate_limit && (
                                                             <span>
-                                                                ⚡{" "}
+                                                                {" "}
                                                                 {
                                                                     pkg.mikrotik_rate_limit
                                                                 }
@@ -2221,14 +2221,14 @@ const gatewayPort =
 
                                                     {pkg.is_popular && (
                                                         <span className="pkg-badge popular">
-                                                            ⭐
+                                                            
                                                             Popular
                                                         </span>
                                                     )}
 
                                                     {pkg.is_best_value && (
                                                         <span className="pkg-badge best-value">
-                                                            🏆
+                                                            
                                                             Best
                                                             Value
                                                         </span>
@@ -2517,7 +2517,7 @@ const gatewayPort =
                                     Processing...
                                 </>
                             ) : (
-                                "💳 Pay & Connect"
+                                "Pay & Connect"
                             )}
                         </button>
                     </form>
@@ -2665,7 +2665,7 @@ const gatewayPort =
                                 "4px",
                         }}
                     >
-                        📡
+                        
                     </span>
 
                     <strong>
@@ -2675,6 +2675,30 @@ const gatewayPort =
                 </div>
 
                 {/* Footer */}
+                {resolvedRouter?.phone_number && (
+                    <div
+                        style={{
+                            marginTop: "12px",
+                            textAlign: "center",
+                            fontSize: "0.75rem",
+                            color: "rgba(255,255,255,0.6)",
+                            letterSpacing: "0.3px",
+                        }}
+                    >
+                        Need help? Call:{" "}
+                        <a
+                            href={`tel:${resolvedRouter.phone_number}`}
+                            style={{
+                                color: "#e50914",
+                                fontWeight: 700,
+                                textDecoration: "none",
+                            }}
+                        >
+                            {resolvedRouter.phone_number}
+                        </a>
+                    </div>
+                )}
+
                 <div
                     style={{
                         marginTop:

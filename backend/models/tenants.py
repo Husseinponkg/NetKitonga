@@ -5,6 +5,7 @@ class TenantRegister(BaseModel):
     system_name: str
     email: str
     password: str
+    phone_number: str = ""
 
 class TenantLogin(BaseModel):
     email: str
@@ -15,6 +16,7 @@ class TenantUpdate(BaseModel):
     system_name: str
     email: str
     password: str
+    phone_number: str = ""
 
 class TenantDelete(BaseModel):
     id: int

@@ -161,9 +161,9 @@ async def wifidog_auth(
                       AND LOWER(TRIM(r.gw_id)) = LOWER(TRIM(%s))
                       AND s.status = 'active'
                       AND s.expiration_time > NOW()
-                      AND (%s IS NULL OR b.buyer_mac = %s)
+                      AND (%s::text IS NULL OR UPPER(b.buyer_mac) = UPPER(%s))
                       AND (
-                          %s IS NULL
+                          %s::text IS NULL
                           OR s.assigned_ip = %s
                           OR s.assigned_ip = '0.0.0.0'
                       )
@@ -211,7 +211,7 @@ async def wifidog_auth(
                 """
                 SELECT id
                 FROM buyers
-                WHERE tenant_id = %s AND buyer_mac = %s
+                WHERE tenant_id = %s AND UPPER(buyer_mac) = UPPER(%s)
                 LIMIT 1;
                 """,
                 (router_tenant_id, normalized_mac),

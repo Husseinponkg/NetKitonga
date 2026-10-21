@@ -20,18 +20,18 @@ function Payments() {
 	};
 
   const navItems = [
-    { to: "/dashboard", label: "Dashboard", icon: "📊" },
-    { to: "/income", label: "Revenue", icon: "💰" },
-    { to: "/routers", label: "Routers", icon: "📡" },
-    { to: "/packages", label: "Packages", icon: "📦" },
-    { to: "/vouchers", label: "Vouchers", icon: "🎟️" },
-    { to: "/payments", label: "Payments", icon: "💳" },
-    { to: "/withdrawals", label: "Withdrawals", icon: "💸" },
-    { to: "/sessions", label: "Sessions", icon: "⏱️" },
-    { to: "/customers", label: "Customers", icon: "👥" },
-    { to: "/branch", label: "Branches", icon: "🏢" },
-    { to: "/portal", label: "Portal", icon: "🌐" },
-    { to: "/settings", label: "Settings", icon: "⚙️" },
+    { to: "/dashboard", label: "Dashboard", icon: `<svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><line x1="18" y1="20" x2="18" y2="10"/><line x1="12" y1="20" x2="12" y2="4"/><line x1="6" y1="20" x2="6" y2="14"/></svg>` },
+    { to: "/income", label: "Revenue", icon: `<svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><line x1="12" y1="1" x2="12" y2="23"/><path d="M17 5H9.5a3.5 3.5 0 0 0 0 7h5a3.5 3.5 0 0 1 0 7H6"/></svg>` },
+    { to: "/routers", label: "Routers", icon: `<svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><path d="M4.93 4.93a10 10 0 0 0 0 14.14"/><path d="M7.76 7.76a6 6 0 0 0 0 8.49"/><circle cx="12" cy="12" r="2"/><path d="M16.24 7.76a6 6 0 0 1 0 8.49"/><path d="M19.07 4.93a10 10 0 0 1 0 14.14"/></svg>` },
+    { to: "/packages", label: "Packages", icon: `<svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><path d="M21 16V8a2 2 0 0 0-1-1.73l-7-4a2 2 0 0 0-2 0l-7 4A2 2 0 0 0 3 8v8a2 2 0 0 0 1 1.73l7 4a2 2 0 0 0 2 0l7-4A2 2 0 0 0 21 16z"/><polyline points="3.27 6.96 12 12.01 20.73 6.96"/><line x1="12" y1="22.08" x2="12" y2="12"/></svg>` },
+    { to: "/vouchers", label: "Vouchers", icon: `<svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><path d="M2 9a3 3 0 0 1 0 6v2a2 2 0 0 0 2 2h16a2 2 0 0 0 2-2v-2a3 3 0 0 1 0-6V7a2 2 0 0 0-2-2H4a2 2 0 0 0-2 2Z"/><path d="M13 5v2"/><path d="M13 17v2"/><path d="M13 11v2"/></svg>` },
+    { to: "/payments", label: "Payments", icon: `<svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><rect x="1" y="4" width="22" height="16" rx="2" ry="2"/><line x1="1" y1="10" x2="23" y2="10"/></svg>` },
+    { to: "/withdrawals", label: "Withdrawals", icon: `<svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><path d="M12 1v22"/><path d="M17 5H9.5a3.5 3.5 0 0 0 0 7h5a3.5 3.5 0 0 1 0 7H6"/></svg>` },
+    { to: "/sessions", label: "Sessions", icon: `<svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><circle cx="12" cy="12" r="10"/><polyline points="12 6 12 12 16 14"/></svg>` },
+    { to: "/customers", label: "Customers", icon: `<svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><path d="M17 21v-2a4 4 0 0 0-4-4H5a4 4 0 0 0-4 4v2"/><circle cx="9" cy="7" r="4"/><path d="M23 21v-2a4 4 0 0 0-3-3.87"/><path d="M16 3.13a4 4 0 0 1 0 7.75"/></svg>` },
+    { to: "/branch", label: "Branches", icon: `<svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><rect x="4" y="2" width="16" height="20" rx="2" ry="2"/><path d="M9 22v-4h6v4"/><path d="M8 6h.01"/><path d="M16 6h.01"/><path d="M12 6h.01"/><path d="M12 10h.01"/><path d="M12 14h.01"/><path d="M16 10h.01"/><path d="M16 14h.01"/><path d="M8 10h.01"/><path d="M8 14h.01"/></svg>` },
+    { to: "/portal", label: "Portal", icon: `<svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><circle cx="12" cy="12" r="10"/><line x1="2" y1="12" x2="22" y2="12"/><path d="M12 2a15.3 15.3 0 0 1 4 10 15.3 15.3 0 0 1-4 10 15.3 15.3 0 0 1-4-10 15.3 15.3 0 0 1 4-10z"/></svg>` },
+    { to: "/settings", label: "Settings", icon: `<svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><circle cx="12" cy="12" r="3"/><path d="M19.4 15a1.65 1.65 0 0 0 .33 1.82l.06.06a2 2 0 0 1 0 2.83 2 2 0 0 1-2.83 0l-.06-.06a1.65 1.65 0 0 0-1.82-.33 1.65 1.65 0 0 0-1 1.51V21a2 2 0 0 1-2 2 2 2 0 0 1-2-2v-.09A1.65 1.65 0 0 0 9 19.4a1.65 1.65 0 0 0-1.82.33l-.06.06a2 2 0 0 1-2.83 0 2 2 0 0 1 0-2.83l.06-.06a1.65 1.65 0 0 0 .33-1.82 1.65 1.65 0 0 0-1.51-1H3a2 2 0 0 1-2-2 2 2 0 0 1 2-2h.09A1.65 1.65 0 0 0 4.6 9a1.65 1.65 0 0 0-.33-1.82l-.06-.06a2 2 0 0 1 0-2.83 2 2 0 0 1 2.83 0l.06.06a1.65 1.65 0 0 0 1.82.33H9a1.65 1.65 0 0 0 1-1.51V3a2 2 0 0 1 2-2 2 2 0 0 1 2 2v.09a1.65 1.65 0 0 0 1 1.51 1.65 1.65 0 0 0 1.82-.33l.06-.06a2 2 0 0 1 2.83 0 2 2 0 0 1 0 2.83l-.06.06a1.65 1.65 0 0 0-.33 1.82V9a1.65 1.65 0 0 0 1.51 1H21a2 2 0 0 1 2 2 2 2 0 0 1-2 2h-.09a1.65 1.65 0 0 0-1.51 1z"/></svg>` },
   ];
 
 	const getSessionTenantId = () => getTenantId();
@@ -758,7 +758,7 @@ function Payments() {
 							onClick={() => setSidebarOpen(false)}
 						>
 							<span className="nav-icon">
-								<span style={{ fontSize: '1.1rem', lineHeight: 1 }}>{item.icon}</span>
+								<span style={{ display: "inline-flex", alignItems: "center", justifyContent: "center", width: 18, height: 18, color: "#b3b3b3" }} dangerouslySetInnerHTML={{ __html: item.icon }} />
 							</span>
 							{item.label}
 						</Link>
@@ -773,7 +773,7 @@ function Payments() {
 							onClick={() => setSidebarOpen(false)}
 						>
 							<span className="nav-icon">
-								<span style={{ fontSize: '1.1rem', lineHeight: 1 }}>{item.icon}</span>
+								<span style={{ display: "inline-flex", alignItems: "center", justifyContent: "center", width: 18, height: 18, color: "#b3b3b3" }} dangerouslySetInnerHTML={{ __html: item.icon }} />
 							</span>
 							{item.label}
 						</Link>
@@ -788,7 +788,7 @@ function Payments() {
 							onClick={() => setSidebarOpen(false)}
 						>
 							<span className="nav-icon">
-								<span style={{ fontSize: '1.1rem', lineHeight: 1 }}>{item.icon}</span>
+								<span style={{ display: "inline-flex", alignItems: "center", justifyContent: "center", width: 18, height: 18, color: "#b3b3b3" }} dangerouslySetInnerHTML={{ __html: item.icon }} />
 							</span>
 							{item.label}
 						</Link>
@@ -821,7 +821,7 @@ function Payments() {
 							className="hamburger"
 							onClick={() => setSidebarOpen((prev) => !prev)}
 						>
-							☰
+							<svg width="18" height="18" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><line x1="3" y1="12" x2="21" y2="12"/><line x1="3" y1="6" x2="21" y2="6"/><line x1="3" y1="18" x2="21" y2="18"/></svg>
 						</button>
 						<h1 className="top-bar-title">
 							Payments <span>History</span>
@@ -839,13 +839,13 @@ function Payments() {
 				<div className="scroll-body">
 					{errorMessage && (
 						<div className="message-box message-error">
-							⚠️ {errorMessage}
+							<svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round" style={{display:"inline",verticalAlign:"middle",marginRight:4}}><path d="M10.29 3.86L1.82 18a2 2 0 0 0 1.71 3h16.94a2 2 0 0 0 1.71-3L13.71 3.86a2 2 0 0 0-3.42 0z"/><line x1="12" y1="9" x2="12" y2="13"/><line x1="12" y1="17" x2="12.01" y2="17"/></svg> {errorMessage}
 						</div>
 					)}
 
 					{loading && !errorMessage && (
 						<div className="message-box message-loading">
-							⏳ Loading payment history...
+							<svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round" style={{display:"inline",verticalAlign:"middle",marginRight:4}}><circle cx="12" cy="12" r="10"/><polyline points="12 6 12 12 16 14"/></svg> Loading payment history...
 						</div>
 					)}
 
@@ -866,7 +866,7 @@ function Payments() {
 							<>
 								{paymentList.length === 0 ? (
 									<div className="empty-state">
-										<span className="empty-icon">💳</span>
+										<span className="empty-icon"><svg width="32" height="32" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.5" stroke-linecap="round" stroke-linejoin="round"><rect x="1" y="4" width="22" height="16" rx="2" ry="2"/><line x1="1" y1="10" x2="23" y2="10"/></svg></span>
 										<p>No payment transactions found</p>
 										<div className="sub-text">Payments will appear here once customers complete purchases</div>
 									</div>

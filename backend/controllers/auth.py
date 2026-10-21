@@ -3,7 +3,7 @@ from bcrypt import hashpw, gensalt, checkpw
 from backend.config.db import connection
 
 class AuthController:
-    async def register(self, business_name: str, system_name: str, email: str, password: str):
+    async def register(self, business_name: str, system_name: str, email: str, password: str, phone_number: str = ""):
         conn = await connection()
         try:
             async with conn.cursor() as cursor:
@@ -18,8 +18,8 @@ class AuthController:
 
                 hashed_password = hashpw(password.encode("utf-8"), gensalt()).decode("utf-8")
                 await cursor.execute(
-                    "INSERT INTO tenants (business_name, system_name, email, password_hash) VALUES (%s, %s, %s, %s)",
-                    (business_name, system_name, email, hashed_password)
+                    "INSERT INTO tenants (business_name, system_name, email, password_hash, phone_number) VALUES (%s, %s, %s, %s, %s)",
+                    (business_name, system_name, email, hashed_password, phone_number)
                 )
 
             await conn.commit()
@@ -32,7 +32,7 @@ class AuthController:
         try:
             async with conn.cursor() as cursor:
                 await cursor.execute(
-                    "SELECT id, email, password_hash, business_name FROM tenants WHERE email = %s",
+                    "SELECT id, email, password_hash, business_name, phone_number FROM tenants WHERE email = %s",
                     (email,)
                 )
                 user = await cursor.fetchone()
@@ -40,7 +40,7 @@ class AuthController:
                 if not user:
                     return {"message": "Invalid email or password"}
 
-                user_id, user_email, stored_hash, business_name = user
+                user_id, user_email, stored_hash, business_name, phone_number = user
 
                 try:
                     password_valid = checkpw(password.encode("utf-8"), stored_hash.encode("utf-8"))
@@ -53,7 +53,8 @@ class AuthController:
                         "user": {
                             "id": user_id,
                             "email": user_email,
-                            "business_name": business_name
+                            "business_name": business_name,
+                            "phone_number": phone_number
                         }
                     }
 
@@ -61,14 +62,14 @@ class AuthController:
         finally:
             await conn.close()
 
-    async def update(self, email: str, new_business_name: str, new_system_name: str, new_email: str, new_password: str):
+    async def update(self, email: str, new_business_name: str, new_system_name: str, new_email: str, new_password: str, phone_number: str = ""):
         conn = await connection()
         try:
             async with conn.cursor() as cursor:
                 hashed_password = hashpw(new_password.encode("utf-8"), gensalt()).decode("utf-8")
                 await cursor.execute(
-                    "UPDATE tenants SET business_name = %s, system_name = %s, email = %s, password_hash = %s WHERE email = %s",
-                    (new_business_name, new_system_name, new_email, hashed_password, email)
+                    "UPDATE tenants SET business_name = %s, system_name = %s, email = %s, password_hash = %s, phone_number = %s WHERE email = %s",
+                    (new_business_name, new_system_name, new_email, hashed_password, phone_number, email)
                 )
             await conn.commit()
             return {"message": "User updated successfully"}

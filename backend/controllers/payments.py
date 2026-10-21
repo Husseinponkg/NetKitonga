@@ -127,7 +127,7 @@ class PaymentController:
                     JOIN buyers b ON b.id = p.buyer_id AND b.tenant_id = p.tenant_id
                     WHERE p.gateway_reference = %s
                       AND p.router_id = %s
-                      AND b.buyer_mac = %s;
+                      AND UPPER(b.buyer_mac) = UPPER(%s);
                     """,
                     (gateway_reference, router_id, normalize_mac(buyer_mac)),
                 )

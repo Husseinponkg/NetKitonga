@@ -8,7 +8,7 @@ router = APIRouter()
 @router.post("/register")
 async def register(tenant: TenantRegister) -> dict:
     auth_controller = AuthController()
-    result = await auth_controller.register(tenant.business_name, tenant.system_name, tenant.email, tenant.password)
+    result = await auth_controller.register(tenant.business_name, tenant.system_name, tenant.email, tenant.password, tenant.phone_number)
     if "already exists" in result.get("message", ""):
         raise HTTPException(status_code=400, detail=result["message"])
     return result
@@ -24,7 +24,7 @@ async def login(user: TenantLogin) -> dict:
 @router.put("/update")
 async def update(tenant: TenantUpdate) -> dict:
     auth_controller = AuthController()
-    result = await auth_controller.update(tenant.email, tenant.business_name, tenant.system_name, tenant.email, tenant.password)
+    result = await auth_controller.update(tenant.email, tenant.business_name, tenant.system_name, tenant.email, tenant.password, tenant.phone_number)
     return result
 
 @router.delete("/delete")

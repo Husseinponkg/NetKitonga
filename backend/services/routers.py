@@ -77,9 +77,10 @@ class RouterService:
 
                     await cursor.execute(
                         """
-                        SELECT id, tenant_id, branch_id
-                        FROM routers
-                        WHERE ip_address = %s;
+                        SELECT r.id, r.tenant_id, r.branch_id, t.phone_number
+                        FROM routers r
+                        LEFT JOIN tenants t ON t.id = r.tenant_id
+                        WHERE r.ip_address = %s;
                         """,
                         (str(candidate),)
                     )
@@ -90,7 +91,8 @@ class RouterService:
                         return {
                             "id": row[0],
                             "tenant_id": row[1],
-                            "branch_id": row[2]
+                            "branch_id": row[2],
+                            "phone_number": row[3]
                         }
 
                 return None
@@ -110,10 +112,11 @@ class RouterService:
 
                 await cursor.execute(
                     """
-                    SELECT id, tenant_id, branch_id
-                    FROM routers
-                    WHERE nas_identifier = %s
-                      AND driver_type = 'mikrotik_radius';
+                    SELECT r.id, r.tenant_id, r.branch_id, t.phone_number
+                    FROM routers r
+                    LEFT JOIN tenants t ON t.id = r.tenant_id
+                    WHERE r.nas_identifier = %s
+                      AND r.driver_type = 'mikrotik_radius';
                     """,
                     (nas_identifier.strip(),)
                 )
@@ -124,7 +127,8 @@ class RouterService:
                     return {
                         "id": row[0],
                         "tenant_id": row[1],
-                        "branch_id": row[2]
+                        "branch_id": row[2],
+                        "phone_number": row[3]
                     }
 
                 return None
@@ -157,11 +161,12 @@ class RouterService:
 
                 await cursor.execute(
                     """
-                    SELECT id, tenant_id, branch_id, ip_address, driver_type
-                    FROM routers
-                    WHERE gw_id IS NOT NULL
-                      AND LOWER(TRIM(gw_id)) = LOWER(%s)
-                    ORDER BY id
+                    SELECT r.id, r.tenant_id, r.branch_id, r.ip_address, r.driver_type, t.phone_number
+                    FROM routers r
+                    LEFT JOIN tenants t ON t.id = r.tenant_id
+                    WHERE r.gw_id IS NOT NULL
+                      AND LOWER(TRIM(r.gw_id)) = LOWER(%s)
+                    ORDER BY r.id
                     LIMIT 1;
                     """,
                     (cleaned_gw_id,)

@@ -13,6 +13,7 @@ function Register() {
     const [systemName, setSystemName] = useState("");
     const [email, setEmail] = useState("");
     const [password, setPassword] = useState("");
+    const [phoneNumber, setPhoneNumber] = useState("");
 
     const [acceptedPrivacy, setAcceptedPrivacy] = useState(false);
     const [acceptedTerms, setAcceptedTerms] = useState(false);
@@ -78,6 +79,7 @@ function Register() {
                         system_name: systemName.trim(),
                         email: email.trim(),
                         password,
+                        phone_number: phoneNumber.trim(),
                     }),
                 }
             );
@@ -518,6 +520,26 @@ function Register() {
                                 }
                                 autoComplete="new-password"
                                 required
+                            />
+                        </div>
+
+                        {/* PHONE NUMBER */}
+
+                        <div className="nk-register-field">
+                            <label htmlFor="phoneNumber">
+                                Phone Number (for support)
+                            </label>
+
+                            <input
+                                id="phoneNumber"
+                                name="phoneNumber"
+                                type="tel"
+                                placeholder="e.g. 0712345678"
+                                value={phoneNumber}
+                                onChange={(event) =>
+                                    setPhoneNumber(event.target.value)
+                                }
+                                autoComplete="tel"
                             />
                         </div>
 

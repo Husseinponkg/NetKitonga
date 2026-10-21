@@ -42,7 +42,7 @@ async def authorize_radius_session(
                 WHERE s.status = 'active'
                   AND s.expiration_time > NOW()
                   AND r.driver_type = 'mikrotik_radius'
-                  AND b.buyer_mac = %s
+                  AND UPPER(b.buyer_mac) = UPPER(%s)
                   AND (
                       s.assigned_ip = %s
                       OR s.assigned_ip = '0.0.0.0'

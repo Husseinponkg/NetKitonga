@@ -36,7 +36,7 @@ async def redirect_to_internet(
                     AND s.buyer_id = (
                         SELECT id FROM buyers
                         WHERE tenant_id = r.tenant_id
-                          AND buyer_mac = %s
+                          AND UPPER(buyer_mac) = UPPER(%s)
                         LIMIT 1
                     )
                     AND s.status = 'active'
