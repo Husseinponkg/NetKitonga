@@ -7,7 +7,6 @@ from models.payments import CheckoutRequest, PaymentHistoryResponse, PortalBuyer
 from services.payments import PaymentService
 
 payment_endpoints = APIRouter(
-    prefix="/payments",
     tags=["AzamPay Micro-Billing Engine"],
 )
 
@@ -96,7 +95,7 @@ async def handle_get_income_stats(tenant_id: int = Query(...)) -> Dict[str, Any]
     return await service.get_tenant_income_stats(tenant_id)
 
 
-@payment_endpoints.post("/webhook/callback")
+@payment_endpoints.post("/payments/webhook/callback")
 async def handle_azampay_gateway_callback(
     payload: Dict[str, Any] = Body(...),
 ) -> Dict[str, Any]:
@@ -112,13 +111,35 @@ async def handle_azampay_gateway_callback(
         callback_data = payload["data"]
 
     external_id = (
-        callback_data.get("externalId")
+        callback_data.get("utilityref")
+        or callback_data.get("externalId")
         or callback_data.get("external_id")
     )
+    external_reference = (
+        callback_data.get("externalreference")
+        or callback_data.get("external_reference")
+        or callback_data.get("reference")
+    )
     raw_status = (
-        callback_data.get("transactionStatus")
+        callback_data.get("transactionstatus")
+        or callback_data.get("transactionStatus")
         or callback_data.get("status")
         or callback_data.get("transaction_status")
+    )
+    callback_amount = (
+        callback_data.get("amount")
+        or callback_data.get("transactionAmount")
+        or callback_data.get("transaction_amount")
+        or callback_data.get("payAmount")
+    )
+    callback_operator = (
+        callback_data.get("operator")
+        or callback_data.get("paymentOperator")
+        or callback_data.get("payment_operator")
+    )
+    callback_signature = (
+        callback_data.get("signature")
+        or callback_data.get("sign")
     )
 
     if not external_id:
@@ -152,6 +173,10 @@ async def handle_azampay_gateway_callback(
     acknowledged = await controller.process_asynchronous_callback(
         str(external_id),
         is_successful,
+        callback_amount,
+        callback_operator,
+        callback_signature,
+        str(external_reference) if external_reference else None,
     )
     if not acknowledged:
         raise HTTPException(

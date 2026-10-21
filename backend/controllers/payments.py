@@ -1,7 +1,12 @@
+import os
 from config.db import connection
-from typing import Dict, Any, List
+from typing import Dict, Any, List, Optional
 from fastapi import HTTPException
 from utils.mac import normalize_mac
+from cryptography.hazmat.primitives import hashes, serialization
+from cryptography.hazmat.primitives.asymmetric import padding
+from cryptography.hazmat.backends import default_backend
+import base64
 
 class PaymentController:
     async def get_package_price(self, package_id: int) -> Dict[str, Any]:
@@ -233,11 +238,51 @@ class PaymentController:
         finally:
             await conn.close()
 
-    async def process_asynchronous_callback(self, external_id: str, is_successful: bool) -> bool:
+    async def process_asynchronous_callback(
+        self,
+        external_id: str,
+        is_successful: bool,
+        amount: Optional[float] = None,
+        operator: Optional[str] = None,
+        signature: Optional[str] = None,
+        external_reference: Optional[str] = None,
+    ) -> bool:
         """
         Processes AzamPay background asynchronous webhooks.
         Updates transaction states and updates active tenant wallet balances.
+
+        Verifies the callback amount against the pending payment's amount
+        before marking the transaction completed. Also verifies the RSA
+        signature per AzamPay schema when AZAMPAY_CALLBACK_PUBLIC_KEY is set.
         """
+        # ================================================================
+        # SIGNATURE VERIFICATION (per schema.json)
+        # Signed data: {utilityref}{externalreference}{transactionstatus}{operator}
+        # ================================================================
+        public_key_pem = os.getenv("AZAMPAY_CALLBACK_PUBLIC_KEY", "").strip()
+        status_str = "success" if is_successful else "failed"
+        if public_key_pem and signature:
+            try:
+                signed_data = f"{external_id}{external_reference or ''}{status_str}{operator or ''}"
+
+                public_key = serialization.load_pem_public_key(
+                    public_key_pem.encode("utf-8"),
+                    backend=default_backend(),
+                )
+                signature_bytes = base64.b64decode(signature)
+                public_key.verify(
+                    signature_bytes,
+                    signed_data.encode("utf-8"),
+                    padding.PKCS1v15(),
+                    hashes.SHA256(),
+                )
+            except Exception as sig_err:
+                print(f"Callback signature verification failed: {str(sig_err)}")
+                return False
+        elif public_key_pem and not signature:
+            print("Callback signature missing but public key is configured; rejecting.")
+            return False
+
         conn = await connection()
         try:
             async with conn.cursor() as cursor:
@@ -254,7 +299,7 @@ class PaymentController:
                 if not payment_row:
                     return False
 
-                payment_id, tenant_id, amount, current_status, payment_gateway = payment_row
+                payment_id, tenant_id, expected_amount, current_status, payment_gateway = payment_row
 
                 # Make callbacks idempotent: retries for a transaction already finalized
                 # are acknowledged without crediting the wallet or creating another session.
@@ -264,13 +309,30 @@ class PaymentController:
 
                 if current_status != 'pending':
                     return False
+
+                # 2. Verify Transaction and Amount (flow requirement).
+                # Reject the callback if AzamPay reports a different amount than
+                # the pending payment we created. Amount mismatch => failed.
+                if amount is not None:
+                    try:
+                        callback_amount = float(amount)
+                    except (TypeError, ValueError):
+                        callback_amount = None
+                    if callback_amount is not None and callback_amount != float(expected_amount or 0):
+                        await cursor.execute(
+                            "UPDATE payments SET status = 'failed' WHERE id = %s;",
+                            (payment_id,),
+                        )
+                        await conn.commit()
+                        return True
+
                 resolved_status = 'completed' if is_successful else 'failed'
 
-                # 2. Persist the final transaction status update into the PostgreSQL database layer
+                # 3. Persist the final transaction status update into the PostgreSQL database layer
                 update_payment_query = "UPDATE payments SET status = %s WHERE id = %s;"
                 await cursor.execute(update_payment_query, (resolved_status, payment_id))
 
-                # 3. If verified successful, execute ledger balance updates to fund the tenant wallet account.
+                # 4. If verified successful, execute ledger balance updates to fund the tenant wallet account.
                 # Upsert (INSERT ... ON CONFLICT) instead of a bare UPDATE: if a
                 # tenant_wallets row doesn't already exist for this tenant, a plain
                 # UPDATE silently affects 0 rows and the money is never tracked
@@ -284,7 +346,7 @@ class PaymentController:
                             current_balance = tenant_wallets.current_balance + EXCLUDED.current_balance,
                             updated_at = NOW();
                     """
-                    await cursor.execute(wallet_upsert_query, (tenant_id, amount, amount))
+                    await cursor.execute(wallet_upsert_query, (tenant_id, expected_amount, expected_amount))
 
                     payment_query = "SELECT tenant_id, branch_id, router_id, package_id, buyer_id FROM payments WHERE id = %s;"
                     await cursor.execute(payment_query, (payment_id,))

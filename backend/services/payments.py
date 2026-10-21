@@ -1,3 +1,4 @@
+import asyncio
 import os
 import secrets
 import sys
@@ -386,7 +387,9 @@ class PaymentService:
         # ====================================================
 
         try:
-            token = self._get_bearer_token()
+            # Token generation uses synchronous requests; run it in a worker
+            # thread so it does not block FastAPI's event loop.
+            token = await asyncio.to_thread(self._get_bearer_token)
         except HTTPException:
             # Checkout has not been sent yet, so this payment is safe to mark failed.
             await self.payment_controller.mark_payment_failed(new_payment_id)
@@ -437,7 +440,11 @@ class PaymentService:
 
         try:
 
-            response = requests.post(
+            # Run the synchronous HTTP call in a worker thread. This allows
+            # FastAPI to serve login, portal ping, and callbacks while AzamPay
+            # is responding. Do not retry this POST automatically on timeout.
+            response = await asyncio.to_thread(
+                requests.post,
                 self.checkout_url,
                 json=checkout_payload,
                 headers=checkout_headers,
