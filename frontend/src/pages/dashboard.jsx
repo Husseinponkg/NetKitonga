@@ -1,6 +1,7 @@
   import React, { useState, useEffect } from "react";
   import { Link, useNavigate, useLocation } from "react-router-dom";
   import { API_BASE_URL } from "../api";
+  import "./dashboard.css";
   import { getStoredTenantUser, getTenantId } from "../session";
 
   function Dashboard() {
@@ -105,7 +106,7 @@
     ];
 
     return (
-      <div style={{
+      <div className="income-root" style={{
         minHeight: "100vh",
         background: "#000000",
         fontFamily: "'Inter', 'Helvetica Neue', system-ui, -apple-system, sans-serif",
