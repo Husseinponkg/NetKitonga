@@ -17,10 +17,13 @@ class DisbursementService:
         self.source_bank = os.getenv("AZAMPAY_SOURCE_BANK_NAME")
         self.source_account = os.getenv("AZAMPAY_SOURCE_ACCOUNT_NUMBER")
         self.source_currency = os.getenv("AZAMPAY_SOURCE_CURRENCY", "TZS")
-        self.checksum = os.getenv("AZAMPAY_DISBURSEMENT_CHECKSUM")
+        self.checksum = os.getenv(
+            "AZAMPAY_DISBURSEMENT_CHECKSUM",
+            os.getenv("AZAM_PAY_CHECKSUM", ""),
+        )
 
     def _validate_configuration(self) -> None:
-        if not all((self.source_name, self.source_bank, self.source_account, self.checksum)):
+        if not all((self.source_name, self.source_bank, self.source_account)):
             raise HTTPException(
                 status_code=500,
                 detail="AzamPay disbursement settings are incomplete on the server.",
@@ -61,9 +64,10 @@ class DisbursementService:
             },
             "externalReferenceId": reference,
             "additionalProperties": {},
-            "checksum": self.checksum,
             "remarks": "Net Kitonga tenant withdrawal",
         }
+        if self.checksum:
+            payload["checksum"] = self.checksum
         try:
             response = requests.post(
                 self.url,

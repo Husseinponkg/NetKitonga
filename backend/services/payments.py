@@ -401,8 +401,11 @@ class PaymentService:
 
         checkout_payload = {
             "accountNumber": phone,
-            "additionalProperties": {},
-            "amount": float(amount),
+            "additionalProperties": {
+                "property1": None,
+                "property2": None,
+            },
+            "amount": str(amount),
             "currency": "TZS",
             "externalId": external_id,
             "provider": provider,
