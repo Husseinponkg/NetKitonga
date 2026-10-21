@@ -14,7 +14,7 @@ service = PaymentService()
 controller = PaymentController()
 
 
-@payment_endpoints.get("/azampay/diagnostic")
+@payment_endpoints.get("/payments/azampay/diagnostic")
 async def handle_azampay_diagnostic() -> Dict[str, Any]:
     """Check AzamPay authentication/configuration without initiating a payment.
 
@@ -47,7 +47,7 @@ async def handle_azampay_diagnostic() -> Dict[str, Any]:
 
 
 @payment_endpoints.post(
-    "/checkout",
+    "/payments/checkout",
     response_model=Dict[str, Any],
     status_code=status.HTTP_200_OK,
 )
@@ -57,7 +57,7 @@ async def handle_checkout_trigger(payload: CheckoutRequest) -> Dict[str, Any]:
 
 
 @payment_endpoints.post(
-    "/portal/buyer",
+    "/payments/portal/buyer",
     response_model=Dict[str, int],
     status_code=status.HTTP_200_OK,
 )
@@ -65,7 +65,7 @@ async def handle_portal_buyer(payload: PortalBuyerRequest) -> Dict[str, int]:
     return {"buyer_id": await service.register_portal_buyer(payload)}
 
 
-@payment_endpoints.get("/status")
+@payment_endpoints.get("/payments/status")
 async def handle_portal_payment_status(
     gateway_reference: str = Query(...),
     router_id: int = Query(...),
@@ -79,7 +79,7 @@ async def handle_portal_payment_status(
 
 
 @payment_endpoints.get(
-    "/history",
+    "/payments/history",
     response_model=List[PaymentHistoryResponse],
 )
 async def handle_get_payment_ledger(
@@ -89,7 +89,7 @@ async def handle_get_payment_ledger(
     return await service.get_tenant_payment_history(tenant_id)
 
 
-@payment_endpoints.get("/income/stats")
+@payment_endpoints.get("/payments/income/stats")
 async def handle_get_income_stats(tenant_id: int = Query(...)) -> Dict[str, Any]:
     """Return aggregated income statistics for a tenant."""
     return await service.get_tenant_income_stats(tenant_id)
