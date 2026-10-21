@@ -1255,6 +1255,35 @@ const gatewayPort =
                 overflow: "hidden",
             }}
         >
+            {resolvedRouter?.phone_number && (
+                <div
+                    style={{
+                        position: "fixed",
+                        top: 0,
+                        left: 0,
+                        right: 0,
+                        background: "#1a1a1a",
+                        borderBottom: "1px solid #333",
+                        padding: "8px 16px",
+                        textAlign: "center",
+                        fontSize: "0.8rem",
+                        color: "#fff",
+                        zIndex: 1000,
+                    }}
+                >
+                    Need help? Call:{" "}
+                    <a
+                        href={`tel:${resolvedRouter.phone_number}`}
+                        style={{
+                            color: "#e50914",
+                            fontWeight: 700,
+                            textDecoration: "none",
+                        }}
+                    >
+                        {resolvedRouter.phone_number}
+                    </a>
+                </div>
+            )}
             <style>{`
                 * { box-sizing: border-box; }
 

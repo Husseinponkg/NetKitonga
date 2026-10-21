@@ -360,7 +360,7 @@ export default function SupportDesk() {
                             className="support-contact-icon"
                             aria-hidden="true"
                         >
-                            {contact.icon}
+                            <span dangerouslySetInnerHTML={{ __html: contact.icon }} />
                         </div>
 
                         <span className="support-department">
