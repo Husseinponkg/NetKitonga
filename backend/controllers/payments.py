@@ -160,7 +160,13 @@ class PaymentController:
                         COUNT(*) FILTER (WHERE status = 'completed' AND LOWER(payment_gateway::text) = 'voucher') AS voucher_completed_count,
                         COALESCE(SUM(amount) FILTER (WHERE status = 'completed' AND LOWER(payment_gateway::text) = 'voucher'), 0) AS voucher_completed_total,
                         COUNT(*) FILTER (WHERE status = 'completed' AND LOWER(payment_gateway::text) = 'azampay') AS azampay_completed_count,
-                        COALESCE(SUM(amount) FILTER (WHERE status = 'completed' AND LOWER(payment_gateway::text) = 'azampay'), 0) AS azampay_completed_total
+                        COALESCE(SUM(amount) FILTER (WHERE status = 'completed' AND LOWER(payment_gateway::text) = 'azampay'), 0) AS azampay_completed_total,
+                        COUNT(*) FILTER (WHERE status = 'completed' AND created_at >= CURRENT_DATE) AS today_completed_count,
+                        COALESCE(SUM(amount) FILTER (WHERE status = 'completed' AND created_at >= CURRENT_DATE), 0) AS today_completed_total,
+                        COUNT(*) FILTER (WHERE status = 'completed' AND LOWER(payment_gateway::text) = 'azampay' AND created_at >= CURRENT_DATE) AS today_azampay_count,
+                        COALESCE(SUM(amount) FILTER (WHERE status = 'completed' AND LOWER(payment_gateway::text) = 'azampay' AND created_at >= CURRENT_DATE), 0) AS today_azampay_total,
+                        COUNT(*) FILTER (WHERE status = 'completed' AND LOWER(payment_gateway::text) = 'voucher' AND created_at >= CURRENT_DATE) AS today_voucher_count,
+                        COALESCE(SUM(amount) FILTER (WHERE status = 'completed' AND LOWER(payment_gateway::text) = 'voucher' AND created_at >= CURRENT_DATE), 0) AS today_voucher_total
                     FROM payments
                     WHERE tenant_id = %s;
                 """, (tenant_id,))
@@ -173,6 +179,9 @@ class PaymentController:
                         "total_count": 0, "total_amount": 0,
                         "voucher_completed_count": 0, "voucher_completed_total": 0,
                         "azampay_completed_count": 0, "azampay_completed_total": 0,
+                        "today_completed_count": 0, "today_completed_total": 0,
+                        "today_azampay_count": 0, "today_azampay_total": 0,
+                        "today_voucher_count": 0, "today_voucher_total": 0,
                     }
                 return {
                     "completed_count": row[0] or 0,
@@ -187,6 +196,12 @@ class PaymentController:
                     "voucher_completed_total": float(row[9] or 0),
                     "azampay_completed_count": row[10] or 0,
                     "azampay_completed_total": float(row[11] or 0),
+                    "today_completed_count": row[12] or 0,
+                    "today_completed_total": float(row[13] or 0),
+                    "today_azampay_count": row[14] or 0,
+                    "today_azampay_total": float(row[15] or 0),
+                    "today_voucher_count": row[16] or 0,
+                    "today_voucher_total": float(row[17] or 0),
                 }
         finally:
             await conn.close()

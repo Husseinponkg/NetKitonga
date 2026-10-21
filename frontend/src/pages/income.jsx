@@ -21,6 +21,12 @@ function Income() {
         voucher_completed_total: 0,
         azampay_completed_count: 0,
         azampay_completed_total: 0,
+        today_completed_count: 0,
+        today_completed_total: 0,
+        today_azampay_count: 0,
+        today_azampay_total: 0,
+        today_voucher_count: 0,
+        today_voucher_total: 0,
     });
     const [payments, setPayments] = useState([]);
     const [loading, setLoading] = useState(true);
@@ -98,6 +104,7 @@ function Income() {
         }).format(n || 0);
 
     const statCards = [
+        { label: "Today's Income", value: fmt(stats.today_completed_total), color: "#46d369", icon: "📅" },
         { label: "Combined Income", value: fmt(stats.completed_total), color: "#46d369", icon: "💰" },
         { label: "Mobile Money Income", value: fmt(stats.azampay_completed_total), color: "#e50914", icon: "📱" },
         { label: "Voucher Income", value: fmt(stats.voucher_completed_total), color: "#fbc02d", icon: "🎟️" },

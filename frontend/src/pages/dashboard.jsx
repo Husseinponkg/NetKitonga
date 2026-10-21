@@ -1,13 +1,37 @@
-  import React, { useState } from "react";
+  import React, { useState, useEffect } from "react";
   import { Link, useNavigate, useLocation } from "react-router-dom";
+  import { API_BASE_URL } from "../api";
+  import { getStoredTenantUser, getTenantId } from "../session";
 
   function Dashboard() {
-    console.log("Dashboard rendered");
     const navigate = useNavigate();
     const location = useLocation();
     const [sidebarOpen, setSidebarOpen] = useState(false);
-    const user = JSON.parse(localStorage.getItem("tenantUser") || "null");
-    console.log("Dashboard user:", user);
+    const user = getStoredTenantUser();
+    const tenantId = getTenantId();
+
+    const [stats, setStats] = useState({
+      completed_count: 0,
+      completed_total: 0,
+      pending_count: 0,
+      pending_total: 0,
+      failed_count: 0,
+      failed_total: 0,
+      total_count: 0,
+      total_amount: 0,
+      voucher_completed_count: 0,
+      voucher_completed_total: 0,
+      azampay_completed_count: 0,
+      azampay_completed_total: 0,
+      today_completed_count: 0,
+      today_completed_total: 0,
+      today_azampay_count: 0,
+      today_azampay_total: 0,
+      today_voucher_count: 0,
+      today_voucher_total: 0,
+    });
+    const [activeSessions, setActiveSessions] = useState(0);
+    const [loading, setLoading] = useState(true);
 
     const logout = () => {
       localStorage.removeItem("tenantUser");
@@ -30,31 +54,54 @@
       { to: "/settings", label: "Settings", icon: "⚙️" },
     ];
 
-    const stats = [
-      { label: "Total Revenue", value: "0", trend: "up", change: "0%" },
-      { label: "Active Routers", value: "0", trend: "up", change: "0%" },
-      { label: "Total Customers", value: "0", trend: "up", change: "0%" },
-      { label: "Active Sessions", value: "0", trend: "down", change: "0%" },
-    ];
+    const fetchData = async () => {
+      if (!tenantId) return;
+      try {
+        const [statsRes, sessionsRes] = await Promise.all([
+          fetch(`${API_BASE_URL}/payments/income/stats?tenant_id=${tenantId}`),
+          fetch(`${API_BASE_URL}/sessions/active?tenant_id=${tenantId}`),
+        ]);
+        if (statsRes.ok) {
+          const data = await statsRes.json();
+          setStats(data);
+        }
+        if (sessionsRes.ok) {
+          const data = await sessionsRes.json();
+          setActiveSessions(Array.isArray(data) ? data.length : 0);
+        }
+      } catch (e) {
+        console.error("Dashboard fetch error:", e);
+      } finally {
+        setLoading(false);
+      }
+    };
 
-    const monthlyRevenue = [
-      { month: "Jan", value: 0 },
-      { month: "Feb", value: 0 },
-      { month: "Mar", value: 0 },
-      { month: "Apr", value: 0 },
-      { month: "May", value: 0 },
-      { month: "Jun", value: 0 },
-      { month: "Jul", value: 0 },
-      { month: "Aug", value: 0 },
-      { month: "Sep", value: 0 },
+    useEffect(() => {
+      fetchData();
+      const timer = setInterval(fetchData, 30000);
+      return () => clearInterval(timer);
+    }, [tenantId]);
+
+    const fmt = (n) =>
+      new Intl.NumberFormat("en-TZ", {
+        style: "currency",
+        currency: "TZS",
+        minimumFractionDigits: 0,
+      }).format(n || 0);
+
+    const statsCards = [
+      { label: "Today's Income", value: fmt(stats.today_completed_total), trend: "up", change: `${stats.today_completed_count} txns` },
+      { label: "Total Revenue", value: fmt(stats.completed_total), trend: "up", change: `${stats.completed_count} txns` },
+      { label: "Active Sessions", value: String(activeSessions), trend: "up", change: "live" },
+      { label: "Pending Payments", value: String(stats.pending_count), trend: "down", change: fmt(stats.pending_total) },
     ];
 
     const recentActivity = [
-      { icon: "💳", text: "No recent payments", time: "—", type: "muted" },
-      { icon: "📡", text: "No router activity", time: "—", type: "muted" },
-      { icon: "👥", text: "No new customers", time: "—", type: "muted" },
-      { icon: "🏦", text: "No withdrawals processed", time: "—", type: "muted" },
-      { icon: "🎟️", text: "No vouchers generated", time: "—", type: "muted" },
+      { icon: "💳", text: `${stats.completed_count} completed payments`, time: "All time", type: "success" },
+      { icon: "📱", text: `Mobile Money: ${fmt(stats.azampay_completed_total)}`, time: `${stats.azampay_completed_count} txns`, type: "info" },
+      { icon: "🎟️", text: `Vouchers: ${fmt(stats.voucher_completed_total)}`, time: `${stats.voucher_completed_count} txns`, type: "info" },
+      { icon: "⏳", text: `${stats.pending_count} pending payments`, time: fmt(stats.pending_total), type: "warning" },
+      { icon: "✕", text: `${stats.failed_count} failed payments`, time: fmt(stats.failed_total), type: "error" },
     ];
 
     return (
@@ -74,7 +121,6 @@
           className={`sidebar-overlay ${sidebarOpen ? "open" : ""}`}
           onClick={() => setSidebarOpen(false)}
         />
-
         {/* ===== SIDEBAR ===== */}
         <aside className={`sidebar ${sidebarOpen ? "open" : ""}`}>
           <div className="sidebar-brand">
@@ -84,7 +130,6 @@
               <p>Internet Supply Co.</p>
             </div>
           </div>
-
           <nav className="sidebar-nav">
             <p className="nav-section-label">Main</p>
             {navItems.slice(0, 1).map((item) => (
@@ -100,7 +145,6 @@
                 {item.label}
               </Link>
             ))}
-
             <p className="nav-section-label">Operations</p>
             {navItems.slice(1, 6).map((item) => (
               <Link
@@ -115,7 +159,6 @@
                 {item.label}
               </Link>
             ))}
-
             <p className="nav-section-label">Management</p>
             {navItems.slice(6).map((item) => (
               <Link
@@ -131,133 +174,74 @@
               </Link>
             ))}
           </nav>
-
           <div className="sidebar-footer">
-            <div className="sidebar-user">
-              <div className="sidebar-user-avatar">
-                {user?.business_name ? user.business_name.charAt(0).toUpperCase() : "?"}
-              </div>
-              <div className="sidebar-user-info">
-                <p>{user?.business_name || "Guest"}</p>
-                <span>Provider</span>
+            <div className="user-card">
+              <div className="user-avatar">{user?.business_name?.[0] || "U"}</div>
+              <div className="user-info">
+                <div className="user-name">{user?.business_name || "User"}</div>
+                <div className="user-role">{user?.email || ""}</div>
               </div>
             </div>
-            <button type="button" className="sidebar-logout" onClick={logout}>
+            <button className="logout-btn" onClick={logout}>
+              <span style={{ fontSize: '1rem' }}>🚪</span>
               Logout
             </button>
-            <p style={{ margin: '8px 0 0', fontSize: '0.6rem', color: '#4d4d4d', textAlign: 'center', letterSpacing: '0.5px' }}>fontwandell co tz 2026</p>
           </div>
         </aside>
-
         {/* ===== MAIN ===== */}
-        <div className="main-wrapper">
-          <main className="content-area">
-            {/* Page Header */}
-            <div className="page-header">
+        <div className="main-content">
+          <header className="top-bar">
+            <div className="top-bar-left">
+              <button className="hamburger" onClick={() => setSidebarOpen(true)}>☰</button>
               <div>
-                <h1 className="page-title">
-                  Business <span>Overview</span>
-                </h1>
-                <p className="page-subtitle">
-                  Real-time performance metrics across your network infrastructure
-                </p>
-              </div>
-              <div className="page-actions">
-                <Link to="/income" className="btn-ghost">View Reports</Link>
-                <Link to="/packages" className="btn-primary">+ New Package</Link>
+                <div className="top-bar-title">Dashboard <span>Overview</span></div>
+                <div className="top-bar-subtitle">Welcome back, {user?.business_name || "User"}</div>
               </div>
             </div>
-
-            {/* Stat Cards – all zeros */}
+            <div className="top-bar-right">
+              <Link to="/income" className="btn-ghost">View Reports</Link>
+            </div>
+          </header>
+          <div className="dashboard-body">
             <div className="stats-grid">
-              {stats.map((stat, i) => (
-                <div className="stat-card" key={i}>
-                  <div className="stat-header">
-                    <p className="stat-label">{stat.label}</p>
-                    <div className="stat-icon">
-                      {i === 0 && "💰"}
-                      {i === 1 && "📡"}
-                      {i === 2 && "👥"}
-                      {i === 3 && "🕐"}
-                    </div>
-                  </div>
-                  <p className="stat-value">{stat.value}</p>
-                  <span className={`stat-change ${stat.trend}`}>
-                    {stat.trend === "up" ? "▲" : "▼"} {stat.change}
-                    <span className="stat-change-label">vs last month</span>
-                  </span>
+              {statsCards.map((stat, i) => (
+                <div key={i} className="stat-card">
+                  <div className="stat-label">{stat.label}</div>
+                  <div className="stat-value">{loading ? "..." : stat.value}</div>
+                  <div className="stat-change">{stat.change}</div>
                 </div>
               ))}
             </div>
-
-            {/* Chart + Activity */}
-            <div className="content-grid">
+            <div className="dashboard-panels">
               <div className="panel">
                 <div className="panel-header">
-                  <div>
-                    <h3 className="panel-title">Revenue Performance</h3>
-                    <p className="panel-subtitle">Monthly revenue trend</p>
-                  </div>
-                  <Link to="/income" className="panel-link">View →</Link>
+                  <h3>Revenue Trend</h3>
+                  <p className="panel-subtitle">Monthly revenue trend</p>
                 </div>
-                <div className="chart-container">
-                  {monthlyRevenue.map((item, i) => (
-                    <div className="chart-bar-wrapper" key={i}>
-                      <div className="chart-bar" />
-                      <span className="chart-bar-label">{item.month}</span>
-                    </div>
-                  ))}
+                <div className="panel-body">
+                  <div style={{ padding: "40px 20px", textAlign: "center", color: "#666" }}>
+                    See Income page for detailed breakdown
+                  </div>
                 </div>
               </div>
-
               <div className="panel">
                 <div className="panel-header">
-                  <div>
-                    <h3 className="panel-title">Recent Activity</h3>
-                    <p className="panel-subtitle">Live updates</p>
-                  </div>
+                  <h3>Recent Activity</h3>
                 </div>
-                <div className="activity-list">
-                  {recentActivity.map((activity, i) => (
-                    <div className="activity-item" key={i}>
-                      <div className="activity-icon">{activity.icon}</div>
-                      <div className="activity-body">
-                        <p className="activity-text">{activity.text}</p>
-                        <span className="activity-time">{activity.time}</span>
+                <div className="panel-body">
+                  {recentActivity.map((act, i) => (
+                    <div key={i} className="activity-item">
+                      <span className="activity-icon">{act.icon}</span>
+                      <div className="activity-content">
+                        <div className="activity-text">{act.text}</div>
+                        <div className="activity-time">{act.time}</div>
                       </div>
                     </div>
                   ))}
                 </div>
               </div>
             </div>
-
-            {/* Quick Actions */}
-            <div className="panel" style={{ marginBottom: "24px" }}>
-              <div className="panel-header">
-                <div>
-                  <h3 className="panel-title">Quick Actions</h3>
-                  <p className="panel-subtitle">Jump straight into your tools</p>
-                </div>
-              </div>
-              <div className="menu-grid">
-                {navItems.slice(1).map((item) => (
-                  <Link key={item.to} to={item.to} className="menu-card">
-                    <div className="menu-card-icon">
-                      <span style={{ fontSize: '1.1rem', lineHeight: 1 }}>{item.icon}</span>
-                    </div>
-                    <p className="menu-label">{item.label}</p>
-                  </Link>
-                ))}
-              </div>
-            </div>
-
-            {/* Footer */}
-  <div className="footer-section">
-    <p className="footer-text">
-      <strong>fontwandell co tz 2026</strong>
-    </p>
-  </div>
-          </main>
+          </div>
         </div>
       </div>
     );
