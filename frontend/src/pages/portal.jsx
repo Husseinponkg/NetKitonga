@@ -145,26 +145,8 @@ function buildHotspotLoginUrl(loginLink, routerIp) {
         return null;
     }
 
-    // Remove port for validation only.
-    const hostOnly = rawRouterIp.includes(":")
-        ? rawRouterIp.split(":")[0]
-        : rawRouterIp;
-
-    const isPrivateIpv4 =
-        /^10\./.test(hostOnly) ||
-        /^192\.168\./.test(hostOnly) ||
-        /^172\.(1[6-9]|2\d|3[01])\./.test(hostOnly);
-
-    const isLocalHostname = hostOnly.endsWith(".local");
-
-    if (!isPrivateIpv4 && !isLocalHostname) {
-        console.warn(
-            "Router IP is not a private/local hotspot address:",
-            rawRouterIp
-        );
-        return null;
-    }
-
+    // Allow any valid IP/hostname provided by the backend (trusted source).
+    // The router IP may be public (e.g. 197.186.x.x) or private.
     try {
         return new URL(`http://${rawRouterIp}/login`);
     } catch (error) {
@@ -745,7 +727,7 @@ const gatewayPort =
                             )
                             : submitHotspotLogin(
                                 linkLogin,
-                                routerIp,
+                                effectiveGatewayIp || routerIp,
                                 normalizeMac(buyerMac),
                                 payment.auth_token,
                                 destination
@@ -1100,7 +1082,7 @@ const gatewayPort =
                         )
                         : submitHotspotLogin(
                             linkLogin,
-                            routerIp,
+                            effectiveGatewayIp || routerIp,
                             normalizeMac(buyerMac),
                             result.auth_token,
                             destination
