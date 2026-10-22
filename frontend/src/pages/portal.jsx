@@ -1271,7 +1271,7 @@ const gatewayPort =
                         zIndex: 1000,
                     }}
                 >
-                    Need help? Call:{" "}
+                    Contact support:{" "}
                     <a
                         href={`tel:${resolvedRouter.phone_number}`}
                         style={{
@@ -2714,7 +2714,7 @@ const gatewayPort =
                             letterSpacing: "0.3px",
                         }}
                     >
-                        Need help? Call:{" "}
+                        Contact support:{" "}
                         <a
                             href={`tel:${resolvedRouter.phone_number}`}
                             style={{

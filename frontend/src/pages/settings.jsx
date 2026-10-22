@@ -9,7 +9,7 @@ function Settings() {
     const [sidebarOpen, setSidebarOpen] = useState(false);
 
     const currentUser = getStoredTenantUser();
-    const [form, setForm] = useState({ business_name: "", system_name: "", email: "", password: "" });
+    const [form, setForm] = useState({ business_name: "", system_name: "", email: "", password: "", phone_number: "" });
     const [message, setMessage] = useState("");
     const [loading, setLoading] = useState(true);
     const [saving, setSaving] = useState(false);
@@ -92,7 +92,8 @@ function Settings() {
             localStorage.setItem("tenantUser", JSON.stringify({ 
                 ...currentUser, 
                 business_name: form.business_name, 
-                email: form.email 
+                email: form.email,
+                phone_number: form.phone_number 
             }));
             
             setForm({ ...form, password: "" });
@@ -920,6 +921,20 @@ function Settings() {
                                             onChange={handleChange}
                                             placeholder="admin@yourbusiness.com"
                                             autoComplete="email"
+                                        />
+                                    </div>
+
+                                    <div className="form-group">
+                                        <label>
+                                            Phone Number (for customer support)
+                                        </label>
+                                        <input
+                                            type="tel"
+                                            name="phone_number"
+                                            value={form.phone_number}
+                                            onChange={handleChange}
+                                            placeholder="e.g., 0712344344"
+                                            autoComplete="tel"
                                         />
                                     </div>
 

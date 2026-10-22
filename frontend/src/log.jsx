@@ -3,12 +3,46 @@ import { useNavigate } from "react-router-dom";
 import { API_BASE_URL } from "./api";
 import { saveTenantUser, clearTenantSession } from "./session";
 
+function OutlineIcon({ name, size = 20 }) {
+    const common = {
+        width: size,
+        height: size,
+        viewBox: "0 0 24 24",
+        fill: "none",
+        stroke: "currentColor",
+        strokeWidth: 1.7,
+        strokeLinecap: "round",
+        strokeLinejoin: "round",
+        "aria-hidden": true,
+        focusable: "false",
+    };
+
+    if (name === "wifi") {
+        return (
+            <svg {...common}>
+                <path d="M3.5 8.8a13.2 13.2 0 0 1 17 0" />
+                <path d="M6.8 12.2a8.1 8.1 0 0 1 10.4 0" />
+                <path d="M10 15.5a3.2 3.2 0 0 1 4 0" />
+                <path d="M12 19h.01" />
+            </svg>
+        );
+    }
+
+    return (
+        <svg {...common}>
+            <rect x="5" y="2.8" width="14" height="18.4" rx="2.2" />
+            <path d="M10 17.7h4" />
+        </svg>
+    );
+}
+
 function Login() {
     const navigate = useNavigate();
     const [email, setEmail] = useState("");
     const [password, setPassword] = useState("");
     const [businessName, setBusinessName] = useState("");
     const [systemName, setSystemName] = useState("");
+    const [phoneNumber, setPhoneNumber] = useState("");
     const [confirmPassword, setConfirmPassword] = useState("");
     const [loading, setLoading] = useState(false);
     const [error, setError] = useState(null);
@@ -105,6 +139,7 @@ function Login() {
                     business_name: businessName.trim(),
                     system_name: systemName.trim(),
                     email: email.trim(),
+                    phone_number: phoneNumber.trim(),
                     password: password,
                 }),
             });
@@ -121,6 +156,7 @@ function Login() {
             setPassword("");
             setBusinessName("");
             setSystemName("");
+            setPhoneNumber("");
             setConfirmPassword("");
             setAcceptedPrivacy(false);
             setAcceptedTerms(false);
@@ -211,7 +247,10 @@ function Login() {
                 .logo {
                     font-size: 2.8rem;
                     margin-bottom: 12px;
-                    display: inline-block;
+                    display: inline-flex;
+                    align-items: center;
+                    justify-content: center;
+                    color: #ffffff;
                 }
 
                 .brand-name {
@@ -276,6 +315,25 @@ function Login() {
                     color: #ffffff;
                     transition: all 0.3s ease;
                     outline: none;
+                }
+
+                .input-with-icon {
+                    position: relative;
+                    display: flex;
+                    align-items: center;
+                }
+
+                .input-icon {
+                    position: absolute;
+                    left: 13px;
+                    display: inline-flex;
+                    align-items: center;
+                    color: #a3a3a3;
+                    pointer-events: none;
+                }
+
+                .input-with-icon input {
+                    padding-left: 42px;
                 }
 
                 .form-group input::placeholder {
@@ -504,7 +562,7 @@ function Login() {
 
             <div className="login-container">
                 <div className="logo-section">
-                    <div className="logo">🛜</div>
+                    <div className="logo"><OutlineIcon name="wifi" size={42} /></div>
                     <h1 className="brand-name">Net Kitonga</h1>
                     <p className="brand-subtitle">Hotspot Supply Co.</p>
                 </div>
@@ -620,6 +678,24 @@ function Login() {
                                     onChange={(e) => setConfirmPassword(e.target.value)}
                                     required
                                 />
+                            </div>
+
+                            <div className="form-group">
+                                <label htmlFor="regPhoneNumber">Phone Number</label>
+                                <div className="input-with-icon">
+                                    <span className="input-icon">
+                                        <OutlineIcon name="phone" size={18} />
+                                    </span>
+                                    <input
+                                        id="regPhoneNumber"
+                                        name="phone_number"
+                                        type="tel"
+                                        placeholder="e.g. 0712345678"
+                                        value={phoneNumber}
+                                        onChange={(e) => setPhoneNumber(e.target.value)}
+                                        autoComplete="tel"
+                                    />
+                                </div>
                             </div>
 
                             <button
