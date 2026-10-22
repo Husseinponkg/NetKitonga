@@ -1,0 +1,180 @@
+# Correct MikroTik Hotspot config for Net Kitonga portal
+# Purpose: allow users on WiFi to open portal, resolve tenant by router IP,
+# and fetch the correct package catalog without a blank screen.
+
+# 1) Hotspot profile
+/ip hotspot profile
+add name=hsprof1 hotspot-address=10.10.10.1 dns-name=hotspot.netkitonga.local login-by=http-chap,http-pap
+
+# 2) Pool + DHCP
+/ip pool
+add name=hotspot-pool ranges=10.10.10.10-10.10.10.254
+
+/ip dhcp-server
+add name=hotspot-dhcp interface=ether2 address-pool=hotspot-pool lease-time=1h
+
+# 3) Network + routes
+/ip address
+add address=192.168.1.188/24 comment=WAN interface=ether1 network=192.168.1.0
+add address=10.10.10.1/24 comment=HOTSPOT interface=ether2 network=10.10.10.0
+
+/ip dhcp-server network
+add address=10.10.10.0/24 gateway=10.10.10.1 dns-server=10.10.10.1
+
+/ip route
+add comment="ISP Default Route" dst-address=0.0.0.0/0 gateway=192.168.1.1
+
+# 4) DNS
+/ip dns
+set allow-remote-requests=yes servers=1.1.1.1,8.8.8.8
+
+/ip dns static
+add address=10.10.10.1 name=hotspot.netkitonga.local ttl=1h type=A
+add address=195.211.99.95 name=netkitonga.com type=A
+
+# 5) Firewall (safe baseline)
+/ip firewall filter
+add action=accept chain=input comment="Allow established/related" connection-state=established,related
+add action=accept chain=input comment="Allow ping" protocol=icmp
+add action=accept chain=input comment="Allow DNS from hotspot (UDP)" dst-port=53 in-interface=ether2 protocol=udp
+add action=accept chain=input comment="Allow DNS from hotspot (TCP)" dst-port=53 in-interface=ether2 protocol=tcp
+add action=accept chain=input comment="Allow Winbox" dst-port=8291 protocol=tcp
+add action=accept chain=input comment="Allow SSH" dst-port=22 protocol=tcp
+add action=accept chain=input comment="Allow hotspot client traffic" in-interface=ether2
+add action=drop chain=input comment="Drop other input"
+
+add action=accept chain=forward comment="Allow established/related" connection-state=established,related
+add action=accept chain=forward comment="Hotspot to Internet" in-interface=ether2 out-interface=ether1
+add action=drop chain=forward comment="Drop invalid" connection-state=invalid
+
+# 6) NAT for internet access
+/ip firewall nat
+add action=masquerade chain=srcnat comment="Hotspot Internet NAT" out-interface=ether1
+
+# 7) Create hotspot instance
+/ip hotspot
+add name=netkitonga-hotspot interface=ether2 address-pool=hotspot-pool profile=hsprof1 disabled=no
+
+# 8) Walled garden for portal + API access
+/ip hotspot walled-garden
+add action=allow comment="Allow portal + API" dst-host=netkitonga.com
+add action=allow comment="Allow DNS" dst-host=1.1.1.1
+add action=allow comment="Allow DNS fallback" dst-host=8.8.8.8
+
+# Optional explicit IP allow:
+# /ip hotspot walled-garden ip
+# add action=allow disabled=no dst-address=195.211.99.95
+
+# 9) Health check script (optional but useful)
+/system script
+add name=HealthCheck owner=admin policy=ftp,reboot,read,write,policy,test,password,sniff,sensitive,romon source="/tool fetch url=\"https://netkitonga.com/api/health\" mode=https keep-result=no"
+
+/system scheduler
+add name=HealthScheduler interval=10m on-event="/system script run HealthCheck" policy=ftp,reboot,read,write,policy,test,password,sniff,sensitive,romon start-time=startup
+
+# 10) Cloud ping / heartbeat: let router call the Net Kitonga backend
+/system script
+add name=CloudPing owner=admin policy=ftp,reboot,read,write,policy,test,password,sniff,sensitive,romon source="/tool fetch url=\"https://netkitonga.com/routers/mikrotik/ping?nas_id=netkitonga-router\" mode=https keep-result=no"
+
+/system scheduler
+add name=Run_CloudPing interval=1m on-event="/system script run CloudPing" policy=ftp,reboot,read,write,policy,test,password,sniff,sensitive,romon start-time=startup
+
+/system script run CloudPing
+
+# 11) Clock
+/system clock
+set time-zone-name=Africa/Dar_es_Salaam
+
+# 11) Optional: turn on hotspot discovery settings
+/ip neighbor discovery-settings
+set discover-interface-list=!dynamic
+
+# 12) Test user
+/ip hotspot user
+add name=test password="test123"
+
+# 13) Login page redirect to portal (recommended)
+# Use the portal route with router_ip + mac so the system resolves the tenant automatically.
+# Example HTML form:
+# action="https://net-kitonga.vercel.app/portal?router_ip=$(server)&mac=$(mac)&ip=$(ip)&dst=$(dst)"
+
+# IMPORTANT:
+# The app expects either:
+#   - tenant_id=... , or
+#   - router_id=... , or
+#   - router_ip=...
+# The safest option is router_ip because it resolves the tenant automatically.
+# Do NOT hardcode tenant_id=1 in a multi-tenant hotspot unless it is the real tenant.
+/ip hotspot profile
+add name=hsprof1 hotspot-address=10.10.10.1 dns-name=hotspot.netkitonga.local login-by=http-chap,http-pap
+
+/ip pool
+add name=hotspot-pool ranges=10.10.10.10-10.10.10.254
+
+/ip dhcp-server
+add name=hotspot-dhcp interface=ether2 address-pool=hotspot-pool lease-time=1h
+
+/ip address
+add address=192.168.1.188/24 comment=WAN interface=ether1 network=192.168.1.0
+add address=10.10.10.1/24 comment=HOTSPOT interface=ether2 network=10.10.10.0
+
+/ip dhcp-server network
+add address=10.10.10.0/24 gateway=10.10.10.1 dns-server=10.10.10.1
+
+/ip route
+add dst-address=0.0.0.0/0 gateway=192.168.1.1
+
+/ip dns
+set allow-remote-requests=yes servers=1.1.1.1,8.8.8.8
+
+/ip dns static
+add address=10.10.10.1 name=hotspot.netkitonga.local ttl=1h type=A
+add address=195.211.99.95 name=netkitonga.com type=A
+
+/ip firewall filter
+add action=accept chain=input connection-state=established,related
+add action=accept chain=input protocol=icmp
+add action=accept chain=input dst-port=53 in-interface=ether2 protocol=udp
+add action=accept chain=input dst-port=53 in-interface=ether2 protocol=tcp
+add action=accept chain=input dst-port=8291 protocol=tcp
+add action=accept chain=input dst-port=22 protocol=tcp
+add action=accept chain=input in-interface=ether2
+add action=drop chain=input
+
+add action=accept chain=forward connection-state=established,related
+add action=accept chain=forward in-interface=ether2 out-interface=ether1
+add action=drop chain=forward connection-state=invalid
+
+/ip firewall nat
+add action=masquerade chain=srcnat out-interface=ether1
+
+/ip hotspot
+add name=netkitonga-hotspot interface=ether2 address-pool=hotspot-pool profile=hsprof1 disabled=no
+
+/ip hotspot walled-garden
+add action=allow comment="Allow portal + API" dst-host=netkitonga.com
+add action=allow comment="Allow DNS" dst-host=1.1.1.1
+add action=allow dst-host=8.8.8.8
+
+/system script
+add name=HealthCheck owner=admin policy=ftp,reboot,read,write,policy,test,password,sniff,sensitive,romon source="/tool fetch url=\"https://netkitonga.com/api/health\" mode=https keep-result=no"
+
+/system scheduler
+add name=HealthScheduler interval=10m on-event="/system script run HealthCheck" policy=ftp,reboot,read,write,policy,test,password,sniff,sensitive,romon start-time=startup
+
+/system script
+add name=CloudPing owner=admin policy=ftp,reboot,read,write,policy,test,password,sniff,sensitive,romon source="/tool fetch url=\"https://netkitonga.com/routers/mikrotik/ping?nas_id=nas-03\" mode=https keep-result=no"
+
+/system scheduler
+add name=Run_CloudPing interval=1m on-event="/system script run CloudPing" policy=ftp,reboot,read,write,policy,test,password,sniff,sensitive,romon start-time=startup
+
+/system script run CloudPing
+
+/system clock
+set time-zone-name=Africa/Dar_es_Salaam
+
+/ip neighbor discovery-settings
+set discover-interface-list=!dynamic
+
+/ip hotspot user
+add name=test password="test123"
