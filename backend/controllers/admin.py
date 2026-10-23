@@ -311,7 +311,7 @@ class AdminController:
                 await cursor.execute("""
                     SELECT pay.id, pay.tenant_id, t.business_name, pay.branch_id, pay.router_id,
                            pay.package_id, pay.buyer_id, pay.amount, pay.payment_gateway,
-                           pay.gateway_reference, pay.status, pay.auth_token, pay.created_at,
+                           pay.gateway_reference, pay.pg_transaction_id, pay.status, pay.auth_token, pay.created_at,
                            b.buyer_mac, b.phone_number
                     FROM payments pay
                     LEFT JOIN tenants t ON t.id = pay.tenant_id
