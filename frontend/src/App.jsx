@@ -7,6 +7,7 @@ import Layout from "./components/Layout";
 import Dashboard from "./pages/dashboard";
 import Branch from "./pages/branch";
 import Routers from "./pages/routers";
+import Tplink from "./pages/tplink";
 import PackagesDashboard from "./pages/packages";
 import Customers from "./pages/customers";
 import Payments from "./pages/payments";
@@ -79,6 +80,7 @@ function App() {
           <Route path="/dashboard" element={<ProtectedRoute><Dashboard /></ProtectedRoute>} />
           <Route path="/branch" element={<ProtectedRoute><Branch /></ProtectedRoute>} />
           <Route path="/routers" element={<ProtectedRoute><Routers /></ProtectedRoute>} />
+          <Route path="/tplink" element={<ProtectedRoute><Tplink /></ProtectedRoute>} />
           <Route path="/packages" element={<ProtectedRoute><PackagesDashboard /></ProtectedRoute>} />
           <Route path="/vouchers" element={<ProtectedRoute><Vouchers /></ProtectedRoute>} />
           <Route path="/customers" element={<ProtectedRoute><Customers /></ProtectedRoute>} />

@@ -156,7 +156,7 @@ class FreeRADIUSService:
                         """
                                                 SELECT id
                         FROM routers
-                        WHERE driver_type = 'mikrotik_radius'
+                        WHERE driver_type IN ('mikrotik_radius', 'tplink_radius', 'radius_aaa')
                           AND lower(trim(nas_identifier)) = lower(trim(%s))
                         ORDER BY id
                         LIMIT 1
@@ -174,7 +174,7 @@ class FreeRADIUSService:
                         """
                         SELECT id
                         FROM routers
-                        WHERE driver_type = 'mikrotik_radius'
+                        WHERE driver_type IN ('mikrotik_radius', 'tplink_radius', 'radius_aaa')
                           AND host(ip_address) = host(%s::inet)
                         ORDER BY id
                         LIMIT 2

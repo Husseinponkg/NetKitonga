@@ -116,7 +116,7 @@ class RouterService:
                     FROM routers r
                     LEFT JOIN tenants t ON t.id = r.tenant_id
                     WHERE r.nas_identifier = %s
-                      AND r.driver_type = 'mikrotik_radius';
+                      AND r.driver_type IN ('mikrotik_radius', 'tplink_radius', 'radius_aaa');
                     """,
                     (nas_identifier.strip(),)
                 )
@@ -298,7 +298,7 @@ class RouterService:
         # MIKROTIK / RADIUS AAA
         # ---------------------------------------------------------
 
-        if driver_type == "radius_aaa" or driver_type == "mikrotik_radius":
+        if driver_type in ("radius_aaa", "mikrotik_radius", "tplink_radius"):
 
             api_url = (
                 f"{api_scheme}://"
