@@ -614,6 +614,7 @@ class PaymentService:
                     "amount": float(row.get("amount") or 0),
                     "payment_gateway": row.get("payment_gateway"),
                     "gateway_reference": row.get("gateway_reference"),
+                    "pg_transaction_id": row.get("pg_transaction_id"),
                     "status": row.get("status"),
                     "auth_token": row.get("auth_token"),
                     "created_at": row.get("created_at"),

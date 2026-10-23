@@ -396,10 +396,10 @@ function Admin() {
                         {payments.length === 0 ? <p style={{ color: "rgba(255,255,255,0.4)" }}>No payments found.</p> : (
                             <div className="table-wrapper">
                                 <table>
-                                <thead><tr><th>ID</th><th>Tenant</th><th>Amount</th><th>Gateway</th><th>Status</th><th>Actions</th></tr></thead>
+                                <thead><tr><th>ID</th><th>Tenant</th><th>Amount</th><th>Gateway</th><th>PG Txn ID</th><th>Status</th><th>Actions</th></tr></thead>
                                 <tbody>
                                     {payments.map((p) => (
-                                        <tr key={p.id}><td>{p.id}</td><td>{p.business_name}</td><td>{fmt(p.amount)}</td><td>{p.payment_gateway}</td><td>{p.status}</td>
+                                        <tr key={p.id}><td>{p.id}</td><td>{p.business_name}</td><td>{fmt(p.amount)}</td><td>{p.payment_gateway}</td><td>{p.pg_transaction_id || 'N/A'}</td><td>{p.status}</td>
                                         <td><button className="btn btn-ghost" onClick={() => handleAction(`/admin/payments/status`, { body: { payment_id: p.id, status: "completed" } }, { refresh: loadPayments })}>Complete</button> <button className="btn btn-ghost" onClick={() => handleAction(`/admin/payments/status`, { body: { payment_id: p.id, status: "failed" } }, { refresh: loadPayments })}>Fail</button></td></tr>
                                     ))}
                                 </tbody>

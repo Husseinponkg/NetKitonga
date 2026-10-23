@@ -876,7 +876,6 @@ function Payments() {
 											<thead>
 												<tr>
 													<th>Reference</th>
-													<th>PG Txn ID</th>
 													<th>Customer</th>
 													<th>Amount</th>
 													<th>Gateway</th>
@@ -890,11 +889,6 @@ function Payments() {
 														<td>
 															<span className="reference-code">
 																{payment.gateway_reference || 'N/A'}
-															</span>
-														</td>
-														<td>
-															<span className="reference-code">
-																{payment.pg_transaction_id || 'N/A'}
 															</span>
 														</td>
 														<td>
