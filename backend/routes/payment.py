@@ -141,6 +141,11 @@ async def handle_azampay_gateway_callback(
         callback_data.get("signature")
         or callback_data.get("sign")
     )
+    pg_transaction_id = (
+        callback_data.get("transid")
+        or callback_data.get("pgTransactionId")
+        or callback_data.get("pg_transaction_id")
+    )
 
     if not external_id:
         raise HTTPException(
@@ -177,6 +182,7 @@ async def handle_azampay_gateway_callback(
         callback_operator,
         callback_signature,
         str(external_reference) if external_reference else None,
+        str(pg_transaction_id) if pg_transaction_id else None,
     )
     if not acknowledged:
         raise HTTPException(

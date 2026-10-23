@@ -30,6 +30,7 @@ class PaymentHistoryResponse(BaseModel):
     payment_gateway: str
     gateway_reference: str
     status: str
+    pg_transaction_id: Optional[str] = None
     auth_token: str
     created_at: datetime
     

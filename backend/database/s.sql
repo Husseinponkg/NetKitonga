@@ -130,6 +130,7 @@ CREATE TABLE payments (
     
     -- Network Unlock Mechanism Token
     auth_token VARCHAR(255) NOT NULL UNIQUE, -- Sent back to clear login blocks
+    pg_transaction_id VARCHAR(255) NULL,
     created_at TIMESTAMP DEFAULT CURRENT_TIMESTAMP
 );
 

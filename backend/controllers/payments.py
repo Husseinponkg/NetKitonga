@@ -89,7 +89,7 @@ class PaymentController:
                     SELECT 
                         p.id, p.tenant_id, p.branch_id, p.router_id, p.package_id, p.buyer_id,
                         p.amount, p.payment_gateway, p.gateway_reference, p.status, p.auth_token, p.created_at,
-                        b.buyer_mac, b.phone_number
+                        p.pg_transaction_id, b.buyer_mac, b.phone_number
                     FROM payments p
                     INNER JOIN buyers b ON p.buyer_id = b.id
                     WHERE p.tenant_id = %s
@@ -261,6 +261,7 @@ class PaymentController:
         operator: Optional[str] = None,
         signature: Optional[str] = None,
         external_reference: Optional[str] = None,
+        pg_transaction_id: Optional[str] = None,
     ) -> bool:
         """
         Processes AzamPay background asynchronous webhooks.
@@ -344,8 +345,8 @@ class PaymentController:
                 resolved_status = 'completed' if is_successful else 'failed'
 
                 # 3. Persist the final transaction status update into the PostgreSQL database layer
-                update_payment_query = "UPDATE payments SET status = %s WHERE id = %s;"
-                await cursor.execute(update_payment_query, (resolved_status, payment_id))
+                update_payment_query = "UPDATE payments SET status = %s, pg_transaction_id = COALESCE(%s, pg_transaction_id) WHERE id = %s;"
+                await cursor.execute(update_payment_query, (resolved_status, pg_transaction_id, payment_id))
 
                 # 4. If verified successful, execute ledger balance updates to fund the tenant wallet account.
                 # Upsert (INSERT ... ON CONFLICT) instead of a bare UPDATE: if a
