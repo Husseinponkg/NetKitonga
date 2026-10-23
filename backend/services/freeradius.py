@@ -187,6 +187,26 @@ class FreeRADIUSService:
         finally:
             await conn.close()
 
+        # Mark the resolved router as online when RADIUS traffic is seen.
+        if router_id is not None:
+            try:
+                conn2 = await connection()
+                try:
+                    async with conn2.cursor() as c2:
+                        await c2.execute(
+                            "UPDATE routers SET status = 'online', last_heartbeat_at = NOW() WHERE id = %s;",
+                            (router_id,),
+                        )
+                        await c2.execute(
+                            "UPDATE tplink SET status = 'online', last_heartbeat_at = NOW() WHERE router_id = %s;",
+                            (router_id,),
+                        )
+                        await conn2.commit()
+                finally:
+                    await conn2.close()
+            except Exception:
+                pass
+
         session = await self.get_active_session_for_mac(
             tenant_id=None,
             mac_address=mac_address,
@@ -283,6 +303,17 @@ class FreeRADIUSService:
                     return {"status": "ignored", "message": "No matching session found."}
 
                 db_id, stored_session_id, stored_status = row
+
+                if nas_identifier:
+                    try:
+                        async with conn.cursor() as c2:
+                            await c2.execute(
+                                "UPDATE routers SET status = 'online', last_heartbeat_at = NOW() WHERE nas_identifier = %s;",
+                                (str(nas_identifier).strip(),),
+                            )
+                            await conn.commit()
+                    except Exception:
+                        pass
                 if status_value in ("stop", "accounting-off"):
                     new_status = "terminated"
                 else:
