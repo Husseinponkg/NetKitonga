@@ -70,13 +70,19 @@ class WithdrawalController:
                     raise HTTPException(status_code=400, detail="Insufficient wallet balance for this withdrawal.")
 
                 external_reference = f"NETKITONGA-WD-{secrets.token_hex(8).upper()}"
-                disbursement = DisbursementService().send(
-                    data.amount,
-                    data.mobile_money_number,
-                    data.payout_provider,
-                    external_reference,
-                )
-                transaction_reference = disbursement.get("pgReferenceId") or external_reference
+                transaction_reference = external_reference
+                try:
+                    disbursement = DisbursementService().send(
+                        data.amount,
+                        data.mobile_money_number,
+                        data.payout_provider,
+                        external_reference,
+                    )
+                    transaction_reference = disbursement.get("pgReferenceId") or external_reference
+                except Exception as disb_error:
+                    # Do not block the withdrawal request if the payout provider
+                    # is unavailable; keep it pending for manual processing.
+                    print(f"Disbursement provider unavailable: {disb_error}")
                 await cursor.execute(
                     """
                     INSERT INTO withdrawals (tenant_id, wallet_id, amount, mobile_money_number, payout_provider, status)
