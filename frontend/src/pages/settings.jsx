@@ -986,8 +986,7 @@ function Settings() {
                                     <p>
                                         <span className="info-icon"><svg width="12" height="12" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><circle cx="12" cy="12" r="10"/><line x1="12" y1="16" x2="12" y2="12"/><line x1="12" y1="8" x2="12.01" y2="8"/></svg></span>
                                         <span>
-                                            <strong>Tenant ID:</strong> {currentUser.id || 1} · <strong>Role:</strong> {currentUser.role || 'Admin'}
-                                            {form.business_name && ` · ${form.business_name}`}
+                                            {form.business_name && `${form.business_name}`}
                                         </span>
                                     </p>
                                 </div>
