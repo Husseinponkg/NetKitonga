@@ -66,17 +66,20 @@ class WithdrawalController:
                 mobile_money_earned = float((await cursor.fetchone())[0] or 0)
                 current_balance = available_cash_balance(mobile_money_earned, total_withdrawn)
 
+                if data.amount < 2000:
+                    raise HTTPException(status_code=400, detail="Minimum withdrawal amount is 2000 TZS.")
                 if data.amount > current_balance:
                     raise HTTPException(status_code=400, detail="Insufficient wallet balance for this withdrawal.")
 
                 external_reference = f"NETKITONGA-WD-{secrets.token_hex(8).upper()}"
+                commission = round(float(data.amount) * 0.02, 2)
                 await cursor.execute(
                     """
-                    INSERT INTO withdrawals (tenant_id, wallet_id, amount, mobile_money_number, payout_provider, status, transaction_reference)
-                    VALUES (%s, %s, %s, %s, %s, 'pending', %s)
+                    INSERT INTO withdrawals (tenant_id, wallet_id, amount, commission, mobile_money_number, payout_provider, status, transaction_reference)
+                    VALUES (%s, %s, %s, %s, %s, %s, 'pending', %s)
                     RETURNING id;
                     """,
-                    (tenant_id, wallet_id, data.amount, data.mobile_money_number, data.payout_provider, external_reference)
+                    (tenant_id, wallet_id, data.amount, commission, data.mobile_money_number, data.payout_provider, external_reference)
                 )
                 new_id = (await cursor.fetchone())[0]
                 await conn.commit()
@@ -95,7 +98,7 @@ class WithdrawalController:
             async with conn.cursor() as cursor:
                 await cursor.execute(
                     """
-                    SELECT w.id, w.tenant_id, t.business_name, w.wallet_id, w.amount, w.mobile_money_number,
+                    SELECT w.id, w.tenant_id, t.business_name, w.wallet_id, w.amount, w.commission, w.mobile_money_number,
                            w.payout_provider, w.transaction_reference, w.status, w.created_at
                     FROM withdrawals w
                     LEFT JOIN tenants t ON t.id = w.tenant_id
@@ -107,9 +110,9 @@ class WithdrawalController:
                 for row in rows:
                     result.append({
                         "id": row[0], "tenant_id": row[1], "business_name": row[2],
-                        "wallet_id": row[3], "amount": float(row[4]), "mobile_money_number": row[5],
-                        "payout_provider": row[6], "transaction_reference": row[7],
-                        "status": row[8], "created_at": row[9],
+                        "wallet_id": row[3], "amount": float(row[4]), "commission": float(row[5] or 0), "mobile_money_number": row[6],
+                        "payout_provider": row[7], "transaction_reference": row[8],
+                        "status": row[9], "created_at": row[10],
                     })
                 return result
         finally:
@@ -120,7 +123,7 @@ class WithdrawalController:
         try:
             async with conn.cursor() as cursor:
                 await cursor.execute(
-                    "SELECT id, tenant_id, wallet_id, amount, mobile_money_number, payout_provider, transaction_reference, status, created_at FROM withdrawals WHERE tenant_id = %s ORDER BY created_at DESC;",
+                    "SELECT id, tenant_id, wallet_id, amount, commission, mobile_money_number, payout_provider, transaction_reference, status, created_at FROM withdrawals WHERE tenant_id = %s ORDER BY created_at DESC;",
                     (tenant_id,)
                 )
                 rows = await cursor.fetchall()
@@ -128,9 +131,9 @@ class WithdrawalController:
                 for row in rows:
                     result.append({
                         "id": row[0], "tenant_id": row[1], "wallet_id": row[2],
-                        "amount": float(row[3]), "mobile_money_number": row[4],
-                        "payout_provider": row[5], "transaction_reference": row[6],
-                        "status": row[7], "created_at": row[8]
+                        "amount": float(row[3]), "commission": float(row[4] or 0), "mobile_money_number": row[5],
+                        "payout_provider": row[6], "transaction_reference": row[7],
+                        "status": row[8], "created_at": row[9]
                     })
                 return result
         finally:

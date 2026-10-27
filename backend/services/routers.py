@@ -181,6 +181,7 @@ class RouterService:
                         "branch_id": row[2],
                         "ip_address": str(row[3]) if row[3] else None,
                         "driver_type": row[4],
+                        "phone_number": row[5],
                     }
 
                 return None

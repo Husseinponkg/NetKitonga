@@ -169,6 +169,7 @@ CREATE TABLE withdrawals (
     wallet_id INT NOT NULL REFERENCES tenant_wallets(id) ON DELETE CASCADE,
     
     amount DECIMAL(10, 2) NOT NULL,
+    commission DECIMAL(10, 2) DEFAULT 0.00,
     mobile_money_number VARCHAR(30) NOT NULL,
     payout_provider VARCHAR(50) NOT NULL,    -- 'Vodacom M-Pesa', 'AirtelMoney'
     transaction_reference VARCHAR(150) NULL, -- Cleared by Admin on execution

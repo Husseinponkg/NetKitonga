@@ -429,13 +429,14 @@ function Admin() {
                         <h2>Withdrawals</h2>
                         {withdrawals.length === 0 ? <p>No withdrawals found.</p> : (
                             <table>
-                                <thead><tr><th>ID</th><th>Tenant</th><th>Amount</th><th>Provider</th><th>Number</th><th>Status</th><th>Actions</th></tr></thead>
+                                <thead><tr><th>ID</th><th>Tenant</th><th>Amount</th><th>Commission (2%)</th><th>Provider</th><th>Number</th><th>Status</th><th>Actions</th></tr></thead>
                                 <tbody>
                                     {withdrawals.map((w) => (
                                         <tr key={w.id}>
                                             <td>{w.id}</td>
                                             <td>{w.business_name || w.tenant_id}</td>
                                             <td>{w.amount}</td>
+                                            <td>{w.commission}</td>
                                             <td>{w.payout_provider}</td>
                                             <td>{w.mobile_money_number}</td>
                                             <td>{w.status}</td>

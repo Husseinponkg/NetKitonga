@@ -191,9 +191,10 @@ class RouterController:
                     SELECT r.id, r.tenant_id, r.branch_id, b.branch_name, r.router_name, r.driver_type,
                            r.nas_identifier, r.radius_secret, r.gw_id, r.mac_address, r.ip_address,
                            r.is_licensed, r.status, r.last_heartbeat_at,
-                           b.router_username, b.router_password
+                           b.router_username, b.router_password, t.phone_number
                     FROM routers r
                     LEFT JOIN branches b ON b.id = r.branch_id
+                    LEFT JOIN tenants t ON t.id = r.tenant_id
                     WHERE r.tenant_id = %s
                     ORDER BY r.id
                 """, (tenant_id,))

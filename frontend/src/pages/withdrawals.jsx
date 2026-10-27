@@ -1213,6 +1213,9 @@ function Withdrawals() {
                                         </select>
                                     </div>
 
+                                    <p style={{ fontSize: "0.75rem", color: "#808080", marginBottom: 8 }}>
+                                        System support deducts a 2% commission from every withdrawal. Minimum withdrawal amount is 2000 TZS.
+                                    </p>
                                     <button
                                         type="submit"
                                         disabled={submitting}

@@ -1532,6 +1532,12 @@ function Routers() {
                                                     <span className="detail-value">{router.gw_id}</span>
                                                 </div>
                                             )}
+                                            {router.driver_type === "wifidog_http" && router.phone_number && (
+                                                <div className="detail-row">
+                                                    <strong>Phone</strong>
+                                                    <span className="detail-value">{router.phone_number}</span>
+                                                </div>
+                                            )}
                                             <div className="detail-row">
                                                 <strong>Branch</strong>
                                                 <span className="detail-value">{router.branch_name || "-"}</span>
