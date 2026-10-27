@@ -186,3 +186,22 @@ async def list_sessions():
 async def terminate_session(payload: SessionTerminateRequest):
     return await admin_controller.terminate_session(payload.session_id)
 
+@router.post("/tenants/status")
+async def update_tenant_status_post(payload: TenantUpdateRequest):
+    return await admin_controller.update_tenant_status(payload.tenant_id, payload.status)
+
+@router.post("/routers/status")
+async def update_router_status_post(payload: RouterUpdateRequest):
+    return await admin_controller.update_router_status(payload.router_id, payload.status)
+
+@router.post("/packages/status")
+async def update_package_status_post(payload: PackageUpdateRequest):
+    return await admin_controller.update_package_status(payload.package_id, payload.status)
+
+@router.post("/vouchers/status")
+async def update_voucher_status_post(payload: VoucherUpdateRequest):
+    return await admin_controller.update_voucher_status(payload.voucher_id, payload.status)
+
+@router.post("/payments/status")
+async def update_payment_status_post(payload: PaymentUpdateRequest):
+    return await admin_controller.update_payment_status(payload.payment_id, payload.status)
