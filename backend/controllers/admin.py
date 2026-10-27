@@ -240,7 +240,7 @@ class AdminController:
         try:
             async with conn.cursor() as cursor:
                 await cursor.execute("""
-                    SELECT id, business_name, system_name, email, created_at
+                    SELECT id, business_name, system_name, email, status, created_at
                     FROM tenants
                     ORDER BY created_at DESC;
                 """)

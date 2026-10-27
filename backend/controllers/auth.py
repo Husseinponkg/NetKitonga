@@ -18,8 +18,8 @@ class AuthController:
 
                 hashed_password = hashpw(password.encode("utf-8"), gensalt()).decode("utf-8")
                 await cursor.execute(
-                    "INSERT INTO tenants (business_name, system_name, email, password_hash, phone_number) VALUES (%s, %s, %s, %s, %s)",
-                    (business_name, system_name, email, hashed_password, phone_number)
+                    "INSERT INTO tenants (business_name, system_name, email, password_hash, phone_number, status) VALUES (%s, %s, %s, %s, %s, %s)",
+                    (business_name, system_name, email, hashed_password, phone_number, "pending")
                 )
 
             await conn.commit()
@@ -32,7 +32,7 @@ class AuthController:
         try:
             async with conn.cursor() as cursor:
                 await cursor.execute(
-                    "SELECT id, email, password_hash, business_name, phone_number FROM tenants WHERE email = %s",
+                    "SELECT id, email, password_hash, business_name, phone_number, status FROM tenants WHERE email = %s",
                     (email,)
                 )
                 user = await cursor.fetchone()
@@ -40,7 +40,10 @@ class AuthController:
                 if not user:
                     return {"message": "Invalid email or password"}
 
-                user_id, user_email, stored_hash, business_name, phone_number = user
+                user_id, user_email, stored_hash, business_name, phone_number, status = user
+
+                if str(status or "").lower() != "active":
+                    return {"message": "Account pending admin approval"}
 
                 try:
                     password_valid = checkpw(password.encode("utf-8"), stored_hash.encode("utf-8"))
