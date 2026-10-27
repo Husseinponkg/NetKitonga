@@ -569,6 +569,100 @@ class TplinkController:
             await conn.close()
 
     # ============================================================
+    # PROCESS TP-LINK HEARTBEAT
+    # ============================================================
+
+    async def process_heartbeat(self, identifier: str) -> Dict[str, Any]:
+        """Record a heartbeat for a registered TP-Link device.
+
+        `identifier` may be the configured NAS-Identifier or the TP-Link
+        row ID. This endpoint only records a heartbeat when a caller invokes
+        it; standalone EAP firmware does not automatically call this API.
+        """
+        cleaned_identifier = str(identifier or "").strip()
+        if not cleaned_identifier:
+            raise HTTPException(status_code=400, detail="A NAS ID or TP-Link ID is required.")
+
+        conn = await connection()
+        try:
+            async with conn.cursor() as cursor:
+                # Prefer exact NAS-Identifier lookup. If the value is numeric
+                # and no NAS ID matches, allow it to identify the TP-Link row.
+                await cursor.execute(
+                    """
+                    SELECT id, router_id, nas_identifier
+                    FROM tplink
+                    WHERE LOWER(TRIM(COALESCE(nas_identifier, ''))) = LOWER(%s)
+                    ORDER BY id
+                    LIMIT 1;
+                    """,
+                    (cleaned_identifier,),
+                )
+                device = await cursor.fetchone()
+
+                if not device and cleaned_identifier.isdigit():
+                    await cursor.execute(
+                        """
+                        SELECT id, router_id, nas_identifier
+                        FROM tplink
+                        WHERE id = %s
+                        LIMIT 1;
+                        """,
+                        (int(cleaned_identifier),),
+                    )
+                    device = await cursor.fetchone()
+
+                if not device:
+                    raise HTTPException(
+                        status_code=404,
+                        detail="No registered TP-Link device matches this NAS ID or device ID.",
+                    )
+
+                tplink_id, linked_router_id, nas_identifier = device
+
+                await cursor.execute(
+                    """
+                    UPDATE tplink
+                    SET status = 'online', last_heartbeat_at = CURRENT_TIMESTAMP
+                    WHERE id = %s;
+                    """,
+                    (tplink_id,),
+                )
+
+                # The dashboard uses the linked routers row for status, so
+                # keep it synchronized with the TP-Link device heartbeat.
+                if linked_router_id is not None:
+                    await cursor.execute(
+                        """
+                        UPDATE routers
+                        SET status = 'online', last_heartbeat_at = CURRENT_TIMESTAMP
+                        WHERE id = %s AND driver_type = 'tplink_radius';
+                        """,
+                        (linked_router_id,),
+                    )
+
+                await conn.commit()
+                return {
+                    "message": "TP-Link heartbeat recorded.",
+                    "tplink_id": tplink_id,
+                    "router_id": linked_router_id,
+                    "nas_identifier": nas_identifier,
+                    "status": "online",
+                }
+
+        except HTTPException:
+            await conn.rollback()
+            raise
+        except Exception as exc:
+            await conn.rollback()
+            raise HTTPException(
+                status_code=500,
+                detail=f"Failed to record TP-Link heartbeat: {str(exc)}",
+            )
+        finally:
+            await conn.close()
+
+    # ============================================================
     # GET TP-LINK STATUS
     # ============================================================
 

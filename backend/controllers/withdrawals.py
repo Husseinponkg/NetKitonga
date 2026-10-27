@@ -70,42 +70,15 @@ class WithdrawalController:
                     raise HTTPException(status_code=400, detail="Insufficient wallet balance for this withdrawal.")
 
                 external_reference = f"NETKITONGA-WD-{secrets.token_hex(8).upper()}"
-                transaction_reference = external_reference
-                try:
-                    disbursement = DisbursementService().send(
-                        data.amount,
-                        data.mobile_money_number,
-                        data.payout_provider,
-                        external_reference,
-                    )
-                    transaction_reference = disbursement.get("pgReferenceId") or external_reference
-                except Exception as disb_error:
-                    # Do not block the withdrawal request if the payout provider
-                    # is unavailable; keep it pending for manual processing.
-                    print(f"Disbursement provider unavailable: {disb_error}")
                 await cursor.execute(
                     """
-                    INSERT INTO withdrawals (tenant_id, wallet_id, amount, mobile_money_number, payout_provider, status)
-                    VALUES (%s, %s, %s, %s, %s, 'pending')
+                    INSERT INTO withdrawals (tenant_id, wallet_id, amount, mobile_money_number, payout_provider, status, transaction_reference)
+                    VALUES (%s, %s, %s, %s, %s, 'pending', %s)
                     RETURNING id;
                     """,
-                    (tenant_id, wallet_id, data.amount, data.mobile_money_number, data.payout_provider)
+                    (tenant_id, wallet_id, data.amount, data.mobile_money_number, data.payout_provider, external_reference)
                 )
                 new_id = (await cursor.fetchone())[0]
-                await cursor.execute(
-                    "UPDATE withdrawals SET transaction_reference = %s WHERE id = %s;",
-                    (transaction_reference, new_id),
-                )
-
-                await cursor.execute(
-                    """
-                    UPDATE tenant_wallets
-                    SET total_withdrawn = total_withdrawn + %s,
-                        current_balance = %s
-                    WHERE id = %s;
-                    """,
-                    (data.amount, available_cash_balance(mobile_money_earned, total_withdrawn + data.amount), wallet_id)
-                )
                 await conn.commit()
                 return {"message": "Withdrawal request submitted successfully.", "withdrawal_id": new_id}
         except HTTPException:
@@ -113,6 +86,32 @@ class WithdrawalController:
         except Exception as e:
             await conn.rollback()
             raise HTTPException(status_code=500, detail=f"Withdrawal request failed: {str(e)}")
+        finally:
+            await conn.close()
+
+    async def get_all_withdrawals(self) -> List[Dict[str, Any]]:
+        conn = await connection()
+        try:
+            async with conn.cursor() as cursor:
+                await cursor.execute(
+                    """
+                    SELECT w.id, w.tenant_id, t.business_name, w.wallet_id, w.amount, w.mobile_money_number,
+                           w.payout_provider, w.transaction_reference, w.status, w.created_at
+                    FROM withdrawals w
+                    LEFT JOIN tenants t ON t.id = w.tenant_id
+                    ORDER BY w.created_at DESC;
+                    """
+                )
+                rows = await cursor.fetchall()
+                result = []
+                for row in rows:
+                    result.append({
+                        "id": row[0], "tenant_id": row[1], "business_name": row[2],
+                        "wallet_id": row[3], "amount": float(row[4]), "mobile_money_number": row[5],
+                        "payout_provider": row[6], "transaction_reference": row[7],
+                        "status": row[8], "created_at": row[9],
+                    })
+                return result
         finally:
             await conn.close()
 
@@ -142,8 +141,31 @@ class WithdrawalController:
         try:
             async with conn.cursor() as cursor:
                 await cursor.execute(
-                    "UPDATE withdrawals SET status = %s, transaction_reference = %s WHERE id = %s RETURNING id;",
-                    (data.status, data.transaction_reference, data.withdrawal_id)
+                    "SELECT id, wallet_id, amount, status FROM withdrawals WHERE id = %s FOR UPDATE;",
+                    (data.withdrawal_id,),
+                )
+                row = await cursor.fetchone()
+                if not row:
+                    raise HTTPException(status_code=404, detail="Withdrawal record not found.")
+
+                withdrawal_id, wallet_id, amount, current_status = row
+                amount = float(amount or 0)
+
+                if str(data.status).lower() in ("approved", "paid") and current_status not in ("approved", "paid"):
+                    await cursor.execute(
+                        "UPDATE tenant_wallets SET total_withdrawn = total_withdrawn + %s, current_balance = current_balance - %s WHERE id = %s;",
+                        (amount, amount, wallet_id),
+                    )
+
+                if str(data.status).lower() == "rejected" and current_status in ("approved", "paid"):
+                    await cursor.execute(
+                        "UPDATE tenant_wallets SET total_withdrawn = total_withdrawn - %s, current_balance = current_balance + %s WHERE id = %s;",
+                        (amount, amount, wallet_id),
+                    )
+
+                await cursor.execute(
+                    "UPDATE withdrawals SET status = %s, transaction_reference = COALESCE(%s, transaction_reference) WHERE id = %s RETURNING id;",
+                    (data.status, data.transaction_reference, data.withdrawal_id),
                 )
                 updated = await cursor.fetchone()
                 if not updated:

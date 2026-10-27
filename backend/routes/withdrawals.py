@@ -20,6 +20,11 @@ async def get_withdrawal_history(tenant_id: int = Query(...)) -> list:
     controller = WithdrawalController()
     return await controller.get_tenant_withdrawals(tenant_id)
 
+@router.get("/all")
+async def get_all_withdrawals() -> list:
+    controller = WithdrawalController()
+    return await controller.get_all_withdrawals()
+
 @router.put("/update")
 async def update_withdrawal_status(data: WithdrawalUpdate) -> dict:
     controller = WithdrawalController()

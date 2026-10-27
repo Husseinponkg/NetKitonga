@@ -9,6 +9,7 @@ const SECTIONS = [
     { key: "packages", label: "Packages" },
     { key: "vouchers", label: "Vouchers" },
     { key: "payments", label: "Payments" },
+    { key: "withdrawals", label: "Withdrawals" },
     { key: "sessions", label: "Sessions" },
     { key: "logs", label: "System Logs" },
     { key: "admins", label: "Admins" },
@@ -24,6 +25,7 @@ function Admin() {
     const [packages, setPackages] = useState([]);
     const [vouchers, setVouchers] = useState([]);
     const [payments, setPayments] = useState([]);
+    const [withdrawals, setWithdrawals] = useState([]);
     const [sessions, setSessions] = useState([]);
     const [admins, setAdmins] = useState([]);
     const [loading, setLoading] = useState(false);
@@ -40,6 +42,7 @@ function Admin() {
         else if (section === "packages") loadPackages();
         else if (section === "vouchers") loadVouchers();
         else if (section === "payments") loadPayments();
+        else if (section === "withdrawals") loadWithdrawals();
         else if (section === "sessions") loadSessions();
         else if (section === "admins") loadAdmins();
     }, [section]);
@@ -125,6 +128,18 @@ function Admin() {
         try {
             const res = await fetch(`${API_BASE_URL}/admin/payments`);
             if (res.ok) setPayments(await res.json());
+        } catch (err) {
+            setMessage(err.message);
+        } finally {
+            setLoading(false);
+        }
+    };
+
+    const loadWithdrawals = async () => {
+        setLoading(true);
+        try {
+            const res = await fetch(`${API_BASE_URL}/withdrawals/all`);
+            if (res.ok) setWithdrawals(await res.json());
         } catch (err) {
             setMessage(err.message);
         } finally {
@@ -405,6 +420,39 @@ function Admin() {
                                 </tbody>
                             </table>
                             </div>
+                        )}
+                    </div>
+                )}
+
+                {section === "withdrawals" && (
+                    <div>
+                        <h2>Withdrawals</h2>
+                        {withdrawals.length === 0 ? <p>No withdrawals found.</p> : (
+                            <table>
+                                <thead><tr><th>ID</th><th>Tenant</th><th>Amount</th><th>Provider</th><th>Number</th><th>Status</th><th>Actions</th></tr></thead>
+                                <tbody>
+                                    {withdrawals.map((w) => (
+                                        <tr key={w.id}>
+                                            <td>{w.id}</td>
+                                            <td>{w.business_name || w.tenant_id}</td>
+                                            <td>{w.amount}</td>
+                                            <td>{w.payout_provider}</td>
+                                            <td>{w.mobile_money_number}</td>
+                                            <td>{w.status}</td>
+                                            <td>
+                                                <button onClick={async () => {
+                                                    await fetch(`${API_BASE_URL}/withdrawals/update`, { method: "PUT", headers: {"Content-Type":"application/json"}, body: JSON.stringify({ withdrawal_id: w.id, status: "approved", transaction_reference: w.transaction_reference }) });
+                                                    loadWithdrawals();
+                                                }}>Approve</button>
+                                                <button onClick={async () => {
+                                                    await fetch(`${API_BASE_URL}/withdrawals/update`, { method: "PUT", headers: {"Content-Type":"application/json"}, body: JSON.stringify({ withdrawal_id: w.id, status: "rejected", transaction_reference: w.transaction_reference }) });
+                                                    loadWithdrawals();
+                                                }}>Reject</button>
+                                            </td>
+                                        </tr>
+                                    ))}
+                                </tbody>
+                            </table>
                         )}
                     </div>
                 )}
