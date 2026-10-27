@@ -339,7 +339,7 @@ function Admin() {
                                 <tbody>
                                     {tenants.map((t) => (
                                         <tr key={t.id}><td>{t.id}</td><td>{t.business_name}</td><td>{t.system_name}</td><td>{t.email}</td><td>{t.status || "pending"}</td><td>{new Date(t.created_at).toLocaleDateString()}</td>
-                                        <td><button className="btn btn-ghost" onClick={() => handleAction(`/admin/tenants/status`, { body: { tenant_id: t.id, status: "active" } }, { refresh: loadTenants })}>Activate</button> <button className="btn btn-ghost" onClick={() => handleAction(`/admin/tenants/status`, { body: { tenant_id: t.id, status: "suspended" } }, { refresh: loadTenants })}>Suspend</button> <button className="btn btn-ghost" onClick={() => handleAction(`/admin/tenants/${t.id}`, { method: "DELETE" }, { refresh: loadTenants })}>Delete</button></td></tr>
+                                        <td><button className="btn btn-ghost" onClick={() => handleAction(`/admin/tenants/status`, { method: "PUT", body: { tenant_id: t.id, status: "active" } }, { refresh: loadTenants })}>Activate</button> <button className="btn btn-ghost" onClick={() => handleAction(`/admin/tenants/status`, { method: "PUT", body: { tenant_id: t.id, status: "suspended" } }, { refresh: loadTenants })}>Suspend</button> <button className="btn btn-ghost" onClick={() => handleAction(`/admin/tenants/${t.id}`, { method: "DELETE" }, { refresh: loadTenants })}>Delete</button></td></tr>
                                     ))}
                                 </tbody>
                             </table>
@@ -358,7 +358,7 @@ function Admin() {
                                 <tbody>
                                     {routers.map((r) => (
                                         <tr key={r.id}><td>{r.id}</td><td>{r.business_name}</td><td>{r.router_name}</td><td>{r.ip_address}</td><td>{r.status}</td>
-                                        <td><button className="btn btn-ghost" onClick={() => handleAction(`/admin/routers/status`, { body: { router_id: r.id, status: "online" } }, { refresh: loadRouters })}>Online</button> <button className="btn btn-ghost" onClick={() => handleAction(`/admin/routers/status`, { body: { router_id: r.id, status: "offline" } }, { refresh: loadRouters })}>Offline</button> <button className="btn btn-ghost" onClick={() => handleAction(`/admin/routers/${r.id}`, { method: "DELETE" }, { refresh: loadRouters })}>Delete</button></td></tr>
+                                        <td><button className="btn btn-ghost" onClick={() => handleAction(`/admin/routers/status`, { method: "PUT", body: { router_id: r.id, status: "online" } }, { refresh: loadRouters })}>Online</button> <button className="btn btn-ghost" onClick={() => handleAction(`/admin/routers/status`, { method: "PUT", body: { router_id: r.id, status: "offline" } }, { refresh: loadRouters })}>Offline</button> <button className="btn btn-ghost" onClick={() => handleAction(`/admin/routers/${r.id}`, { method: "DELETE" }, { refresh: loadRouters })}>Delete</button></td></tr>
                                     ))}
                                 </tbody>
                             </table>
@@ -377,7 +377,7 @@ function Admin() {
                                 <tbody>
                                     {packages.map((p) => (
                                         <tr key={p.id}><td>{p.id}</td><td>{p.business_name}</td><td>{p.package_name}</td><td>{fmt(p.price)}</td><td>{p.status}</td>
-                                        <td><button className="btn btn-ghost" onClick={() => handleAction(`/admin/packages/status`, { body: { package_id: p.id, status: "active" } }, { refresh: loadPackages })}>Activate</button> <button className="btn btn-ghost" onClick={() => handleAction(`/admin/packages/status`, { body: { package_id: p.id, status: "inactive" } }, { refresh: loadPackages })}>Disable</button> <button className="btn btn-ghost" onClick={() => handleAction(`/admin/packages/${p.id}`, { method: "DELETE" }, { refresh: loadPackages })}>Delete</button></td></tr>
+                                        <td><button className="btn btn-ghost" onClick={() => handleAction(`/admin/packages/status`, { method: "PUT", body: { package_id: p.id, status: "active" } }, { refresh: loadPackages })}>Activate</button> <button className="btn btn-ghost" onClick={() => handleAction(`/admin/packages/status`, { method: "PUT", body: { package_id: p.id, status: "inactive" } }, { refresh: loadPackages })}>Disable</button> <button className="btn btn-ghost" onClick={() => handleAction(`/admin/packages/${p.id}`, { method: "DELETE" }, { refresh: loadPackages })}>Delete</button></td></tr>
                                     ))}
                                 </tbody>
                             </table>
@@ -396,7 +396,7 @@ function Admin() {
                                 <tbody>
                                     {vouchers.map((v) => (
                                         <tr key={v.id}><td>{v.id}</td><td>{v.business_name}</td><td>{v.package_name}</td><td>{v.code}</td><td>{v.status}</td>
-                                        <td><button className="btn btn-ghost" onClick={() => handleAction(`/admin/vouchers/status`, { body: { voucher_id: v.id, status: "used" } }, { refresh: loadVouchers })}>Mark Used</button> <button className="btn btn-ghost" onClick={() => handleAction(`/admin/vouchers/${v.id}`, { method: "DELETE" }, { refresh: loadVouchers })}>Delete</button></td></tr>
+                                        <td><button className="btn btn-ghost" onClick={() => handleAction(`/admin/vouchers/status`, { method: "PUT", body: { voucher_id: v.id, status: "used" } }, { refresh: loadVouchers })}>Mark Used</button> <button className="btn btn-ghost" onClick={() => handleAction(`/admin/vouchers/${v.id}`, { method: "DELETE" }, { refresh: loadVouchers })}>Delete</button></td></tr>
                                     ))}
                                 </tbody>
                             </table>
@@ -415,7 +415,7 @@ function Admin() {
                                 <tbody>
                                     {payments.map((p) => (
                                         <tr key={p.id}><td>{p.id}</td><td>{p.business_name}</td><td>{fmt(p.amount)}</td><td>{p.payment_gateway}</td><td>{p.pg_transaction_id || 'N/A'}</td><td>{p.status}</td>
-                                        <td><button className="btn btn-ghost" onClick={() => handleAction(`/admin/payments/status`, { body: { payment_id: p.id, status: "completed" } }, { refresh: loadPayments })}>Complete</button> <button className="btn btn-ghost" onClick={() => handleAction(`/admin/payments/status`, { body: { payment_id: p.id, status: "failed" } }, { refresh: loadPayments })}>Fail</button></td></tr>
+                                        <td><button className="btn btn-ghost" onClick={() => handleAction(`/admin/payments/status`, { method: "PUT", body: { payment_id: p.id, status: "completed" } }, { refresh: loadPayments })}>Complete</button> <button className="btn btn-ghost" onClick={() => handleAction(`/admin/payments/status`, { method: "PUT", body: { payment_id: p.id, status: "failed" } }, { refresh: loadPayments })}>Fail</button></td></tr>
                                     ))}
                                 </tbody>
                             </table>
