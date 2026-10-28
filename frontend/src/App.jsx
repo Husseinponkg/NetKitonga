@@ -1,13 +1,15 @@
 import React, { useState, useEffect } from "react";
-import { BrowserRouter, Routes, Route, Navigate } from "react-router-dom";
-import { getStoredTenantUser, hasValidTenantSession } from "./session";
+import { BrowserRouter, Routes, Route, Navigate, useNavigate } from "react-router-dom";
+import { getStoredTenantUser, hasValidTenantSession, getTenantId } from "./session";
 import Login from "./log";
 import Register from "./reg";
+import { API_BASE_URL } from "./api";
 import Layout from "./components/Layout";
 import Dashboard from "./pages/dashboard";
 import Branch from "./pages/branch";
 import Routers from "./pages/routers";
 import Tplink from "./pages/tplink";
+import Subscription from "./pages/subscription";
 import PackagesDashboard from "./pages/packages";
 import Customers from "./pages/customers";
 import Payments from "./pages/payments";
@@ -56,10 +58,30 @@ class ErrorBoundary extends React.Component {
 
 function ProtectedRoute({ children }) {
   const user = getStoredTenantUser();
+  const navigate = useNavigate();
+  const [checking, setChecking] = useState(true);
+  const [allowed, setAllowed] = useState(true);
   console.log("[ProtectedRoute]", { path: window.location.pathname, hasUser: !!user, valid: hasValidTenantSession() });
   if (!user || !hasValidTenantSession()) {
     return <Navigate to="/" replace />;
   }
+  useEffect(() => {
+    if (window.location.pathname === "/subscription") { setChecking(false); return; }
+    const tenantId = getTenantId();
+    if (!tenantId) { setChecking(false); return; }
+    fetch(`${API_BASE_URL}/subscriptions/status?tenant_id=${tenantId}`)
+      .then((r) => r.json())
+      .then((d) => {
+        if (!d.active) {
+          navigate("/subscription", { replace: true });
+          setAllowed(false);
+        }
+      })
+      .catch(() => {})
+      .finally(() => setChecking(false));
+  }, []);
+  if (checking) return null;
+  if (!allowed && window.location.pathname !== "/subscription") return null;
   return <Layout>{children}</Layout>;
 }
 
@@ -81,6 +103,7 @@ function App() {
           <Route path="/branch" element={<ProtectedRoute><Branch /></ProtectedRoute>} />
           <Route path="/routers" element={<ProtectedRoute><Routers /></ProtectedRoute>} />
           <Route path="/tplink" element={<ProtectedRoute><Tplink /></ProtectedRoute>} />
+          <Route path="/subscription" element={<ProtectedRoute><Subscription /></ProtectedRoute>} />
           <Route path="/packages" element={<ProtectedRoute><PackagesDashboard /></ProtectedRoute>} />
           <Route path="/vouchers" element={<ProtectedRoute><Vouchers /></ProtectedRoute>} />
           <Route path="/customers" element={<ProtectedRoute><Customers /></ProtectedRoute>} />

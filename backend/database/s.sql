@@ -20,6 +20,10 @@ CREATE TABLE tenants (
     password_hash VARCHAR(255) NOT NULL,
     phone_number VARCHAR(30),
     status VARCHAR(20) DEFAULT 'active',
+    subscription_status VARCHAR(20) DEFAULT 'pending',
+    subscription_expires_at TIMESTAMP NULL,
+    subscription_reference VARCHAR(150) NULL,
+    subscription_auth_token VARCHAR(255) NULL,
     created_at TIMESTAMP DEFAULT CURRENT_TIMESTAMP
 );
 
@@ -280,3 +284,4 @@ CREATE TABLE IF NOT EXISTS tplink (
 );
 CREATE INDEX IF NOT EXISTS idx_tplink_tenant_id ON tplink(tenant_id);
 CREATE INDEX IF NOT EXISTS idx_tplink_router_id ON tplink(router_id);
+
