@@ -72,16 +72,44 @@ class WithdrawalController:
                     raise HTTPException(status_code=400, detail="Insufficient wallet balance for this withdrawal.")
 
                 external_reference = f"NETKITONGA-WD-{secrets.token_hex(8).upper()}"
-                commission = round(float(data.amount) * 0.02, 2)
+                commission = round(float(data.amount) * 0.035, 2)
+                transaction_reference = external_reference
+                disbursement_ok = False
+                try:
+                    net_payout = round(float(data.amount) - commission, 2)
+                    disbursement = DisbursementService().send(
+                        net_payout,
+                        data.mobile_money_number,
+                        data.payout_provider,
+                        external_reference,
+                    )
+                    transaction_reference = disbursement.get("pgReferenceId") or external_reference
+                    disbursement_ok = True
+                except Exception as disb_error:
+                    print(f"Disbursement provider unavailable: {disb_error}")
+
+                initial_status = 'approved' if disbursement_ok else 'pending'
                 await cursor.execute(
                     """
                     INSERT INTO withdrawals (tenant_id, wallet_id, amount, commission, mobile_money_number, payout_provider, status, transaction_reference)
-                    VALUES (%s, %s, %s, %s, %s, %s, 'pending', %s)
+                    VALUES (%s, %s, %s, %s, %s, %s, %s, %s)
                     RETURNING id;
                     """,
-                    (tenant_id, wallet_id, data.amount, commission, data.mobile_money_number, data.payout_provider, external_reference)
+                    (tenant_id, wallet_id, data.amount, commission, data.mobile_money_number, data.payout_provider, initial_status, transaction_reference)
                 )
                 new_id = (await cursor.fetchone())[0]
+
+                # Deduct balance only when disbursement succeeded; otherwise keep pending for manual processing.
+                if disbursement_ok:
+                    await cursor.execute(
+                        """
+                        UPDATE tenant_wallets
+                        SET total_withdrawn = total_withdrawn + %s,
+                            current_balance = current_balance - %s
+                        WHERE id = %s;
+                        """,
+                        (data.amount, data.amount, wallet_id)
+                    )
                 await conn.commit()
                 return {"message": "Withdrawal request submitted successfully.", "withdrawal_id": new_id}
         except HTTPException:

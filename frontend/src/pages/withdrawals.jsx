@@ -1214,7 +1214,7 @@ function Withdrawals() {
                                     </div>
 
                                     <p style={{ fontSize: "0.75rem", color: "#808080", marginBottom: 8 }}>
-                                        System support deducts a 2% commission from every withdrawal. Minimum withdrawal amount is 2000 TZS.
+                                        System support deducts a 3.5% commission from every withdrawal (AzamPesa 1.1% + system 2.4%). Minimum withdrawal amount is 2000 TZS.
                                     </p>
                                     <button
                                         type="submit"
