@@ -41,14 +41,14 @@ class SubscriptionController:
                 if not await cursor.fetchone():
                     raise HTTPException(status_code=404, detail="Tenant not found.")
 
-            external_id = f"NETKITONGA-SUB-{secrets.token_hex(8).upper()}"
-            auth_token = secrets.token_urlsafe(32)
+                external_id = f"NETKITONGA-SUB-{secrets.token_hex(8).upper()}"
+                auth_token = secrets.token_urlsafe(32)
 
-            await cursor.execute(
-                "UPDATE tenants SET subscription_reference = %s, subscription_auth_token = %s, subscription_status = 'pending' WHERE id = %s;",
-                (external_id, auth_token, tenant_id),
-            )
-            await conn.commit()
+                await cursor.execute(
+                    "UPDATE tenants SET subscription_reference = %s, subscription_auth_token = %s, subscription_status = 'pending' WHERE id = %s;",
+                    (external_id, auth_token, tenant_id),
+                )
+                await conn.commit()
 
             # AzamPay checkout
             payment_service = PaymentService()
