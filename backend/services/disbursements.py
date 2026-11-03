@@ -12,6 +12,10 @@ class DisbursementService:
             "AZAMPAY_DISBURSEMENT_URL",
             "https://api-disbursement-sandbox.azampay.co.tz/api/v1/azampay/disburse",
         )
+        self.app_name = os.getenv("AZAMPAY_DISBURSEMENT_APP_NAME", os.getenv("AZAMPAY_APP_NAME"))
+        self.client_id = os.getenv("AZAMPAY_DISBURSEMENT_CLIENT_ID", os.getenv("AZAMPAY_CLIENT_ID"))
+        self.client_secret = os.getenv("AZAMPAY_DISBURSEMENT_CLIENT_SECRET", os.getenv("AZAMPAY_CLIENT_SECRET"))
+        self.api_key = os.getenv("AZAMPAY_DISBURSEMENT_API_KEY", os.getenv("AZAMPAY_API_KEY", os.getenv("AZAMPAY_TOKEN")))
         self.source_country = os.getenv("AZAMPAY_SOURCE_COUNTRY_CODE", "TZ")
         self.source_name = os.getenv("AZAMPAY_SOURCE_FULL_NAME")
         self.source_bank = os.getenv("AZAMPAY_SOURCE_BANK_NAME")
@@ -39,9 +43,48 @@ class DisbursementService:
         }
         return providers.get(provider, provider.lower())
 
+    def _get_bearer_token(self) -> str:
+        import requests as _requests
+        payload = {
+            "appName": self.app_name,
+            "clientId": self.client_id,
+            "clientSecret": self.client_secret,
+        }
+        headers = {"Content-Type": "application/json", "Accept": "application/json"}
+        auth_url = os.getenv("AZAMPAY_AUTH_URL", "https://authenticator.azampay.co.tz/AppRegistration/GenerateToken")
+        # Use disbursement auth URL if provided
+        auth_url = os.getenv("AZAMPAY_DISBURSEMENT_AUTH_URL", auth_url)
+        response = _requests.post(auth_url, json=payload, headers=headers, timeout=10)
+        if response.status_code != 200:
+            raise HTTPException(status_code=502, detail=f"Disbursement auth failed: {response.text[:200]}")
+        body = response.json()
+        token = body.get("token") or body.get("accessToken")
+        data = body.get("data")
+        if isinstance(data, dict):
+            token = token or data.get("token") or data.get("accessToken")
+        if not token:
+            raise HTTPException(status_code=502, detail="Disbursement auth returned no token.")
+        return str(token)
+
+    def _generate_checksum(self, source_account: str, dest_account: str, currency: str, amount: float, external_reference: str) -> str:
+        import time, base64, hashlib
+        from cryptography.hazmat.primitives.asymmetric import padding as asym_padding
+        from cryptography.hazmat.primitives import serialization, hashes
+        from pathlib import Path
+        # Load public key from file
+        key_path = Path(__file__).resolve().parent.parent / "azampay_public.pem"
+        if not key_path.exists():
+            key_path = Path(os.getenv("AZAMPAY_PUBLIC_KEY_PATH", "azampay_public.pem"))
+        public_key = serialization.load_pem_public_key(key_path.read_bytes())
+        epoch = int(time.time())
+        input_string = f"{source_account}{dest_account}{currency}{int(amount)}{epoch}{external_reference}"
+        sha512_hash = hashlib.sha512(input_string.encode("utf-8")).digest()
+        encrypted = public_key.encrypt(sha512_hash, asym_padding.PKCS1v15())
+        return base64.b64encode(encrypted).decode("utf-8")
+
     def send(self, amount: float, phone_number: str, provider: str, reference: str) -> Dict[str, Any]:
         self._validate_configuration()
-        token = PaymentService()._get_bearer_token()
+        token = self._get_bearer_token()
         payload = {
             "source": {
                 "countryCode": self.source_country,
@@ -68,11 +111,19 @@ class DisbursementService:
         }
         if self.checksum:
             payload["checksum"] = self.checksum
+        else:
+            payload["checksum"] = self._generate_checksum(
+                self.source_account,
+                phone_number,
+                "TZS",
+                amount,
+                reference,
+            )
         try:
             response = requests.post(
                 self.url,
                 json=payload,
-                headers={"Content-Type": "application/json", "Authorization": f"Bearer {token}"},
+                headers={"Content-Type": "application/json", "Authorization": f"Bearer {token}", "X-API-Key": self.api_key} if self.api_key else {"Content-Type": "application/json", "Authorization": f"Bearer {token}"},
                 timeout=20,
             )
         except requests.exceptions.RequestException as error:

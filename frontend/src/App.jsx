@@ -58,30 +58,10 @@ class ErrorBoundary extends React.Component {
 
 function ProtectedRoute({ children }) {
   const user = getStoredTenantUser();
-  const navigate = useNavigate();
-  const [checking, setChecking] = useState(true);
-  const [allowed, setAllowed] = useState(true);
   console.log("[ProtectedRoute]", { path: window.location.pathname, hasUser: !!user, valid: hasValidTenantSession() });
   if (!user || !hasValidTenantSession()) {
     return <Navigate to="/" replace />;
   }
-  useEffect(() => {
-    if (window.location.pathname === "/subscription") { setChecking(false); return; }
-    const tenantId = getTenantId();
-    if (!tenantId) { setChecking(false); return; }
-    fetch(`${API_BASE_URL}/subscriptions/status?tenant_id=${tenantId}`)
-      .then((r) => r.json())
-      .then((d) => {
-        if (!d.active) {
-          navigate("/subscription", { replace: true });
-          setAllowed(false);
-        }
-      })
-      .catch(() => {})
-      .finally(() => setChecking(false));
-  }, []);
-  if (checking) return null;
-  if (!allowed && window.location.pathname !== "/subscription") return null;
   return <Layout>{children}</Layout>;
 }
 
