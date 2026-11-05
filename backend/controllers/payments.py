@@ -306,10 +306,19 @@ class PaymentController:
                 query = """
                     SELECT id, tenant_id, amount, status, payment_gateway
                     FROM payments
-                    WHERE gateway_reference = %s
+                    WHERE gateway_reference IN (%s, %s)
+                    ORDER BY CASE gateway_reference
+                        WHEN %s THEN 0
+                        ELSE 1
+                    END
+                    LIMIT 1
                     FOR UPDATE;
                 """
-                await cursor.execute(query, (external_id,))
+                payment_reference = external_reference or external_id
+                await cursor.execute(
+                    query,
+                    (payment_reference, external_id, payment_reference),
+                )
                 payment_row = await cursor.fetchone()
 
                 if not payment_row:
