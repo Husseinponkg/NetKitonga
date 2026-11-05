@@ -7,6 +7,10 @@ from fastapi import HTTPException
 from services.payments import PaymentService
 
 
+class DisbursementRejected(Exception):
+    """Raised when AzamPay explicitly rejects a disbursement request."""
+
+
 class DisbursementService:
     def __init__(self):
         self.url = os.getenv(
@@ -182,6 +186,17 @@ class DisbursementService:
             body = response.json()
         except ValueError:
             body = {"message": response.text}
-        if response.status_code not in (200, 201, 202) or body.get("success") is False:
-            raise HTTPException(status_code=502, detail=f"AzamPay disbursement rejected: {body.get('message', response.text)}")
+        if body.get("success") is False or 400 <= response.status_code < 500:
+            message = body.get("message", response.text)
+            raise DisbursementRejected(
+                f"AzamPay disbursement rejected: {str(message)[:300]}"
+            )
+        if response.status_code not in (200, 201, 202):
+            raise HTTPException(
+                status_code=502,
+                detail=(
+                    "AzamPay disbursement outcome is unconfirmed "
+                    f"(HTTP {response.status_code})."
+                ),
+            )
         return body

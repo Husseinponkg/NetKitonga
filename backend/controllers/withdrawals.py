@@ -2,7 +2,7 @@ from typing import List, Dict, Any
 from fastapi import HTTPException
 from config.db import connection
 from models.withdrawals import WithdrawalRequest, WithdrawalUpdate, WithdrawalResponse
-from services.disbursements import DisbursementService
+from services.disbursements import DisbursementRejected, DisbursementService
 import secrets
 
 def available_cash_balance(mobile_money_earned: float, total_withdrawn: float) -> float:
@@ -74,7 +74,7 @@ class WithdrawalController:
                 external_reference = f"NETKITONGA-WD-{secrets.token_hex(8).upper()}"
                 commission = round(float(data.amount) * 0.035, 2)
                 transaction_reference = external_reference
-                disbursement_ok = False
+                initial_status = "pending"
                 try:
                     net_payout = round(float(data.amount) - commission, 2)
                     disbursement = DisbursementService().send(
@@ -84,11 +84,12 @@ class WithdrawalController:
                         external_reference,
                     )
                     transaction_reference = disbursement.get("pgReferenceId") or external_reference
-                    disbursement_ok = True
+                except DisbursementRejected as disb_error:
+                    print(f"Disbursement rejected: {disb_error}")
+                    initial_status = "rejected"
                 except Exception as disb_error:
-                    print(f"Disbursement provider unavailable: {disb_error}")
+                    print(f"Disbursement outcome is unconfirmed: {disb_error}")
 
-                initial_status = 'approved' if disbursement_ok else 'pending'
                 await cursor.execute(
                     """
                     INSERT INTO withdrawals (tenant_id, wallet_id, amount, commission, mobile_money_number, payout_provider, status, transaction_reference)
@@ -99,19 +100,16 @@ class WithdrawalController:
                 )
                 new_id = (await cursor.fetchone())[0]
 
-                # Deduct balance only when disbursement succeeded; otherwise keep pending for manual processing.
-                if disbursement_ok:
-                    await cursor.execute(
-                        """
-                        UPDATE tenant_wallets
-                        SET total_withdrawn = total_withdrawn + %s,
-                            current_balance = current_balance - %s
-                        WHERE id = %s;
-                        """,
-                        (data.amount, data.amount, wallet_id)
-                    )
                 await conn.commit()
-                return {"message": "Withdrawal request submitted successfully.", "withdrawal_id": new_id}
+                return {
+                    "message": (
+                        "AzamPay rejected the payout."
+                        if initial_status == "rejected"
+                        else "Withdrawal request submitted; awaiting AzamPay confirmation."
+                    ),
+                    "withdrawal_id": new_id,
+                    "status": initial_status,
+                }
         except HTTPException:
             raise
         except Exception as e:
@@ -213,11 +211,17 @@ class WithdrawalController:
 
     async def process_disbursement_callback(self, payload: Dict[str, Any]) -> Dict[str, Any]:
         reference = payload.get("pgReferenceId") or payload.get("initiatorReferenceId")
-        callback_status = str(payload.get("status", "")).lower()
+        callback_status = str(payload.get("status", "")).strip().lower()
         if not reference:
             raise HTTPException(status_code=400, detail="Missing disbursement reference.")
 
-        status = "approved" if callback_status in {"success", "successful", "completed", "approved"} else "rejected"
+        if callback_status in {"success", "successful", "completed", "approved"}:
+            resolved_status = "approved"
+        elif callback_status in {"failure", "failed", "unsuccessful", "rejected"}:
+            resolved_status = "rejected"
+        else:
+            raise HTTPException(status_code=400, detail="Unrecognized disbursement status.")
+
         conn = await connection()
         try:
             async with conn.cursor() as cursor:
@@ -229,18 +233,39 @@ class WithdrawalController:
                 if not withdrawal:
                     raise HTTPException(status_code=404, detail="Withdrawal reference not found.")
 
-                if withdrawal[3] == "pending":
+                withdrawal_id, wallet_id, amount, current_status = withdrawal
+                current_status = str(current_status).lower()
+                final_status = current_status
+
+                if current_status == "pending":
                     await cursor.execute(
                         "UPDATE withdrawals SET status = %s WHERE id = %s;",
-                        (status, withdrawal[0]),
+                        (resolved_status, withdrawal_id),
                     )
-                    if status == "rejected":
+                    final_status = resolved_status
+                    if resolved_status == "approved":
                         await cursor.execute(
-                            "UPDATE tenant_wallets SET total_withdrawn = total_withdrawn - %s, current_balance = current_balance + %s WHERE id = %s;",
-                            (withdrawal[2], withdrawal[2], withdrawal[1]),
+                            "UPDATE tenant_wallets SET total_withdrawn = total_withdrawn + %s, current_balance = current_balance - %s WHERE id = %s;",
+                            (amount, amount, wallet_id),
                         )
+                elif current_status in {"approved", "paid"} and resolved_status == "rejected":
+                    # Older releases approved on API acceptance and deducted early.
+                    # Reverse that deduction if the final AzamPay callback failed.
+                    await cursor.execute(
+                        "UPDATE withdrawals SET status = 'rejected' WHERE id = %s;",
+                        (withdrawal_id,),
+                    )
+                    await cursor.execute(
+                        "UPDATE tenant_wallets SET total_withdrawn = total_withdrawn - %s, current_balance = current_balance + %s WHERE id = %s;",
+                        (amount, amount, wallet_id),
+                    )
+                    final_status = "rejected"
+
                 await conn.commit()
-                return {"status": "acknowledged", "withdrawal_status": status}
+                return {
+                    "status": "acknowledged",
+                    "withdrawal_status": final_status,
+                }
         except HTTPException:
             raise
         except Exception as error:

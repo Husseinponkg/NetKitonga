@@ -10,7 +10,7 @@ ROOT = Path(__file__).resolve().parents[1]
 if str(ROOT) not in sys.path:
     sys.path.insert(0, str(ROOT))
 
-from services.disbursements import DisbursementService
+from services.disbursements import DisbursementRejected, DisbursementService
 
 
 class DisbursementInquiryTests(TestCase):
@@ -84,3 +84,24 @@ class DisbursementInquiryTests(TestCase):
 
         self.assertEqual(error.exception.status_code, 502)
         self.assertIn("HTTP 401", error.exception.detail)
+
+    def test_explicit_provider_failure_is_reported_as_rejection(self):
+        response = Mock(status_code=200)
+        response.json.return_value = {
+            "success": False,
+            "message": "Balance can not be negative",
+        }
+        with (
+            patch.object(DisbursementService, "_get_bearer_token", return_value="token"),
+            patch.object(DisbursementService, "_generate_checksum", return_value="checksum"),
+            patch("services.disbursements.requests.post", return_value=response),
+        ):
+            with self.assertRaises(DisbursementRejected) as error:
+                DisbursementService().send(
+                    1930,
+                    "255700000000",
+                    "Azampesa",
+                    "TEST-REFERENCE",
+                )
+
+        self.assertIn("Balance can not be negative", str(error.exception))
