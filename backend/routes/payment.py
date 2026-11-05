@@ -183,6 +183,7 @@ async def handle_azampay_gateway_callback(
         callback_signature,
         str(external_reference) if external_reference else None,
         str(pg_transaction_id) if pg_transaction_id else None,
+        raw_status,
     )
     if not acknowledged:
         raise HTTPException(

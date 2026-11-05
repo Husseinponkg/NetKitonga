@@ -262,6 +262,7 @@ class PaymentController:
         signature: Optional[str] = None,
         external_reference: Optional[str] = None,
         pg_transaction_id: Optional[str] = None,
+        callback_status: Optional[str] = None,
     ) -> bool:
         """
         Processes AzamPay background asynchronous webhooks.
@@ -276,7 +277,7 @@ class PaymentController:
         # Signed data: {utilityref}{externalreference}{transactionstatus}{operator}
         # ================================================================
         public_key_pem = os.getenv("AZAMPAY_CALLBACK_PUBLIC_KEY", "").strip()
-        status_str = "success" if is_successful else "failed"
+        status_str = callback_status or ("success" if is_successful else "failed")
         if public_key_pem and signature:
             try:
                 signed_data = f"{external_id}{external_reference or ''}{status_str}{operator or ''}"
@@ -313,10 +314,14 @@ class PaymentController:
                     LIMIT 1
                     FOR UPDATE;
                 """
-                payment_reference = external_reference or external_id
+                payment_reference = external_id or external_reference
                 await cursor.execute(
                     query,
-                    (payment_reference, external_id, payment_reference),
+                    (
+                        payment_reference,
+                        external_reference or payment_reference,
+                        payment_reference,
+                    ),
                 )
                 payment_row = await cursor.fetchone()
 
