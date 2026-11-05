@@ -1,6 +1,5 @@
 import asyncio
 import base64
-import os
 import sys
 from pathlib import Path
 from unittest import TestCase
@@ -8,6 +7,7 @@ from unittest.mock import AsyncMock, patch
 
 from cryptography.hazmat.primitives import hashes, serialization
 from cryptography.hazmat.primitives.asymmetric import padding, rsa
+from fastapi import HTTPException
 
 ROOT = Path(__file__).resolve().parents[1]
 if str(ROOT) not in sys.path:
@@ -52,14 +52,32 @@ class PaymentCallbackReferenceTests(TestCase):
             (2, 3, 4, 5, 6),
             (3600,),
         ])
+        private_key = rsa.generate_private_key(public_exponent=65537, key_size=2048)
+        public_key_pem = private_key.public_key().public_bytes(
+            serialization.Encoding.PEM,
+            serialization.PublicFormat.SubjectPublicKeyInfo,
+        ).decode()
+        signed_message = (
+            "NETKITONGA-MERCHANT-REFERENCE"
+            "AZAM-PAY-PROVIDER-REFERENCE"
+            "success"
+        )
+        signature = base64.b64encode(
+            private_key.sign(
+                signed_message.encode(),
+                padding.PKCS1v15(),
+                hashes.SHA256(),
+            )
+        ).decode()
         with (
-            patch.dict(os.environ, {"AZAMPAY_CALLBACK_PUBLIC_KEY": ""}),
+            patch("controllers.payments.get_callback_public_key", return_value=public_key_pem),
             patch("controllers.payments.connection", AsyncMock(return_value=connection)),
         ):
             acknowledged = asyncio.run(
                 PaymentController().process_asynchronous_callback(
                     external_id="NETKITONGA-MERCHANT-REFERENCE",
                     is_successful=True,
+                    signature=signature,
                     external_reference="AZAM-PAY-PROVIDER-REFERENCE",
                 )
             )
@@ -137,7 +155,7 @@ class PaymentCallbackReferenceTests(TestCase):
         ])
 
         with (
-            patch.dict(os.environ, {"AZAMPAY_CALLBACK_PUBLIC_KEY": public_key_pem}),
+            patch("controllers.payments.get_callback_public_key", return_value=public_key_pem),
             patch("controllers.payments.connection", AsyncMock(return_value=connection)),
         ):
             acknowledged = asyncio.run(
@@ -154,20 +172,101 @@ class PaymentCallbackReferenceTests(TestCase):
         self.assertTrue(acknowledged)
         connection.commit.assert_awaited_once()
 
-    def test_configured_callback_key_rejects_missing_signature(self):
+    def test_callback_rejects_missing_signature(self):
         with (
-            patch.dict(
-                os.environ,
-                {"AZAMPAY_CALLBACK_PUBLIC_KEY": "configured-public-key"},
-            ),
+            patch("controllers.payments.get_callback_public_key") as get_key,
             patch("controllers.payments.connection", AsyncMock()) as connect,
+        ):
+            with self.assertRaises(HTTPException) as error:
+                asyncio.run(
+                    PaymentController().process_asynchronous_callback(
+                        external_id="NETKITONGA-MERCHANT-REFERENCE",
+                        is_successful=True,
+                    )
+                )
+
+        self.assertEqual(error.exception.status_code, 401)
+        self.assertIn("signature is missing", error.exception.detail)
+        get_key.assert_not_called()
+        connect.assert_not_awaited()
+
+    def test_invalid_callback_signature_returns_401_without_db_access(self):
+        private_key = rsa.generate_private_key(public_exponent=65537, key_size=2048)
+        public_key_pem = private_key.public_key().public_bytes(
+            serialization.Encoding.PEM,
+            serialization.PublicFormat.SubjectPublicKeyInfo,
+        ).decode()
+        wrong_signature = base64.b64encode(b"not-a-valid-signature").decode()
+
+        with (
+            patch("controllers.payments.get_callback_public_key", return_value=public_key_pem) as get_key,
+            patch("controllers.payments.connection", AsyncMock()) as connect,
+        ):
+            with self.assertRaises(HTTPException) as error:
+                asyncio.run(
+                    PaymentController().process_asynchronous_callback(
+                        external_id="NETKITONGA-MERCHANT-REFERENCE",
+                        is_successful=True,
+                        signature=wrong_signature,
+                    )
+                )
+
+        self.assertEqual(error.exception.status_code, 401)
+        self.assertIn("signature is invalid", error.exception.detail)
+        self.assertEqual(get_key.call_count, 2)
+        connect.assert_not_awaited()
+
+    def test_signature_failure_refreshes_provider_key_and_accepts_valid_callback(self):
+        stale_key = rsa.generate_private_key(public_exponent=65537, key_size=2048)
+        current_key = rsa.generate_private_key(public_exponent=65537, key_size=2048)
+        stale_pem = stale_key.public_key().public_bytes(
+            serialization.Encoding.PEM,
+            serialization.PublicFormat.SubjectPublicKeyInfo,
+        ).decode()
+        current_pem = current_key.public_key().public_bytes(
+            serialization.Encoding.PEM,
+            serialization.PublicFormat.SubjectPublicKeyInfo,
+        ).decode()
+        signed_message = (
+            "NETKITONGA-MERCHANT-REFERENCE"
+            "AZAM-PAY-PROVIDER-REFERENCE"
+            "success"
+            "Airtel"
+        )
+        signature = base64.b64encode(
+            current_key.sign(
+                signed_message.encode(),
+                padding.PKCS1v15(),
+                hashes.SHA256(),
+            )
+        ).decode()
+        connection = _Connection([
+            (1, 2, 1000, "pending", "AzamPay"),
+            (2, 3, 4, 5, 6),
+            (3600,),
+        ])
+
+        with (
+            patch(
+                "controllers.payments.get_callback_public_key",
+                side_effect=[stale_pem, current_pem],
+            ) as get_key,
+            patch("controllers.payments.connection", AsyncMock(return_value=connection)),
         ):
             acknowledged = asyncio.run(
                 PaymentController().process_asynchronous_callback(
                     external_id="NETKITONGA-MERCHANT-REFERENCE",
                     is_successful=True,
+                    operator="Airtel",
+                    signature=signature,
+                    external_reference="AZAM-PAY-PROVIDER-REFERENCE",
+                    callback_status="success",
                 )
             )
 
-        self.assertFalse(acknowledged)
-        connect.assert_not_awaited()
+        self.assertTrue(acknowledged)
+        self.assertEqual(get_key.call_count, 2)
+        self.assertEqual(
+            connection.test_cursor.executed[1][1],
+            ("completed", None, 1),
+        )
