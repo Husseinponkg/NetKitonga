@@ -2,6 +2,7 @@ import os
 import time
 import requests
 from typing import Any, Dict
+from urllib.parse import quote
 from fastapi import HTTPException
 from services.payments import PaymentService
 
@@ -11,6 +12,18 @@ class DisbursementService:
         self.url = os.getenv(
             "AZAMPAY_DISBURSEMENT_URL",
             "https://api-disbursement-sandbox.azampay.co.tz/api/v1/azampay/disburse",
+        )
+        self.bank_names_url = os.getenv(
+            "AZAMPAY_BANK_NAMES_URL",
+            "https://api-disbursement.azampay.co.tz/api/v1/azampay/BankNames",
+        )
+        self.check_balance_url = os.getenv(
+            "AZAMPAY_CHECK_BALANCE_URL",
+            "https://api-disbursement.azampay.co.tz/api/v1/azampay/checkbalance",
+        ).rstrip("/")
+        self.transaction_status_url = os.getenv(
+            "AZAMPAY_TRANSACTION_STATUS_URL",
+            "https://api-disbursement.azampay.co.tz/api/v1/azampay/transactionstatus",
         )
         self.app_name = os.getenv("AZAMPAY_DISBURSEMENT_APP_NAME", os.getenv("AZAMPAY_APP_NAME"))
         self.client_id = os.getenv("AZAMPAY_DISBURSEMENT_CLIENT_ID", os.getenv("AZAMPAY_CLIENT_ID"))
@@ -65,6 +78,42 @@ class DisbursementService:
         if not token:
             raise HTTPException(status_code=502, detail="Disbursement auth returned no token.")
         return str(token)
+
+    def _get_inquiry(self, url: str, *, params: Dict[str, str] | None = None, authenticated: bool = True) -> Any:
+        headers = {"Accept": "text/plain"}
+        if authenticated:
+            headers["Authorization"] = f"Bearer {self._get_bearer_token()}"
+        try:
+            response = requests.get(url, headers=headers, params=params, timeout=15)
+        except requests.exceptions.RequestException as error:
+            raise HTTPException(
+                status_code=502,
+                detail=f"AzamPay inquiry connection failed: {error}",
+            ) from error
+
+        if not response.ok:
+            raise HTTPException(
+                status_code=502,
+                detail=f"AzamPay inquiry rejected with HTTP {response.status_code}.",
+            )
+        try:
+            return response.json()
+        except ValueError:
+            return response.text
+
+    def get_bank_names(self) -> Any:
+        return self._get_inquiry(self.bank_names_url, authenticated=False)
+
+    def check_balance(self, bank_name: str = "azampesa") -> Any:
+        return self._get_inquiry(
+            f"{self.check_balance_url}/{quote(bank_name.lower(), safe='')}"
+        )
+
+    def get_transaction_status(self, pg_reference_id: str, bank_name: str = "Azampesa") -> Any:
+        return self._get_inquiry(
+            self.transaction_status_url,
+            params={"pgReferenceId": pg_reference_id, "bankName": bank_name},
+        )
 
     def _generate_checksum(self, source_account: str, dest_account: str, currency: str, amount: float, external_reference: str) -> str:
         import time, base64, hashlib

@@ -1,0 +1,34 @@
+{
+  "source": {
+    "countryCode": "TZ",
+    "fullName": "TEST ACCOUNT",
+    "bankName": "Azampesa",
+    "accountNumber": "1000000164",
+    "currency": "TZS"
+  },
+  "destination": {
+    "countryCode": "TZ",
+    "fullName": "HUSSEIN MKWIZU",
+    "bankName": "Azampesa",
+    "accountNumber": "1710446004",
+    "currency": "TZS"
+  },
+  "transferDetails": {
+    "type": "mobile_money",
+    "amount": 1000,
+    "dateInEpoch": 1730630000
+  },
+  "externalReferenceId": "TEST-DISB-4",
+  "additionalProperties": {},
+  "checksum": "<generated checksum>",
+  "remarks": "test"
+}
+
+response
+{
+  "success": true,
+  "pgReferenceId": "01a1a181eef27adcb611f4101f16c7c0",
+  "message": "Your transaction is in process",
+  "statusCode": 200,
+  "status": "Pending"
+}
