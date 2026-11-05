@@ -296,8 +296,9 @@ class PaymentController:
             except Exception as sig_err:
                 print(f"Callback signature verification failed: {str(sig_err)}")
                 return False
-        elif public_key_pem and not signature:
-            print("Callback signature missing but public key is configured; proceeding without verification.")
+        elif public_key_pem:
+            print("Callback signature missing but public key is configured; rejecting.")
+            return False
 
         conn = await connection()
         try:

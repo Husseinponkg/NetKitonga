@@ -153,3 +153,21 @@ class PaymentCallbackReferenceTests(TestCase):
 
         self.assertTrue(acknowledged)
         connection.commit.assert_awaited_once()
+
+    def test_configured_callback_key_rejects_missing_signature(self):
+        with (
+            patch.dict(
+                os.environ,
+                {"AZAMPAY_CALLBACK_PUBLIC_KEY": "configured-public-key"},
+            ),
+            patch("controllers.payments.connection", AsyncMock()) as connect,
+        ):
+            acknowledged = asyncio.run(
+                PaymentController().process_asynchronous_callback(
+                    external_id="NETKITONGA-MERCHANT-REFERENCE",
+                    is_successful=True,
+                )
+            )
+
+        self.assertFalse(acknowledged)
+        connect.assert_not_awaited()
