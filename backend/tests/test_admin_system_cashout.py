@@ -12,6 +12,7 @@ if str(ROOT) not in sys.path:
     sys.path.insert(0, str(ROOT))
 
 from controllers.admin import AdminController
+from services.disbursements import DisbursementPreflightError
 
 
 class _Cursor:
@@ -118,6 +119,70 @@ class AdminSystemCashoutTests(TestCase):
         self.assertIn("exceeds available", error.exception.detail)
         disbursement.assert_not_called()
         connection.commit.assert_not_awaited()
+
+    def test_preflight_failure_releases_cashout_reservation(self):
+        reserve_connection = _Connection([("password-hash",), (Decimal("20000"),), (51,)])
+        status_connection = _Connection()
+        disbursement = Mock()
+        disbursement.send.side_effect = DisbursementPreflightError(
+            "AzamPay disbursement settings are incomplete."
+        )
+
+        with (
+            patch(
+                "controllers.admin.connection",
+                AsyncMock(side_effect=[reserve_connection, status_connection]),
+            ),
+            patch("controllers.admin.checkpw", return_value=True),
+            patch("controllers.admin.DisbursementService", return_value=disbursement),
+        ):
+            with self.assertRaises(HTTPException) as error:
+                asyncio.run(
+                    AdminController().create_system_cashout(
+                        4,
+                        "admin-password",
+                        Decimal("10000"),
+                        "0712345678",
+                        "Mpesa",
+                    )
+                )
+
+        self.assertEqual(error.exception.status_code, 502)
+        self.assertIn("settings are incomplete", error.exception.detail)
+        self.assertIn("SET status = %s", status_connection.test_cursor.executed[0][0])
+        self.assertEqual(
+            status_connection.test_cursor.executed[0][1],
+            ("failed", "failed", 51),
+        )
+
+    def test_unconfirmed_payout_error_is_preserved_and_reservation_remains_pending(self):
+        reserve_connection = _Connection([("password-hash",), (Decimal("20000"),), (51,)])
+        disbursement = Mock()
+        disbursement.send.side_effect = HTTPException(
+            status_code=502,
+            detail="AzamPay disbursement outcome is unconfirmed (HTTP 503).",
+        )
+
+        with (
+            patch("controllers.admin.connection", AsyncMock(return_value=reserve_connection)),
+            patch("controllers.admin.checkpw", return_value=True),
+            patch("controllers.admin.DisbursementService", return_value=disbursement),
+        ):
+            with self.assertRaises(HTTPException) as error:
+                asyncio.run(
+                    AdminController().create_system_cashout(
+                        4,
+                        "admin-password",
+                        Decimal("10000"),
+                        "0712345678",
+                        "Mpesa",
+                    )
+                )
+
+        self.assertEqual(error.exception.status_code, 502)
+        self.assertIn("HTTP 503", error.exception.detail)
+        self.assertIn("remains pending", error.exception.detail)
+        self.assertEqual(len(reserve_connection.test_cursor.executed), 4)
 
 
 if __name__ == "__main__":

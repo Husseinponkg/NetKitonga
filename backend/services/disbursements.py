@@ -11,6 +11,10 @@ class DisbursementRejected(Exception):
     """Raised when AzamPay explicitly rejects a disbursement request."""
 
 
+class DisbursementPreflightError(Exception):
+    """Raised when a disbursement cannot be sent before reaching the payout API."""
+
+
 class DisbursementService:
     def __init__(self):
         self.url = os.getenv(
@@ -45,9 +49,8 @@ class DisbursementService:
 
     def _validate_configuration(self) -> None:
         if not all((self.source_name, self.source_bank, self.source_account)):
-            raise HTTPException(
-                status_code=500,
-                detail="AzamPay disbursement settings are incomplete on the server.",
+            raise DisbursementPreflightError(
+                "AzamPay disbursement settings are incomplete. Configure the source name, bank, and account."
             )
 
     def _provider_bank_name(self, provider: str) -> str:
@@ -71,10 +74,26 @@ class DisbursementService:
         auth_url = os.getenv("AZAMPAY_AUTH_URL", "https://authenticator.azampay.co.tz/AppRegistration/GenerateToken")
         # Use disbursement auth URL if provided
         auth_url = os.getenv("AZAMPAY_DISBURSEMENT_AUTH_URL", auth_url)
-        response = _requests.post(auth_url, json=payload, headers=headers, timeout=10)
+        try:
+            response = _requests.post(auth_url, json=payload, headers=headers, timeout=10)
+        except _requests.exceptions.RequestException as error:
+            raise DisbursementPreflightError(
+                f"AzamPay disbursement authentication connection failed: {error}"
+            ) from error
         if response.status_code != 200:
-            raise HTTPException(status_code=502, detail=f"Disbursement auth failed: {response.text[:200]}")
-        body = response.json()
+            raise DisbursementPreflightError(
+                f"AzamPay disbursement authentication failed with HTTP {response.status_code}."
+            )
+        try:
+            body = response.json()
+        except ValueError as error:
+            raise DisbursementPreflightError(
+                "AzamPay disbursement authentication returned invalid JSON."
+            ) from error
+        if not isinstance(body, dict):
+            raise DisbursementPreflightError(
+                "AzamPay disbursement authentication returned an invalid response."
+            )
         token = body.get("token") or body.get("accessToken")
         data = body.get("data")
         if isinstance(data, dict):
@@ -165,13 +184,18 @@ class DisbursementService:
         if self.checksum:
             payload["checksum"] = self.checksum
         else:
-            payload["checksum"] = self._generate_checksum(
-                self.source_account,
-                phone_number,
-                "TZS",
-                amount,
-                reference,
-            )
+            try:
+                payload["checksum"] = self._generate_checksum(
+                    self.source_account,
+                    phone_number,
+                    "TZS",
+                    amount,
+                    reference,
+                )
+            except (OSError, ValueError, TypeError) as error:
+                raise DisbursementPreflightError(
+                    "Could not prepare the AzamPay disbursement checksum; verify the configured public key."
+                ) from error
         try:
             response = requests.post(
                 self.url,
@@ -180,7 +204,13 @@ class DisbursementService:
                 timeout=20,
             )
         except requests.exceptions.RequestException as error:
-            raise HTTPException(status_code=502, detail=f"AzamPay disbursement connection failed: {error}")
+            raise HTTPException(
+                status_code=502,
+                detail=(
+                    "AzamPay disbursement connection failed; payout outcome is unconfirmed. "
+                    f"Check status before retrying. ({error})"
+                ),
+            ) from error
 
         try:
             body = response.json()

@@ -6,7 +6,11 @@ from typing import List, Dict, Any, Optional
 from fastapi import HTTPException
 from bcrypt import hashpw, gensalt, checkpw
 from config.db import connection
-from services.disbursements import DisbursementRejected, DisbursementService
+from services.disbursements import (
+    DisbursementPreflightError,
+    DisbursementRejected,
+    DisbursementService,
+)
 
 
 class AdminController:
@@ -417,6 +421,18 @@ class AdminController:
         except DisbursementRejected as error:
             await self._set_system_cashout_status(cashout_id, "failed")
             raise HTTPException(status_code=502, detail=str(error)) from error
+        except DisbursementPreflightError as error:
+            await self._set_system_cashout_status(cashout_id, "failed")
+            raise HTTPException(status_code=502, detail=str(error)) from error
+        except HTTPException as error:
+            detail = error.detail if isinstance(error.detail, str) else "AzamPay returned an unexpected response."
+            raise HTTPException(
+                status_code=502,
+                detail=(
+                    f"{detail} The cashout remains pending because its payout outcome "
+                    "could not be confirmed; check AzamPay before retrying."
+                ),
+            ) from error
         except Exception as error:
             raise HTTPException(
                 status_code=502,
