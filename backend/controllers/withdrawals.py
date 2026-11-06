@@ -5,8 +5,20 @@ from models.withdrawals import WithdrawalRequest, WithdrawalUpdate, WithdrawalRe
 from services.disbursements import DisbursementRejected, DisbursementService
 import secrets
 
-def available_cash_balance(mobile_money_earned: float, total_withdrawn: float) -> float:
-    return round(max(0.0, float(mobile_money_earned or 0) - float(total_withdrawn or 0)), 2)
+def available_cash_balance(
+    mobile_money_earned: float,
+    total_withdrawn: float,
+    pending_withdrawals: float = 0,
+) -> float:
+    return round(
+        max(
+            0.0,
+            float(mobile_money_earned or 0)
+            - float(total_withdrawn or 0)
+            - float(pending_withdrawals or 0),
+        ),
+        2,
+    )
 
 
 class WithdrawalController:
@@ -31,10 +43,22 @@ class WithdrawalController:
                     (tenant_id,),
                 )
                 mobile_money_earned = float((await cursor.fetchone())[0] or 0)
+                await cursor.execute(
+                    """
+                    SELECT COALESCE(SUM(amount), 0)
+                    FROM withdrawals
+                    WHERE tenant_id = %s
+                      AND LOWER(status) = 'pending';
+                    """,
+                    (tenant_id,),
+                )
+                pending_withdrawals = float((await cursor.fetchone())[0] or 0)
                 return {
                     "total_earned": mobile_money_earned,
                     "total_withdrawn": total_withdrawn,
-                    "current_balance": available_cash_balance(mobile_money_earned, total_withdrawn),
+                    "current_balance": available_cash_balance(
+                        mobile_money_earned, total_withdrawn, pending_withdrawals
+                    ),
                 }
         finally:
             await conn.close()
@@ -64,7 +88,19 @@ class WithdrawalController:
                     (tenant_id,),
                 )
                 mobile_money_earned = float((await cursor.fetchone())[0] or 0)
-                current_balance = available_cash_balance(mobile_money_earned, total_withdrawn)
+                await cursor.execute(
+                    """
+                    SELECT COALESCE(SUM(amount), 0)
+                    FROM withdrawals
+                    WHERE tenant_id = %s
+                      AND LOWER(status) = 'pending';
+                    """,
+                    (tenant_id,),
+                )
+                pending_withdrawals = float((await cursor.fetchone())[0] or 0)
+                current_balance = available_cash_balance(
+                    mobile_money_earned, total_withdrawn, pending_withdrawals
+                )
 
                 if data.amount < 2000:
                     raise HTTPException(status_code=400, detail="Minimum withdrawal amount is 2000 TZS.")
