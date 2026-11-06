@@ -24,6 +24,17 @@ class SubscriptionController:
                 if not row:
                     raise HTTPException(status_code=404, detail="Tenant not found.")
                 status, expires, created_at = row
+                await cursor.execute(
+                    """
+                    SELECT status
+                    FROM subscription_payments
+                    WHERE tenant_id = %s
+                    ORDER BY created_at DESC, id DESC
+                    LIMIT 1;
+                    """,
+                    (tenant_id,),
+                )
+                latest_payment = await cursor.fetchone()
                 now = datetime.now(timezone.utc).replace(tzinfo=None)
                 trial_ends_at = created_at + timedelta(days=30)
                 paid_active = status == "active" and expires is not None and expires > now
@@ -35,6 +46,7 @@ class SubscriptionController:
                     "trial_ends_at": trial_ends_at.isoformat(),
                     "active": paid_active or trial_active,
                     "amount": self.AMOUNT,
+                    "payment_status": latest_payment[0] if latest_payment else None,
                 }
         finally:
             await conn.close()
@@ -105,21 +117,36 @@ class SubscriptionController:
             if response.status_code >= 500:
                 raise HTTPException(
                     status_code=502,
-                    detail="Subscription checkout outcome is unconfirmed; check AzamPay before retrying.",
+                    detail={
+                        "message": "Subscription checkout outcome is unconfirmed; check payment status before retrying.",
+                        "reference": external_id,
+                        "status": "pending",
+                    },
                 )
             if response.status_code not in (200, 201, 202) or body.get("success") is False:
                 raise HTTPException(status_code=502, detail=body.get("message") or "Subscription checkout failed.")
 
-            return {"message": "Subscription checkout initiated.", "reference": external_id}
+            return {
+                "status": "pending",
+                "message": "Checkout request was received. Awaiting confirmed payment status.",
+                "reference": external_id,
+            }
         except requests.exceptions.RequestException as error:
             if not checkout_started:
                 await self._set_payment_status(external_id, "failed")
             raise HTTPException(
                 status_code=502,
-                detail="Subscription checkout outcome is unconfirmed; check AzamPay before retrying.",
+                detail={
+                    "message": "Subscription checkout outcome is unconfirmed; check payment status before retrying.",
+                    "reference": external_id,
+                    "status": "pending",
+                },
             ) from error
         except HTTPException as error:
-            if "unconfirmed" not in str(error.detail).lower():
+            if not (
+                isinstance(error.detail, dict)
+                and error.detail.get("status") == "pending"
+            ) and "unconfirmed" not in str(error.detail).lower():
                 await self._set_payment_status(external_id, "failed")
             raise
         except Exception:
@@ -149,16 +176,26 @@ class SubscriptionController:
         )
         external_reference = (
             payload.get("externalreference")
+            or payload.get("externalReference")
             or payload.get("external_reference")
             or payload.get("reference")
         )
-        operator = payload.get("operator") or payload.get("paymentOperator")
+        operator = (
+            payload.get("operator")
+            or payload.get("paymentOperator")
+            or payload.get("payment_operator")
+        )
         signature = payload.get("signature") or payload.get("sign")
-        raw_status = payload.get("transactionstatus") or payload.get("status")
+        raw_status = (
+            payload.get("transactionstatus")
+            or payload.get("transactionStatus")
+            or payload.get("transaction_status")
+            or payload.get("status")
+        )
         status = str(raw_status or "").strip().lower()
         if not external_id:
             raise HTTPException(status_code=400, detail="Missing reference.")
-        successful_statuses = {"success", "successful", "completed", "approved"}
+        successful_statuses = {"success", "successful", "completed", "approved", "paid"}
         failed_statuses = {"failure", "failed", "unsuccessful", "rejected", "cancelled", "canceled"}
         if status not in successful_statuses | failed_statuses:
             raise HTTPException(status_code=400, detail="Unrecognized subscription payment status.")

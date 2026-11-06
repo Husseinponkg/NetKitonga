@@ -14,6 +14,7 @@ if str(ROOT) not in sys.path:
     sys.path.insert(0, str(ROOT))
 
 from controllers.subscriptions import SubscriptionController
+from routes.payment import handle_azampay_gateway_callback
 from utils.subscription_access import require_active_subscription
 
 
@@ -32,7 +33,7 @@ class _Cursor:
         self.executed.append((query, params))
 
     async def fetchone(self):
-        return next(self.rows)
+        return next(self.rows, None)
 
 
 class _Connection:
@@ -72,13 +73,47 @@ class SubscriptionStatusTests(TestCase):
                 SubscriptionController().checkout(3, "0712345678", "Mpesa")
             )
 
-        self.assertEqual(result["message"], "Subscription checkout initiated.")
+        self.assertEqual(result["status"], "pending")
+        self.assertEqual(
+            result["message"],
+            "Checkout request was received. Awaiting confirmed payment status.",
+        )
         insert_query, insert_params = connection.test_cursor.executed[2]
         self.assertIn("INSERT INTO subscription_payments", insert_query)
         self.assertEqual(insert_params[:2], (3, 10000.0))
         self.assertTrue(insert_params[2].startswith("NETKITONGA-SUB-"))
         connection.commit.assert_awaited_once()
         connection.close.assert_awaited_once()
+
+    def test_unconfirmed_collection_response_keeps_subscription_payment_pending(self):
+        connection = _Connection([(3,)])
+        payment_service = Mock()
+        payment_service._normalize_phone.return_value = "255712345678"
+        payment_service._normalize_provider.return_value = "Mpesa"
+        payment_service._get_bearer_token.return_value = "token"
+        payment_service.api_key = "test-api-key"
+        response = Mock(status_code=503)
+        response.json.return_value = {"message": "Gateway unavailable"}
+
+        with (
+            patch(
+                "controllers.subscriptions.connection",
+                AsyncMock(return_value=connection),
+            ),
+            patch(
+                "controllers.subscriptions.PaymentService",
+                return_value=payment_service,
+            ),
+            patch("controllers.subscriptions.requests.post", return_value=response),
+        ):
+            with self.assertRaises(HTTPException) as error:
+                asyncio.run(
+                    SubscriptionController().checkout(3, "0712345678", "Mpesa")
+                )
+
+        self.assertEqual(error.exception.status_code, 502)
+        self.assertEqual(error.exception.detail["status"], "pending")
+        self.assertEqual(len(connection.test_cursor.executed), 3)
 
     def test_registration_date_starts_30_day_trial(self):
         created_at = datetime.now(timezone.utc).replace(tzinfo=None) - timedelta(days=10)
@@ -107,6 +142,17 @@ class SubscriptionStatusTests(TestCase):
 
         self.assertFalse(result["active"])
         self.assertEqual(result["subscription_status"], "expired")
+
+    def test_status_includes_latest_mobile_payment_state(self):
+        created_at = datetime.now(timezone.utc).replace(tzinfo=None) - timedelta(days=31)
+        connection = _Connection([("trial", None, created_at), ("pending",)])
+        with patch(
+            "controllers.subscriptions.connection",
+            AsyncMock(return_value=connection),
+        ):
+            result = asyncio.run(SubscriptionController().get_status(3))
+
+        self.assertEqual(result["payment_status"], "pending")
 
     def test_failed_trial_tenant_cannot_use_tenant_api(self):
         created_at = datetime.now(timezone.utc).replace(tzinfo=None) - timedelta(days=31)
@@ -172,7 +218,7 @@ class SubscriptionStatusTests(TestCase):
                 SubscriptionController().callback(
                     {
                         "externalId": "sub-ref",
-                        "status": "success",
+                        "transactionStatus": "paid",
                         "signature": "signed",
                     }
                 )
@@ -186,6 +232,27 @@ class SubscriptionStatusTests(TestCase):
         self.assertIn("SET status = 'completed', paid_at = NOW()", statements[2][0])
         self.assertEqual(statements[2][1], (8,))
         connection.commit.assert_awaited_once()
+
+    def test_collection_callback_routes_subscription_payment(self):
+        callback_data = {
+            "externalId": "NETKITONGA-SUB-ABC123",
+            "transactionStatus": "success",
+            "signature": "signed",
+        }
+        subscription_controller = Mock()
+        subscription_controller.callback = AsyncMock(return_value={"status": "acknowledged"})
+        with patch(
+            "routes.payment.SubscriptionController",
+            return_value=subscription_controller,
+        ):
+            result = asyncio.run(
+                handle_azampay_gateway_callback(
+                    {"data": callback_data}
+                )
+            )
+
+        self.assertEqual(result, {"status": "acknowledged"})
+        subscription_controller.callback.assert_awaited_once_with(callback_data)
 
     def test_duplicate_payment_callback_does_not_extend_again(self):
         connection = _Connection([(8, 3, "completed")])

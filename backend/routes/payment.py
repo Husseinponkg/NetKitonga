@@ -3,6 +3,7 @@ from typing import Any, Dict, List
 from fastapi import APIRouter, Body, Depends, HTTPException, Query, status
 
 from controllers.payments import PaymentController
+from controllers.subscriptions import SubscriptionController
 from models.payments import CheckoutRequest, PaymentHistoryResponse, PortalBuyerRequest
 from services.payments import PaymentService
 from utils.subscription_access import require_active_subscription
@@ -154,6 +155,9 @@ async def handle_azampay_gateway_callback(
             status_code=status.HTTP_400_BAD_REQUEST,
             detail="Missing external transaction reference in AzamPay callback.",
         )
+
+    if str(external_id).startswith("NETKITONGA-SUB-"):
+        return await SubscriptionController().callback(callback_data)
 
     if not isinstance(raw_status, str) or not raw_status.strip():
         raise HTTPException(

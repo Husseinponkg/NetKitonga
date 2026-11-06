@@ -10,6 +10,7 @@ function Subscription() {
     const [status, setStatus] = useState(null);
     const [message, setMessage] = useState("");
     const [loading, setLoading] = useState(false);
+    const [paymentPending, setPaymentPending] = useState(false);
 
     const tenantId = getTenantId();
 
@@ -20,12 +21,37 @@ function Subscription() {
             const data = await res.json();
             setStatus(data);
             if (data.active) navigate("/dashboard");
+            else if (data.payment_status === "pending") setPaymentPending(true);
         }
     }, [tenantId, navigate]);
 
     // Load the subscription state from the server when this page opens.
     // eslint-disable-next-line react/set-state-in-effect
     useEffect(() => { loadStatus(); }, [loadStatus]);
+
+    useEffect(() => {
+        if (!tenantId || !paymentPending) return undefined;
+
+        const timer = setInterval(async () => {
+            try {
+                const res = await fetch(`${API_BASE_URL}/subscriptions/status?tenant_id=${tenantId}`);
+                if (!res.ok) throw new Error("Could not check payment status.");
+                const data = await res.json();
+                setStatus(data);
+                if (data.active) {
+                    setPaymentPending(false);
+                    navigate("/dashboard");
+                } else if (data.payment_status === "failed") {
+                    setPaymentPending(false);
+                    setMessage("Payment was not completed. Please try again.");
+                }
+            } catch (error) {
+                setMessage(error.message || "Could not check payment status.");
+            }
+        }, 3000);
+
+        return () => clearInterval(timer);
+    }, [tenantId, paymentPending, navigate]);
 
     const handlePay = async (e) => {
         e.preventDefault();
@@ -38,21 +64,21 @@ function Subscription() {
                 body: JSON.stringify({ tenant_id: Number(tenantId), phone_number: phone.trim(), provider }),
             });
             const data = await res.json();
-            if (!res.ok) throw new Error(data.detail || data.message || "Checkout failed");
-            setMessage("Payment initiated. Complete on your phone.");
-            // poll status
-            const timer = setInterval(async () => {
-                const r = await fetch(`${API_BASE_URL}/subscriptions/status?tenant_id=${tenantId}`);
-                if (r.ok) {
-                    const d = await r.json();
-                    if (d.active) {
-                        clearInterval(timer);
-                        navigate("/dashboard");
-                    }
+            if (!res.ok) {
+                const detail = data.detail;
+                if (detail && typeof detail === "object" && detail.status === "pending") {
+                    setPaymentPending(true);
                 }
-            }, 3000);
+                throw new Error(
+                    (typeof detail === "string" ? detail : detail?.message)
+                    || data.message
+                    || "Checkout failed"
+                );
+            }
+            setMessage(data.message || "Payment initiated. Complete it on your phone.");
+            setPaymentPending(data.status === "pending");
         } catch (err) {
-            setMessage(err.message);
+            setMessage(typeof err.message === "string" ? err.message : "Checkout failed.");
         } finally {
             setLoading(false);
         }
@@ -68,6 +94,9 @@ function Subscription() {
                         <p>Status: {status.subscription_status}</p>
                         {status.trial_ends_at && status.subscription_status === "expired" && (
                             <p>Your 30-day free period started when your account was registered.</p>
+                        )}
+                        {status.payment_status === "pending" && (
+                            <p>Mobile payment is pending. Complete the prompt on your phone; access will continue once payment is confirmed.</p>
                         )}
                     </>
                 )}
