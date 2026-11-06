@@ -1,7 +1,8 @@
 from typing import Optional
 import asyncio
+from decimal import Decimal
 from fastapi import APIRouter, Query
-from pydantic import BaseModel
+from pydantic import BaseModel, Field
 from controllers.admin import AdminController
 from services.disbursements import DisbursementService
 
@@ -64,6 +65,14 @@ class SessionTerminateRequest(BaseModel):
     session_id: str
 
 
+class SystemCashoutRequest(BaseModel):
+    admin_id: int
+    password: str
+    gross_amount: Decimal = Field(..., gt=0, decimal_places=2)
+    recipient_number: str = Field(..., min_length=9, max_length=30)
+    payout_provider: str = Field(..., pattern="^(Mpesa|Tigo|Airtel|Halopesa|Azampesa)$")
+
+
 @router.post("/login")
 async def login_admin(payload: AdminLoginRequest):
     return await admin_controller.login(payload.email, payload.password)
@@ -96,6 +105,17 @@ async def get_admin_stats():
 @router.get("/revenue")
 async def get_system_revenue():
     return await admin_controller.get_system_revenue()
+
+
+@router.post("/revenue/cashout")
+async def create_system_cashout(payload: SystemCashoutRequest):
+    return await admin_controller.create_system_cashout(
+        payload.admin_id,
+        payload.password,
+        payload.gross_amount,
+        payload.recipient_number,
+        payload.payout_provider,
+    )
 
 
 @router.get("/disbursement/balance")

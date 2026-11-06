@@ -15,7 +15,7 @@ from controllers import withdrawals
 
 class _Cursor:
     def __init__(self, row):
-        self.row = row
+        self.rows = iter(row if isinstance(row, list) else [row])
         self.executed = []
 
     async def __aenter__(self):
@@ -28,7 +28,7 @@ class _Cursor:
         self.executed.append((query, params))
 
     async def fetchone(self):
-        return self.row
+        return next(self.rows)
 
 
 class _Connection:
@@ -104,6 +104,31 @@ class DisbursementCallbackTests(TestCase):
 
         self.assertEqual(result["withdrawal_status"], "approved")
         self.assertEqual(len(connection.test_cursor.executed), 1)
+        connection.commit.assert_awaited_once()
+
+    def test_system_cashout_success_callback_completes_cashout(self):
+        result, connection = self._process_callback(
+            [None, (51, "pending")],
+            {"pgReferenceId": "admin-cashout-ref", "status": "success"},
+        )
+
+        self.assertEqual(result["withdrawal_status"], "completed")
+        statements = connection.test_cursor.executed
+        self.assertEqual(len(statements), 3)
+        self.assertIn("FROM system_cashouts", statements[1][0])
+        self.assertEqual(statements[2][1], ("completed", "completed", 51))
+        connection.commit.assert_awaited_once()
+
+    def test_system_cashout_failure_callback_releases_reservation(self):
+        result, connection = self._process_callback(
+            [None, (51, "pending")],
+            {"initiatorReferenceId": "NETKITONGA-ADMIN-WD-abc", "status": "failure"},
+        )
+
+        self.assertEqual(result["withdrawal_status"], "failed")
+        self.assertEqual(
+            connection.test_cursor.executed[2][1], ("failed", "failed", 51)
+        )
         connection.commit.assert_awaited_once()
 
     def test_unknown_callback_status_is_rejected_without_database_access(self):

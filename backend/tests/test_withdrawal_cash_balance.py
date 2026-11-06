@@ -91,6 +91,32 @@ class AvailableCashBalanceTests(unittest.TestCase):
         self.assertEqual(len(connection.test_cursor.executed), 3)
         connection.close.assert_awaited_once()
 
+    def test_withdrawal_records_fee_split_consistent_with_total_deduction(self):
+        connection = _Connection([(1, 0), (10000,), (0,), (88,)])
+        request = WithdrawalRequest(
+            amount=2035,
+            mobile_money_number="0712345678",
+            payout_provider="Mpesa",
+        )
+
+        with patch(
+            "controllers.withdrawals.connection",
+            AsyncMock(return_value=connection),
+        ), patch("controllers.withdrawals.DisbursementService.send", return_value={}) as send:
+            result = asyncio.run(WithdrawalController().request_withdrawal(7, request))
+
+        insert_params = connection.test_cursor.executed[3][1]
+        _, _, amount, commission, system_commission, azampay_fee = insert_params[:6]
+        self.assertEqual(result["status"], "pending")
+        self.assertEqual(commission, system_commission + azampay_fee)
+        send.assert_called_once()
+        self.assertEqual(
+            send.call_args.args[:3],
+            (round(amount - commission, 2), "0712345678", "Mpesa"),
+        )
+        self.assertTrue(send.call_args.args[3].startswith("NETKITONGA-WD-"))
+        connection.commit.assert_awaited_once()
+
     def test_withdrawal_provider_must_be_mobile_money(self):
         with self.assertRaises(ValidationError):
             WithdrawalRequest(

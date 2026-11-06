@@ -108,7 +108,9 @@ class WithdrawalController:
                     raise HTTPException(status_code=400, detail="Insufficient wallet balance for this withdrawal.")
 
                 external_reference = f"NETKITONGA-WD-{secrets.token_hex(8).upper()}"
-                commission = round(float(data.amount) * 0.035, 2)
+                system_commission = round(float(data.amount) * 0.024, 2)
+                azampay_fee = round(float(data.amount) * 0.011, 2)
+                commission = system_commission + azampay_fee
                 transaction_reference = external_reference
                 initial_status = "pending"
                 try:
@@ -128,11 +130,19 @@ class WithdrawalController:
 
                 await cursor.execute(
                     """
-                    INSERT INTO withdrawals (tenant_id, wallet_id, amount, commission, mobile_money_number, payout_provider, status, transaction_reference)
-                    VALUES (%s, %s, %s, %s, %s, %s, %s, %s)
+                    INSERT INTO withdrawals (
+                        tenant_id, wallet_id, amount, commission, system_commission_amount,
+                        azampay_fee_amount, mobile_money_number, payout_provider, status,
+                        transaction_reference
+                    )
+                    VALUES (%s, %s, %s, %s, %s, %s, %s, %s, %s, %s)
                     RETURNING id;
                     """,
-                    (tenant_id, wallet_id, data.amount, commission, data.mobile_money_number, data.payout_provider, initial_status, transaction_reference)
+                    (
+                        tenant_id, wallet_id, data.amount, commission, system_commission,
+                        azampay_fee, data.mobile_money_number, data.payout_provider,
+                        initial_status, transaction_reference,
+                    )
                 )
                 new_id = (await cursor.fetchone())[0]
 
@@ -267,7 +277,35 @@ class WithdrawalController:
                 )
                 withdrawal = await cursor.fetchone()
                 if not withdrawal:
-                    raise HTTPException(status_code=404, detail="Withdrawal reference not found.")
+                    await cursor.execute(
+                        """
+                        SELECT id, status
+                        FROM system_cashouts
+                        WHERE transaction_reference = %s OR external_reference = %s
+                        FOR UPDATE;
+                        """,
+                        (reference, reference),
+                    )
+                    cashout = await cursor.fetchone()
+                    if not cashout:
+                        raise HTTPException(status_code=404, detail="Withdrawal reference not found.")
+                    cashout_id, cashout_status = cashout
+                    cashout_status = str(cashout_status).lower()
+                    cashout_resolved_status = (
+                        "completed" if resolved_status == "approved" else "failed"
+                    )
+                    if cashout_status == "pending":
+                        await cursor.execute(
+                            "UPDATE system_cashouts SET status = %s, completed_at = CASE WHEN %s = 'completed' THEN NOW() ELSE completed_at END WHERE id = %s;",
+                            (cashout_resolved_status, cashout_resolved_status, cashout_id),
+                        )
+                    await conn.commit()
+                    return {
+                        "status": "acknowledged",
+                        "withdrawal_status": (
+                            cashout_resolved_status if cashout_status == "pending" else cashout_status
+                        ),
+                    }
 
                 withdrawal_id, wallet_id, amount, current_status = withdrawal
                 current_status = str(current_status).lower()

@@ -34,6 +34,13 @@ function Admin() {
     const [systemRevenue, setSystemRevenue] = useState(null);
     const [systemRevenueError, setSystemRevenueError] = useState("");
     const [systemRevenueLoading, setSystemRevenueLoading] = useState(false);
+    const [cashoutForm, setCashoutForm] = useState({
+        gross_amount: "",
+        recipient_number: "",
+        payout_provider: "Mpesa",
+        password: "",
+    });
+    const [cashoutSubmitting, setCashoutSubmitting] = useState(false);
     const [sessions, setSessions] = useState([]);
     const [admins, setAdmins] = useState([]);
     const [loading, setLoading] = useState(false);
@@ -186,6 +193,38 @@ function Admin() {
             setSystemRevenueLoading(false);
         }
     }
+
+    const handleSystemCashout = async (event) => {
+        event.preventDefault();
+        setCashoutSubmitting(true);
+        setMessage("");
+        try {
+            const admin = JSON.parse(localStorage.getItem("adminUser") || "null");
+            if (!admin?.id) throw new Error("Admin session is missing. Please sign in again.");
+            const response = await fetch(`${API_BASE_URL}/admin/revenue/cashout`, {
+                method: "POST",
+                headers: { "Content-Type": "application/json" },
+                body: JSON.stringify({
+                    admin_id: Number(admin.id),
+                    password: cashoutForm.password,
+                    gross_amount: Number(cashoutForm.gross_amount),
+                    recipient_number: cashoutForm.recipient_number.trim(),
+                    payout_provider: cashoutForm.payout_provider,
+                }),
+            });
+            const data = await response.json();
+            if (!response.ok) throw new Error(data.detail || "System cashout failed.");
+            setMessage(
+                `${data.message} Net payout: ${fmt(data.net_amount)}; fee: ${fmt(data.fee_amount)}.`
+            );
+            setCashoutForm({ ...cashoutForm, gross_amount: "", password: "" });
+            await loadSystemRevenue();
+        } catch (err) {
+            setMessage(err.message);
+        } finally {
+            setCashoutSubmitting(false);
+        }
+    };
 
     const loadSessions = async () => {
         setLoading(true);
@@ -560,22 +599,109 @@ function Admin() {
                         {systemRevenueError ? (
                             <p role="alert" style={{ color: "#ff5252" }}>{systemRevenueError}</p>
                         ) : systemRevenue ? (
-                            <div className="stats-grid">
-                                <div className="stat-card">
-                                    <div className="stat-label">Withdrawal commissions</div>
-                                    <div className="stat-value">{fmt(systemRevenue.withdrawal_commissions)}</div>
-                                    <div>{systemRevenue.successful_withdrawals} successful withdrawals</div>
+                            <>
+                                <div className="stats-grid">
+                                    <div className="stat-card">
+                                        <div className="stat-label">NetKitonga withdrawal share (2.4%)</div>
+                                        <div className="stat-value">{fmt(systemRevenue.withdrawal_commissions)}</div>
+                                        <div>{systemRevenue.successful_withdrawals} successful withdrawals</div>
+                                    </div>
+                                    <div className="stat-card">
+                                        <div className="stat-label">Completed subscriptions</div>
+                                        <div className="stat-value">{fmt(systemRevenue.subscription_payments)}</div>
+                                        <div>{systemRevenue.successful_subscriptions} completed payments</div>
+                                    </div>
+                                    <div className="stat-card">
+                                        <div className="stat-label">Total recorded revenue</div>
+                                        <div className="stat-value">{fmt(systemRevenue.total_recorded_revenue)}</div>
+                                    </div>
+                                    <div className="stat-card">
+                                        <div className="stat-label">Pending/completed cashouts reserved</div>
+                                        <div className="stat-value">{fmt(systemRevenue.cashouts_reserved)}</div>
+                                    </div>
+                                    <div className="stat-card">
+                                        <div className="stat-label">Available to cash out</div>
+                                        <div className="stat-value">{fmt(systemRevenue.available_balance)}</div>
+                                    </div>
                                 </div>
-                                <div className="stat-card">
-                                    <div className="stat-label">Subscription payments</div>
-                                    <div className="stat-value">{fmt(systemRevenue.subscription_payments)}</div>
-                                    <div>{systemRevenue.successful_subscriptions} completed payments</div>
+                                <div className="card" style={{ marginTop: 16 }}>
+                                    <h3 style={{ marginTop: 0 }}>Withdraw NetKitonga Earnings</h3>
+                                    <p>
+                                        Enter the gross amount to debit from recorded earnings. AzamPay’s 1.1% fee is estimated
+                                        from that amount and deducted before the payout. Confirm settled funds are available in
+                                        the AzamPay disbursement account; collection funds may need settlement first.
+                                    </p>
+                                    <form onSubmit={handleSystemCashout} style={{ display: "grid", gap: 10, maxWidth: 560 }}>
+                                        <input
+                                            className="form-input"
+                                            type="number"
+                                            min="0.01"
+                                            max={systemRevenue.available_balance}
+                                            step="0.01"
+                                            placeholder="Gross amount to debit (TZS)"
+                                            value={cashoutForm.gross_amount}
+                                            onChange={(event) => setCashoutForm({ ...cashoutForm, gross_amount: event.target.value })}
+                                            required
+                                        />
+                                        <input
+                                            className="form-input"
+                                            type="tel"
+                                            maxLength={30}
+                                            placeholder="Recipient mobile-money number"
+                                            value={cashoutForm.recipient_number}
+                                            onChange={(event) => setCashoutForm({ ...cashoutForm, recipient_number: event.target.value })}
+                                            required
+                                        />
+                                        <select
+                                            className="form-input"
+                                            value={cashoutForm.payout_provider}
+                                            onChange={(event) => setCashoutForm({ ...cashoutForm, payout_provider: event.target.value })}
+                                        >
+                                            <option value="Mpesa">M-Pesa</option>
+                                            <option value="Airtel">Airtel Money</option>
+                                            <option value="Tigo">Tigo Pesa</option>
+                                            <option value="Halopesa">HaloPesa</option>
+                                            <option value="Azampesa">AzamPesa</option>
+                                        </select>
+                                        <input
+                                            className="form-input"
+                                            type="password"
+                                            autoComplete="current-password"
+                                            placeholder="Confirm admin password"
+                                            value={cashoutForm.password}
+                                            onChange={(event) => setCashoutForm({ ...cashoutForm, password: event.target.value })}
+                                            required
+                                        />
+                                        <button className="btn" type="submit" disabled={cashoutSubmitting || Number(cashoutForm.gross_amount) > systemRevenue.available_balance}>
+                                            {cashoutSubmitting ? "Submitting..." : "Withdraw system earnings"}
+                                        </button>
+                                    </form>
                                 </div>
-                                <div className="stat-card">
-                                    <div className="stat-label">Total recorded revenue</div>
-                                    <div className="stat-value">{fmt(systemRevenue.total_recorded_revenue)}</div>
+                                <div className="card" style={{ marginTop: 16 }}>
+                                    <h3 style={{ marginTop: 0 }}>Recent System Cashouts</h3>
+                                    {systemRevenue.cashouts?.length ? (
+                                        <div className="table-wrapper">
+                                            <table>
+                                                <thead><tr><th>Date</th><th>Gross debit</th><th>Fee</th><th>Net payout</th><th>Recipient</th><th>Provider</th><th>Status</th><th>Reference</th></tr></thead>
+                                                <tbody>
+                                                    {systemRevenue.cashouts.map((cashout) => (
+                                                        <tr key={cashout.id}>
+                                                            <td>{cashout.created_at ? new Date(cashout.created_at).toLocaleString() : "-"}</td>
+                                                            <td>{fmt(cashout.gross_amount)}</td>
+                                                            <td>{fmt(cashout.fee_amount)}</td>
+                                                            <td>{fmt(cashout.net_amount)}</td>
+                                                            <td>{cashout.recipient_number}</td>
+                                                            <td>{cashout.payout_provider}</td>
+                                                            <td>{cashout.status}</td>
+                                                            <td>{cashout.transaction_reference || "-"}</td>
+                                                        </tr>
+                                                    ))}
+                                                </tbody>
+                                            </table>
+                                        </div>
+                                    ) : <p>No system cashouts yet.</p>}
                                 </div>
-                            </div>
+                            </>
                         ) : (
                             <p>{systemRevenueLoading ? "Loading recorded revenue..." : "Revenue is not available yet."}</p>
                         )}

@@ -12,8 +12,9 @@ from controllers.admin import AdminController
 
 
 class _Cursor:
-    def __init__(self, row):
+    def __init__(self, row, rows=None):
         self.row = row
+        self.rows = rows or []
         self.executed = []
 
     async def __aenter__(self):
@@ -28,6 +29,9 @@ class _Cursor:
     async def fetchone(self):
         return self.row
 
+    async def fetchall(self):
+        return self.rows
+
 
 class _Connection:
     def __init__(self, row):
@@ -40,7 +44,8 @@ class _Connection:
 
 class AdminSystemRevenueTests(TestCase):
     def test_report_sums_successful_commissions_and_subscription_payments(self):
-        connection = _Connection((350, 20000, 10, 2))
+        connection = _Connection((240, 20000, 10, 2, 5000))
+        connection.test_cursor.rows = []
         with patch(
             "controllers.admin.connection",
             AsyncMock(return_value=connection),
@@ -51,11 +56,14 @@ class AdminSystemRevenueTests(TestCase):
             result,
             {
                 "currency": "TZS",
-                "withdrawal_commissions": 350.0,
+                "withdrawal_commissions": 240.0,
                 "subscription_payments": 20000.0,
-                "total_recorded_revenue": 20350.0,
+                "total_recorded_revenue": 20240.0,
+                "cashouts_reserved": 5000.0,
+                "available_balance": 15240.0,
                 "successful_withdrawals": 10,
                 "successful_subscriptions": 2,
+                "cashouts": [],
             },
         )
         self.assertIn("subscription_payments", connection.test_cursor.executed[0])

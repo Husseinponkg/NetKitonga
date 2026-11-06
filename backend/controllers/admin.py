@@ -1,8 +1,12 @@
+import asyncio
+import secrets
 from datetime import datetime
+from decimal import Decimal, ROUND_HALF_UP
 from typing import List, Dict, Any, Optional
 from fastapi import HTTPException
 from bcrypt import hashpw, gensalt, checkpw
 from config.db import connection
+from services.disbursements import DisbursementRejected, DisbursementService
 
 
 class AdminController:
@@ -243,7 +247,7 @@ class AdminController:
                     """
                     SELECT
                         COALESCE((
-                            SELECT SUM(commission)
+                            SELECT SUM(system_commission_amount)
                             FROM withdrawals
                             WHERE LOWER(status) IN ('approved', 'paid')
                         ), 0),
@@ -261,20 +265,211 @@ class AdminController:
                             SELECT COUNT(*)
                             FROM subscription_payments
                             WHERE status = 'completed'
-                        );
+                        ),
+                        COALESCE((
+                            SELECT SUM(gross_amount)
+                            FROM system_cashouts
+                            WHERE status IN ('pending', 'completed')
+                        ), 0);
                     """
                 )
-                commission_revenue, subscription_revenue, commission_count, subscription_count = await cursor.fetchone()
+                (
+                    commission_revenue, subscription_revenue, commission_count,
+                    subscription_count, cashouts_reserved,
+                ) = await cursor.fetchone()
                 commission_revenue = float(commission_revenue or 0)
                 subscription_revenue = float(subscription_revenue or 0)
+                cashouts_reserved = float(cashouts_reserved or 0)
+                total_revenue = commission_revenue + subscription_revenue
+                available_balance = max(0.0, total_revenue - cashouts_reserved)
+                await cursor.execute(
+                    """
+                    SELECT id, gross_amount, fee_amount, net_amount, recipient_number,
+                           payout_provider, transaction_reference, status, created_at
+                    FROM system_cashouts
+                    ORDER BY created_at DESC
+                    LIMIT 20;
+                    """
+                )
+                cashouts = await cursor.fetchall()
                 return {
                     "currency": "TZS",
                     "withdrawal_commissions": commission_revenue,
                     "subscription_payments": subscription_revenue,
-                    "total_recorded_revenue": commission_revenue + subscription_revenue,
+                    "total_recorded_revenue": total_revenue,
+                    "cashouts_reserved": cashouts_reserved,
+                    "available_balance": available_balance,
                     "successful_withdrawals": commission_count,
                     "successful_subscriptions": subscription_count,
+                    "cashouts": [
+                        {
+                            "id": row[0],
+                            "gross_amount": float(row[1]),
+                            "fee_amount": float(row[2]),
+                            "net_amount": float(row[3]),
+                            "recipient_number": row[4],
+                            "payout_provider": row[5],
+                            "transaction_reference": row[6],
+                            "status": row[7],
+                            "created_at": row[8].isoformat() if row[8] else None,
+                        }
+                        for row in cashouts
+                    ],
                 }
+        finally:
+            await conn.close()
+
+    async def create_system_cashout(
+        self,
+        admin_id: int,
+        password: str,
+        gross_amount: Decimal,
+        recipient_number: str,
+        payout_provider: str,
+    ) -> Dict[str, Any]:
+        gross_amount = gross_amount.quantize(Decimal("0.01"), rounding=ROUND_HALF_UP)
+        if gross_amount <= 0:
+            raise HTTPException(status_code=400, detail="Cashout amount must be greater than zero.")
+
+        conn = await connection()
+        try:
+            async with conn.cursor() as cursor:
+                await cursor.execute(
+                    "SELECT password_hash FROM admins WHERE id = %s;",
+                    (admin_id,),
+                )
+                admin = await cursor.fetchone()
+                if not admin:
+                    raise HTTPException(status_code=401, detail="Admin authentication required.")
+                try:
+                    password_valid = checkpw(password.encode("utf-8"), admin[0].encode("utf-8"))
+                except (AttributeError, ValueError):
+                    password_valid = False
+                if not password_valid:
+                    raise HTTPException(status_code=401, detail="Invalid admin password.")
+
+                await cursor.execute("SELECT pg_advisory_xact_lock(781204630);")
+                await cursor.execute(
+                    """
+                    SELECT
+                        COALESCE((
+                            SELECT SUM(system_commission_amount)
+                            FROM withdrawals
+                            WHERE LOWER(status) IN ('approved', 'paid')
+                        ), 0)
+                        + COALESCE((
+                            SELECT SUM(amount)
+                            FROM subscription_payments
+                            WHERE status = 'completed'
+                        ), 0)
+                        - COALESCE((
+                            SELECT SUM(gross_amount)
+                            FROM system_cashouts
+                            WHERE status IN ('pending', 'completed')
+                        ), 0);
+                    """
+                )
+                available = Decimal(str((await cursor.fetchone())[0] or 0))
+                if gross_amount > available:
+                    raise HTTPException(
+                        status_code=400,
+                        detail=f"Cashout exceeds available system earnings ({max(available, Decimal('0')):.2f} TZS).",
+                    )
+
+                fee_amount = (gross_amount * Decimal("0.011")).quantize(
+                    Decimal("0.01"), rounding=ROUND_HALF_UP
+                )
+                net_amount = gross_amount - fee_amount
+                external_reference = f"NETKITONGA-ADMIN-WD-{secrets.token_hex(8).upper()}"
+                await cursor.execute(
+                    """
+                    INSERT INTO system_cashouts (
+                        admin_id, gross_amount, fee_amount, net_amount,
+                        recipient_number, payout_provider, external_reference, status
+                    )
+                    VALUES (%s, %s, %s, %s, %s, %s, %s, 'pending')
+                    RETURNING id;
+                    """,
+                    (
+                        admin_id, gross_amount, fee_amount, net_amount,
+                        recipient_number, payout_provider, external_reference,
+                    ),
+                )
+                cashout_id = (await cursor.fetchone())[0]
+                await conn.commit()
+        except HTTPException:
+            raise
+        except Exception as error:
+            await conn.rollback()
+            raise HTTPException(status_code=500, detail=f"Could not reserve system cashout: {error}")
+        finally:
+            await conn.close()
+
+        disbursement = DisbursementService()
+        try:
+            response = await asyncio.to_thread(
+                disbursement.send,
+                float(net_amount),
+                recipient_number,
+                payout_provider,
+                external_reference,
+            )
+        except DisbursementRejected as error:
+            await self._set_system_cashout_status(cashout_id, "failed")
+            raise HTTPException(status_code=502, detail=str(error)) from error
+        except Exception as error:
+            raise HTTPException(
+                status_code=502,
+                detail=(
+                    "Cashout outcome is unconfirmed. The amount remains reserved; "
+                    "check AzamPay before retrying."
+                ),
+            ) from error
+
+        transaction_reference = response.get("pgReferenceId") or external_reference
+        await self._set_system_cashout_reference(cashout_id, transaction_reference)
+        return {
+            "message": "System cashout submitted; awaiting AzamPay confirmation.",
+            "cashout_id": cashout_id,
+            "status": "pending",
+            "gross_amount": float(gross_amount),
+            "fee_amount": float(fee_amount),
+            "net_amount": float(net_amount),
+            "transaction_reference": transaction_reference,
+        }
+
+    async def _set_system_cashout_status(self, cashout_id: int, status: str) -> None:
+        conn = await connection()
+        try:
+            async with conn.cursor() as cursor:
+                await cursor.execute(
+                    """
+                    UPDATE system_cashouts
+                    SET status = %s,
+                        completed_at = CASE WHEN %s = 'completed' THEN NOW() ELSE completed_at END
+                    WHERE id = %s AND status = 'pending';
+                    """,
+                    (status, status, cashout_id),
+                )
+                await conn.commit()
+        except Exception:
+            await conn.rollback()
+            raise
+        finally:
+            await conn.close()
+
+    async def _set_system_cashout_reference(self, cashout_id: int, reference: str) -> None:
+        conn = await connection()
+        try:
+            async with conn.cursor() as cursor:
+                await cursor.execute(
+                    "UPDATE system_cashouts SET transaction_reference = %s WHERE id = %s;",
+                    (reference, cashout_id),
+                )
+                await conn.commit()
+        except Exception:
+            await conn.rollback()
+            raise
         finally:
             await conn.close()
 

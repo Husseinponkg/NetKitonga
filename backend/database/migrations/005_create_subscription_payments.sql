@@ -1,4 +1,5 @@
 -- Apply this migration to an existing database before deploying subscription billing.
+-- Run this before 006_system_revenue_cashouts.sql.
 CREATE TABLE IF NOT EXISTS subscription_payments (
     id SERIAL PRIMARY KEY,
     tenant_id INT NOT NULL REFERENCES tenants(id) ON DELETE CASCADE,
@@ -12,3 +13,11 @@ CREATE TABLE IF NOT EXISTS subscription_payments (
 
 CREATE INDEX IF NOT EXISTS idx_subscription_payments_status
     ON subscription_payments(status);
+
+DO $$
+BEGIN
+    IF EXISTS (SELECT 1 FROM pg_roles WHERE rolname = 'netkitonga_user') THEN
+        EXECUTE 'GRANT SELECT, INSERT, UPDATE ON subscription_payments TO netkitonga_user';
+        EXECUTE 'GRANT USAGE, SELECT ON SEQUENCE subscription_payments_id_seq TO netkitonga_user';
+    END IF;
+END $$;
