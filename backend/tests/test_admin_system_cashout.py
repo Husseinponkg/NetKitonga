@@ -136,19 +136,18 @@ class AdminSystemCashoutTests(TestCase):
             patch("controllers.admin.checkpw", return_value=True),
             patch("controllers.admin.DisbursementService", return_value=disbursement),
         ):
-            with self.assertRaises(HTTPException) as error:
-                asyncio.run(
-                    AdminController().create_system_cashout(
-                        4,
-                        "admin-password",
-                        Decimal("10000"),
-                        "0712345678",
-                        "Mpesa",
-                    )
+            result = asyncio.run(
+                AdminController().create_system_cashout(
+                    4,
+                    "admin-password",
+                    Decimal("10000"),
+                    "0712345678",
+                    "Mpesa",
                 )
+            )
 
-        self.assertEqual(error.exception.status_code, 502)
-        self.assertIn("settings are incomplete", error.exception.detail)
+        self.assertEqual(result["status"], "failed")
+        self.assertIn("settings are incomplete", result["message"])
         self.assertIn("SET status = %s", status_connection.test_cursor.executed[0][0])
         self.assertEqual(
             status_connection.test_cursor.executed[0][1],
@@ -168,20 +167,19 @@ class AdminSystemCashoutTests(TestCase):
             patch("controllers.admin.checkpw", return_value=True),
             patch("controllers.admin.DisbursementService", return_value=disbursement),
         ):
-            with self.assertRaises(HTTPException) as error:
-                asyncio.run(
-                    AdminController().create_system_cashout(
-                        4,
-                        "admin-password",
-                        Decimal("10000"),
-                        "0712345678",
-                        "Mpesa",
-                    )
+            result = asyncio.run(
+                AdminController().create_system_cashout(
+                    4,
+                    "admin-password",
+                    Decimal("10000"),
+                    "0712345678",
+                    "Mpesa",
                 )
+            )
 
-        self.assertEqual(error.exception.status_code, 502)
-        self.assertIn("HTTP 503", error.exception.detail)
-        self.assertIn("remains pending", error.exception.detail)
+        self.assertEqual(result["status"], "pending")
+        self.assertIn("HTTP 503", result["message"])
+        self.assertIn("remains pending", result["message"])
         self.assertEqual(len(reserve_connection.test_cursor.executed), 4)
 
 

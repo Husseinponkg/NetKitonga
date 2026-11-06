@@ -410,6 +410,9 @@ class AdminController:
             await conn.close()
 
         disbursement = DisbursementService()
+        transaction_reference = external_reference
+        outcome_status = "pending"
+        message = "System cashout submitted; awaiting AzamPay confirmation."
         try:
             response = await asyncio.to_thread(
                 disbursement.send,
@@ -418,36 +421,33 @@ class AdminController:
                 payout_provider,
                 external_reference,
             )
+            transaction_reference = response.get("pgReferenceId") or external_reference
         except DisbursementRejected as error:
             await self._set_system_cashout_status(cashout_id, "failed")
-            raise HTTPException(status_code=502, detail=str(error)) from error
+            outcome_status = "failed"
+            message = str(error)
         except DisbursementPreflightError as error:
             await self._set_system_cashout_status(cashout_id, "failed")
-            raise HTTPException(status_code=502, detail=str(error)) from error
+            outcome_status = "failed"
+            message = str(error)
         except HTTPException as error:
             detail = error.detail if isinstance(error.detail, str) else "AzamPay returned an unexpected response."
-            raise HTTPException(
-                status_code=502,
-                detail=(
-                    f"{detail} The cashout remains pending because its payout outcome "
-                    "could not be confirmed; check AzamPay before retrying."
-                ),
-            ) from error
+            message = (
+                f"{detail} The cashout remains pending because its payout outcome "
+                "could not be confirmed; check AzamPay before retrying."
+            )
         except Exception as error:
-            raise HTTPException(
-                status_code=502,
-                detail=(
-                    "Cashout outcome is unconfirmed. The amount remains reserved; "
-                    "check AzamPay before retrying."
-                ),
-            ) from error
+            message = (
+                "Cashout outcome is unconfirmed. The amount remains reserved; "
+                f"check AzamPay before retrying. ({type(error).__name__})"
+            )
+        else:
+            await self._set_system_cashout_reference(cashout_id, transaction_reference)
 
-        transaction_reference = response.get("pgReferenceId") or external_reference
-        await self._set_system_cashout_reference(cashout_id, transaction_reference)
         return {
-            "message": "System cashout submitted; awaiting AzamPay confirmation.",
+            "message": message,
             "cashout_id": cashout_id,
-            "status": "pending",
+            "status": outcome_status,
             "gross_amount": float(gross_amount),
             "fee_amount": float(fee_amount),
             "net_amount": float(net_amount),

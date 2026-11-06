@@ -99,7 +99,9 @@ class DisbursementService:
         if isinstance(data, dict):
             token = token or data.get("token") or data.get("accessToken")
         if not token:
-            raise HTTPException(status_code=502, detail="Disbursement auth returned no token.")
+            raise DisbursementPreflightError(
+                "AzamPay disbursement authentication returned no access token."
+            )
         return str(token)
 
     def _get_inquiry(self, url: str, *, params: Dict[str, str] | None = None, authenticated: bool = True) -> Any:
