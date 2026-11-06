@@ -76,7 +76,9 @@ class AdminSystemCashoutTests(TestCase):
         self.assertIn("SELECT pg_advisory_xact_lock", reserve_connection.test_cursor.executed[1][0])
         self.assertIn("INSERT INTO system_cashouts", reserve_connection.test_cursor.executed[3][0])
         self.assertEqual(disbursement.send.call_args.args[0:3], (9890.0, "0712345678", "Mpesa"))
-        self.assertTrue(disbursement.send.call_args.args[3].startswith("NETKITONGA-ADMIN-WD-"))
+        external_reference = disbursement.send.call_args.args[3]
+        self.assertTrue(external_reference.startswith("NETKITONGA-WD-"))
+        self.assertLessEqual(len(external_reference), 30)
         self.assertEqual(
             reference_connection.test_cursor.executed[0][1],
             ("azam-ref", 51),

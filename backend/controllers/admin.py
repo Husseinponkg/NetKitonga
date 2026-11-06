@@ -384,7 +384,7 @@ class AdminController:
                     Decimal("0.01"), rounding=ROUND_HALF_UP
                 )
                 net_amount = gross_amount - fee_amount
-                external_reference = f"NETKITONGA-ADMIN-WD-{secrets.token_hex(8).upper()}"
+                external_reference = f"NETKITONGA-WD-{secrets.token_hex(8).upper()}"
                 await cursor.execute(
                     """
                     INSERT INTO system_cashouts (
