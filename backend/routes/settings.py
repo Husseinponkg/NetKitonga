@@ -1,9 +1,14 @@
 from typing import Dict
-from fastapi import APIRouter, HTTPException, Query
+from fastapi import APIRouter, Depends, HTTPException, Query
 from pydantic import BaseModel, EmailStr
 from config.db import connection
+from utils.subscription_access import require_active_subscription
 
-settings_endpoints = APIRouter(prefix="/settings", tags=["settings"])
+settings_endpoints = APIRouter(
+    prefix="/settings",
+    tags=["settings"],
+    dependencies=[Depends(require_active_subscription)],
+)
 
 class SettingsResponse(BaseModel):
     id: int

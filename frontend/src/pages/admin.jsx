@@ -10,6 +10,8 @@ const SECTIONS = [
     { key: "vouchers", label: "Vouchers" },
     { key: "payments", label: "Payments" },
     { key: "withdrawals", label: "Withdrawals" },
+    { key: "system-balance", label: "System Balance" },
+    { key: "system-revenue", label: "System Revenue" },
     { key: "sessions", label: "Sessions" },
     { key: "logs", label: "System Logs" },
     { key: "admins", label: "Admins" },
@@ -26,6 +28,12 @@ function Admin() {
     const [vouchers, setVouchers] = useState([]);
     const [payments, setPayments] = useState([]);
     const [withdrawals, setWithdrawals] = useState([]);
+    const [disbursementBalance, setDisbursementBalance] = useState(null);
+    const [disbursementBalanceLoading, setDisbursementBalanceLoading] = useState(false);
+    const [disbursementBalanceError, setDisbursementBalanceError] = useState("");
+    const [systemRevenue, setSystemRevenue] = useState(null);
+    const [systemRevenueError, setSystemRevenueError] = useState("");
+    const [systemRevenueLoading, setSystemRevenueLoading] = useState(false);
     const [sessions, setSessions] = useState([]);
     const [admins, setAdmins] = useState([]);
     const [loading, setLoading] = useState(false);
@@ -43,6 +51,8 @@ function Admin() {
         else if (section === "vouchers") loadVouchers();
         else if (section === "payments") loadPayments();
         else if (section === "withdrawals") loadWithdrawals();
+        else if (section === "system-balance") loadDisbursementBalance();
+        else if (section === "system-revenue") loadSystemRevenue();
         else if (section === "sessions") loadSessions();
         else if (section === "admins") loadAdmins();
     }, [section]);
@@ -147,6 +157,36 @@ function Admin() {
         }
     };
 
+    async function loadDisbursementBalance() {
+        setDisbursementBalanceLoading(true);
+        setDisbursementBalanceError("");
+        try {
+            const res = await fetch(`${API_BASE_URL}/admin/disbursement/balance`);
+            const data = await res.json();
+            if (!res.ok) throw new Error(data.detail || "Failed to fetch AzamPay disbursement balance.");
+            setDisbursementBalance(data);
+        } catch (err) {
+            setDisbursementBalanceError(err.message);
+        } finally {
+            setDisbursementBalanceLoading(false);
+        }
+    }
+
+    async function loadSystemRevenue() {
+        setSystemRevenueLoading(true);
+        setSystemRevenueError("");
+        try {
+            const res = await fetch(`${API_BASE_URL}/admin/revenue`);
+            const data = await res.json();
+            if (!res.ok) throw new Error(data.detail || "Failed to fetch system revenue.");
+            setSystemRevenue(data);
+        } catch (err) {
+            setSystemRevenueError(err.message);
+        } finally {
+            setSystemRevenueLoading(false);
+        }
+    }
+
     const loadSessions = async () => {
         setLoading(true);
         try {
@@ -213,6 +253,17 @@ function Admin() {
 
     const fmt = (n) =>
         new Intl.NumberFormat("en-TZ", { style: "currency", currency: "TZS", minimumFractionDigits: 0 }).format(n || 0);
+
+    const formatDisbursementBalance = (data) => {
+        const value = data && typeof data === "object" && !Array.isArray(data)
+            ? data.balance ?? data.availableBalance ?? data.available_balance ?? data.amount ?? data.data
+            : data;
+        if (typeof value === "number") return fmt(value);
+        if (typeof value === "string" && value.trim() !== "" && Number.isFinite(Number(value))) {
+            return fmt(Number(value));
+        }
+        return null;
+    };
 
     return (
         <div style={{ minHeight: "100vh", background: "#0f0f0f", color: "#fff", fontFamily: "'Inter', system-ui, sans-serif", display: "flex" }}>
@@ -454,6 +505,79 @@ function Admin() {
                                     ))}
                                 </tbody>
                             </table>
+                        )}
+                    </div>
+                )}
+
+                {section === "system-balance" && (
+                    <div className="card">
+                        <div style={{ display: "flex", justifyContent: "space-between", alignItems: "center", gap: "12px" }}>
+                            <div>
+                                <h3 style={{ margin: 0 }}>AzamPay Disbursement Balance</h3>
+                                <p style={{ color: "rgba(255,255,255,0.55)", fontSize: "0.85rem" }}>
+                                    Live balance returned by AzamPay’s check-balance API. This is separate from collection funds.
+                                </p>
+                            </div>
+                            <button className="btn btn-ghost" onClick={loadDisbursementBalance} disabled={disbursementBalanceLoading}>
+                                {disbursementBalanceLoading ? "Checking..." : "Refresh"}
+                            </button>
+                        </div>
+                        {disbursementBalanceError ? (
+                            <p role="alert" style={{ color: "#ff5252" }}>{disbursementBalanceError}</p>
+                        ) : disbursementBalanceLoading && disbursementBalance === null ? (
+                            <p>Loading balance…</p>
+                        ) : disbursementBalance !== null ? (
+                            <>
+                                {formatDisbursementBalance(disbursementBalance) !== null ? (
+                                    <div className="stat-value">{formatDisbursementBalance(disbursementBalance)}</div>
+                                ) : (
+                                    <pre style={{ whiteSpace: "pre-wrap", overflowWrap: "anywhere" }}>
+                                        {typeof disbursementBalance === "string"
+                                            ? disbursementBalance
+                                            : JSON.stringify(disbursementBalance, null, 2)}
+                                    </pre>
+                                )}
+                            </>
+                        ) : (
+                            <p>Balance is not available yet.</p>
+                        )}
+                    </div>
+                )}
+
+                {section === "system-revenue" && (
+                    <div className="card">
+                        <div style={{ display: "flex", justifyContent: "space-between", alignItems: "center", gap: "12px" }}>
+                            <div>
+                                <h3 style={{ margin: 0 }}>Recorded System Revenue</h3>
+                                <p style={{ color: "rgba(255,255,255,0.55)", fontSize: "0.85rem" }}>
+                                    Successful withdrawal commissions plus completed subscription payments. This is a revenue report, not a live cash balance.
+                                </p>
+                            </div>
+                            <button className="btn btn-ghost" onClick={loadSystemRevenue} disabled={systemRevenueLoading}>
+                                {systemRevenueLoading ? "Loading..." : "Refresh"}
+                            </button>
+                        </div>
+                        {systemRevenueError ? (
+                            <p role="alert" style={{ color: "#ff5252" }}>{systemRevenueError}</p>
+                        ) : systemRevenue ? (
+                            <div className="stats-grid">
+                                <div className="stat-card">
+                                    <div className="stat-label">Withdrawal commissions</div>
+                                    <div className="stat-value">{fmt(systemRevenue.withdrawal_commissions)}</div>
+                                    <div>{systemRevenue.successful_withdrawals} successful withdrawals</div>
+                                </div>
+                                <div className="stat-card">
+                                    <div className="stat-label">Subscription payments</div>
+                                    <div className="stat-value">{fmt(systemRevenue.subscription_payments)}</div>
+                                    <div>{systemRevenue.successful_subscriptions} completed payments</div>
+                                </div>
+                                <div className="stat-card">
+                                    <div className="stat-label">Total recorded revenue</div>
+                                    <div className="stat-value">{fmt(systemRevenue.total_recorded_revenue)}</div>
+                                </div>
+                            </div>
+                        ) : (
+                            <p>{systemRevenueLoading ? "Loading recorded revenue..." : "Revenue is not available yet."}</p>
                         )}
                     </div>
                 )}

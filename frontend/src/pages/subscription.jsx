@@ -1,4 +1,4 @@
-import React, { useState, useEffect } from "react";
+import React, { useCallback, useState, useEffect } from "react";
 import { useNavigate } from "react-router-dom";
 import { API_BASE_URL } from "../api";
 import { getTenantId } from "../session";
@@ -13,7 +13,7 @@ function Subscription() {
 
     const tenantId = getTenantId();
 
-    const loadStatus = async () => {
+    const loadStatus = useCallback(async () => {
         if (!tenantId) return;
         const res = await fetch(`${API_BASE_URL}/subscriptions/status?tenant_id=${tenantId}`);
         if (res.ok) {
@@ -21,9 +21,11 @@ function Subscription() {
             setStatus(data);
             if (data.active) navigate("/dashboard");
         }
-    };
+    }, [tenantId, navigate]);
 
-    useEffect(() => { loadStatus(); }, []);
+    // Load the subscription state from the server when this page opens.
+    // eslint-disable-next-line react/set-state-in-effect
+    useEffect(() => { loadStatus(); }, [loadStatus]);
 
     const handlePay = async (e) => {
         e.preventDefault();
@@ -61,7 +63,14 @@ function Subscription() {
             <div style={{ background: "#1a1a1a", padding: 32, borderRadius: 12, width: 400 }}>
                 <h2>Subscription Required</h2>
                 <p>Monthly subscription: 10,000 TZS</p>
-                {status && <p>Status: {status.subscription_status}</p>}
+                {status && (
+                    <>
+                        <p>Status: {status.subscription_status}</p>
+                        {status.trial_ends_at && status.subscription_status === "expired" && (
+                            <p>Your 30-day free period started when your account was registered.</p>
+                        )}
+                    </>
+                )}
                 {message && <p>{message}</p>}
                 <form onSubmit={handlePay}>
                     <input value={phone} onChange={(e) => setPhone(e.target.value)} placeholder="Phone number" style={{ width: "100%", padding: 10, marginBottom: 10 }} required />

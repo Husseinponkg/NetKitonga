@@ -18,8 +18,8 @@ class AuthController:
 
                 hashed_password = hashpw(password.encode("utf-8"), gensalt()).decode("utf-8")
                 await cursor.execute(
-                    "INSERT INTO tenants (business_name, system_name, email, password_hash, phone_number, status) VALUES (%s, %s, %s, %s, %s, %s)",
-                    (business_name, system_name, email, hashed_password, phone_number, "pending")
+                    "INSERT INTO tenants (business_name, system_name, email, password_hash, phone_number, status, subscription_status) VALUES (%s, %s, %s, %s, %s, %s, %s)",
+                    (business_name, system_name, email, hashed_password, phone_number, "pending", "trial")
                 )
 
             await conn.commit()

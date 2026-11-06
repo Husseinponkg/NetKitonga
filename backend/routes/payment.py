@@ -1,10 +1,11 @@
 from typing import Any, Dict, List
 
-from fastapi import APIRouter, Body, HTTPException, Query, status
+from fastapi import APIRouter, Body, Depends, HTTPException, Query, status
 
 from controllers.payments import PaymentController
 from models.payments import CheckoutRequest, PaymentHistoryResponse, PortalBuyerRequest
 from services.payments import PaymentService
+from utils.subscription_access import require_active_subscription
 
 payment_endpoints = APIRouter(
     tags=["AzamPay Micro-Billing Engine"],
@@ -81,6 +82,7 @@ async def handle_portal_payment_status(
 @payment_endpoints.get(
     "/payments/history",
     response_model=List[PaymentHistoryResponse],
+    dependencies=[Depends(require_active_subscription)],
 )
 async def handle_get_payment_ledger(
     tenant_id: int = Query(..., description="The active business tenant ID context"),
@@ -89,7 +91,7 @@ async def handle_get_payment_ledger(
     return await service.get_tenant_payment_history(tenant_id)
 
 
-@payment_endpoints.get("/payments/income/stats")
+@payment_endpoints.get("/payments/income/stats", dependencies=[Depends(require_active_subscription)])
 async def handle_get_income_stats(tenant_id: int = Query(...)) -> Dict[str, Any]:
     """Return aggregated income statistics for a tenant."""
     return await service.get_tenant_income_stats(tenant_id)

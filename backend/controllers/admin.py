@@ -235,6 +235,49 @@ class AdminController:
         finally:
             await conn.close()
 
+    async def get_system_revenue(self) -> Dict[str, Any]:
+        conn = await connection()
+        try:
+            async with conn.cursor() as cursor:
+                await cursor.execute(
+                    """
+                    SELECT
+                        COALESCE((
+                            SELECT SUM(commission)
+                            FROM withdrawals
+                            WHERE LOWER(status) IN ('approved', 'paid')
+                        ), 0),
+                        COALESCE((
+                            SELECT SUM(amount)
+                            FROM subscription_payments
+                            WHERE status = 'completed'
+                        ), 0),
+                        (
+                            SELECT COUNT(*)
+                            FROM withdrawals
+                            WHERE LOWER(status) IN ('approved', 'paid')
+                        ),
+                        (
+                            SELECT COUNT(*)
+                            FROM subscription_payments
+                            WHERE status = 'completed'
+                        );
+                    """
+                )
+                commission_revenue, subscription_revenue, commission_count, subscription_count = await cursor.fetchone()
+                commission_revenue = float(commission_revenue or 0)
+                subscription_revenue = float(subscription_revenue or 0)
+                return {
+                    "currency": "TZS",
+                    "withdrawal_commissions": commission_revenue,
+                    "subscription_payments": subscription_revenue,
+                    "total_recorded_revenue": commission_revenue + subscription_revenue,
+                    "successful_withdrawals": commission_count,
+                    "successful_subscriptions": subscription_count,
+                }
+        finally:
+            await conn.close()
+
     async def list_tenants(self) -> List[Dict[str, Any]]:
         conn = await connection()
         try:

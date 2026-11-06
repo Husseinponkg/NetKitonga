@@ -1,3 +1,4 @@
+import asyncio
 import os
 import sys
 from pathlib import Path
@@ -11,9 +12,18 @@ if str(ROOT) not in sys.path:
     sys.path.insert(0, str(ROOT))
 
 from services.disbursements import DisbursementRejected, DisbursementService
+from routes.admin import get_disbursement_balance
 
 
 class DisbursementInquiryTests(TestCase):
+    def test_admin_balance_endpoint_uses_disbursement_check_balance(self):
+        with patch("routes.admin.DisbursementService") as service:
+            service.return_value.check_balance.return_value = {"balance": 8000}
+            result = asyncio.run(get_disbursement_balance())
+
+        self.assertEqual(result, {"balance": 8000})
+        service.return_value.check_balance.assert_called_once_with()
+
     def test_get_bank_names_uses_configured_url_without_auth(self):
         response = Mock(ok=True)
         response.json.return_value = ["Azampesa"]

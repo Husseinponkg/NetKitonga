@@ -20,4 +20,5 @@ async def checkout(data: CheckoutRequest):
 
 @router.post("/callback")
 async def callback(payload: dict):
-    return await controller.callback(payload)
+    callback_data = payload.get("data") if isinstance(payload.get("data"), dict) else payload
+    return await controller.callback(callback_data)

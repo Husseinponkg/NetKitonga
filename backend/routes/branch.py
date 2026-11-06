@@ -1,9 +1,10 @@
-from fastapi import APIRouter, Query
+from fastapi import APIRouter, Depends, Query
 
 from backend.controllers.branch import BranchController
 from backend.models.branch import BranchRegister, BranchUpdate, BranchDelete
+from backend.utils.subscription_access import require_active_subscription
 
-router = APIRouter()
+router = APIRouter(dependencies=[Depends(require_active_subscription)])
 
 
 @router.post("/create")

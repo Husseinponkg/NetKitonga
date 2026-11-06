@@ -1,9 +1,14 @@
 from typing import Dict, Any, List
-from fastapi import APIRouter, HTTPException
+from fastapi import APIRouter, Depends, HTTPException
 from config.db import connection
 from models.sessions import SessionResponse, SessionTerminate
+from utils.subscription_access import require_active_subscription
 
-session_endpoints = APIRouter(prefix="/sessions", tags=["sessions"])
+session_endpoints = APIRouter(
+    prefix="/sessions",
+    tags=["sessions"],
+    dependencies=[Depends(require_active_subscription)],
+)
 
 @session_endpoints.get("/active", response_model=List[SessionResponse])
 async def list_active_sessions(tenant_id: int):

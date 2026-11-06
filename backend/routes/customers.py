@@ -1,9 +1,10 @@
-from fastapi import APIRouter, Query, status
+from fastapi import APIRouter, Depends, Query, status
 from typing import List, Dict, Any
 from models.customers import GetcustomerData, DeleteCustomer
 from controllers.customer import CustomerController
+from utils.subscription_access import require_active_subscription
 
-customer_endpoints = APIRouter()
+customer_endpoints = APIRouter(dependencies=[Depends(require_active_subscription)])
 controller = CustomerController()
 
 @customer_endpoints.get("/list", response_model=List[GetcustomerData])

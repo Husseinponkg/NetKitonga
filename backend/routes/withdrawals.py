@@ -1,21 +1,22 @@
-from fastapi import APIRouter, HTTPException, Query, Body
+from fastapi import APIRouter, Depends, HTTPException, Query, Body
 
 from backend.controllers.withdrawals import WithdrawalController
 from backend.models.withdrawals import WithdrawalRequest, WithdrawalUpdate
+from backend.utils.subscription_access import require_active_subscription
 
 router = APIRouter()
 
-@router.get("/balance")
+@router.get("/balance", dependencies=[Depends(require_active_subscription)])
 async def get_wallet_balance(tenant_id: int = Query(...)) -> dict:
     controller = WithdrawalController()
     return await controller.get_wallet_balance(tenant_id)
 
-@router.post("/request")
+@router.post("/request", dependencies=[Depends(require_active_subscription)])
 async def request_withdrawal(data: WithdrawalRequest, tenant_id: int = Query(...)) -> dict:
     controller = WithdrawalController()
     return await controller.request_withdrawal(tenant_id, data)
 
-@router.get("/history")
+@router.get("/history", dependencies=[Depends(require_active_subscription)])
 async def get_withdrawal_history(tenant_id: int = Query(...)) -> list:
     controller = WithdrawalController()
     return await controller.get_tenant_withdrawals(tenant_id)

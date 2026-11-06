@@ -12,6 +12,71 @@ import base64
 from services.azampay_callback_key import get_callback_public_key
 
 class PaymentController:
+    async def verify_callback_signature(
+        self,
+        external_id: str,
+        external_reference: Optional[str],
+        callback_status: str,
+        operator: Optional[str],
+        signature: Optional[str],
+    ) -> None:
+        if not signature:
+            raise HTTPException(
+                status_code=http_status.HTTP_401_UNAUTHORIZED,
+                detail="AzamPay callback signature is missing.",
+            )
+        try:
+            signature_bytes = base64.b64decode(signature, validate=True)
+        except (binascii.Error, TypeError, ValueError) as signature_error:
+            raise HTTPException(
+                status_code=http_status.HTTP_400_BAD_REQUEST,
+                detail="AzamPay callback signature is malformed.",
+            ) from signature_error
+
+        signed_data = (
+            f"{external_id}{external_reference or ''}"
+            f"{callback_status}{operator or ''}"
+        ).encode("utf-8")
+        public_key_pems = [
+            await asyncio.to_thread(get_callback_public_key),
+            None,
+        ]
+        for key_index, public_key_pem in enumerate(public_key_pems):
+            if public_key_pem is None:
+                public_key_pem = await asyncio.to_thread(
+                    get_callback_public_key,
+                    force_refresh=True,
+                )
+            try:
+                public_key = serialization.load_pem_public_key(
+                    public_key_pem.encode("utf-8"),
+                    backend=default_backend(),
+                )
+            except (TypeError, ValueError) as key_error:
+                raise HTTPException(
+                    status_code=http_status.HTTP_502_BAD_GATEWAY,
+                    detail="AzamPay returned an invalid callback public key.",
+                ) from key_error
+            if not isinstance(public_key, rsa.RSAPublicKey):
+                raise HTTPException(
+                    status_code=http_status.HTTP_502_BAD_GATEWAY,
+                    detail="AzamPay callback public key is not an RSA key.",
+                )
+            try:
+                public_key.verify(
+                    signature_bytes,
+                    signed_data,
+                    padding.PKCS1v15(),
+                    hashes.SHA256(),
+                )
+                return
+            except InvalidSignature as signature_error:
+                if key_index == len(public_key_pems) - 1:
+                    raise HTTPException(
+                        status_code=http_status.HTTP_401_UNAUTHORIZED,
+                        detail="AzamPay callback signature is invalid.",
+                    ) from signature_error
+
     async def get_package_price(self, package_id: int) -> Dict[str, Any]:
         conn = await connection()
         try:
@@ -274,67 +339,14 @@ class PaymentController:
         Verifies the callback amount and AzamPay Checkout RSA signature before
         marking the transaction completed.
         """
-        # ================================================================
-        # SIGNATURE VERIFICATION (per schema.json)
-        # Signed data: {utilityref}{externalreference}{transactionstatus}{operator}
-        # ================================================================
         status_str = callback_status or ("success" if is_successful else "failed")
-        if not signature:
-            raise HTTPException(
-                status_code=http_status.HTTP_401_UNAUTHORIZED,
-                detail="AzamPay callback signature is missing.",
-            )
-        try:
-            signature_bytes = base64.b64decode(signature, validate=True)
-        except (binascii.Error, TypeError, ValueError) as signature_error:
-            raise HTTPException(
-                status_code=http_status.HTTP_400_BAD_REQUEST,
-                detail="AzamPay callback signature is malformed.",
-            ) from signature_error
-
-        signed_data = (
-            f"{external_id}{external_reference or ''}"
-            f"{status_str}{operator or ''}"
-        ).encode("utf-8")
-        public_key_pems = [
-            await asyncio.to_thread(get_callback_public_key),
-            None,
-        ]
-        for key_index, public_key_pem in enumerate(public_key_pems):
-            if public_key_pem is None:
-                public_key_pem = await asyncio.to_thread(
-                    get_callback_public_key,
-                    force_refresh=True,
-                )
-            try:
-                public_key = serialization.load_pem_public_key(
-                    public_key_pem.encode("utf-8"),
-                    backend=default_backend(),
-                )
-            except (TypeError, ValueError) as key_error:
-                raise HTTPException(
-                    status_code=http_status.HTTP_502_BAD_GATEWAY,
-                    detail="AzamPay returned an invalid callback public key.",
-                ) from key_error
-            if not isinstance(public_key, rsa.RSAPublicKey):
-                raise HTTPException(
-                    status_code=http_status.HTTP_502_BAD_GATEWAY,
-                    detail="AzamPay callback public key is not an RSA key.",
-                )
-            try:
-                public_key.verify(
-                    signature_bytes,
-                    signed_data,
-                    padding.PKCS1v15(),
-                    hashes.SHA256(),
-                )
-                break
-            except InvalidSignature as signature_error:
-                if key_index == len(public_key_pems) - 1:
-                    raise HTTPException(
-                        status_code=http_status.HTTP_401_UNAUTHORIZED,
-                        detail="AzamPay callback signature is invalid.",
-                    ) from signature_error
+        await self.verify_callback_signature(
+            external_id,
+            external_reference,
+            status_str,
+            operator,
+            signature,
+        )
 
         conn = await connection()
         try:

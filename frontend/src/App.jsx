@@ -1,5 +1,5 @@
 import React, { useState, useEffect } from "react";
-import { BrowserRouter, Routes, Route, Navigate, useNavigate } from "react-router-dom";
+import { BrowserRouter, Routes, Route, Navigate, Link } from "react-router-dom";
 import { getStoredTenantUser, hasValidTenantSession, getTenantId } from "./session";
 import Login from "./log";
 import Register from "./reg";
@@ -65,6 +65,72 @@ function ProtectedRoute({ children }) {
   return <Layout>{children}</Layout>;
 }
 
+async function fetchSubscriptionStatus(tenantId) {
+  const response = await fetch(`${API_BASE_URL}/subscriptions/status?tenant_id=${tenantId}`);
+  const data = await response.json();
+  if (!response.ok) throw new Error(data.detail || "Could not verify subscription status.");
+  return data;
+}
+
+function SubscriptionProtectedRoute({ children }) {
+  const tenantId = getTenantId();
+  const [status, setStatus] = useState(null);
+  const [error, setError] = useState("");
+  const [loading, setLoading] = useState(true);
+
+  const loadStatus = async () => {
+    if (!tenantId) return;
+    setLoading(true);
+    setError("");
+    try {
+      setStatus(await fetchSubscriptionStatus(tenantId));
+    } catch (requestError) {
+      setError(requestError.message);
+    } finally {
+      setLoading(false);
+    }
+  };
+
+  useEffect(() => {
+    let active = true;
+    if (tenantId) {
+      fetchSubscriptionStatus(tenantId)
+        .then((data) => {
+          if (active) setStatus(data);
+        })
+        .catch((requestError) => {
+          if (active) setError(requestError.message);
+        })
+        .finally(() => {
+          if (active) setLoading(false);
+        });
+    }
+    return () => {
+      active = false;
+    };
+  }, [tenantId]);
+
+  if (!tenantId || !hasValidTenantSession()) {
+    return <Navigate to="/" replace />;
+  }
+  if (loading) {
+    return <div style={{ minHeight: "100vh", display: "grid", placeItems: "center" }}>Checking subscription…</div>;
+  }
+  if (error) {
+    return (
+      <div style={{ minHeight: "100vh", display: "grid", placeItems: "center", color: "#fff", background: "#0f0f0f" }}>
+        <div>
+          <p role="alert">{error}</p>
+          <button onClick={() => { setLoading(true); setError(""); loadStatus(); }}>Retry</button>{" "}
+          <Link to="/subscription" style={{ color: "#fff" }}>Open subscription page</Link>
+        </div>
+      </div>
+    );
+  }
+  if (!status?.active) return <Navigate to="/subscription" replace />;
+  return <ProtectedRoute>{children}</ProtectedRoute>;
+}
+
 function AdminRoute({ children }) {
   const adminUser = typeof window !== "undefined" ? localStorage.getItem("adminUser") : null;
   return adminUser ? children : <Navigate to="/" replace />;
@@ -79,22 +145,22 @@ function App() {
           <Route path="/register" element={<Register />} />
           <Route path="/portal" element={<CaptivePortal />} />
           <Route path="/portal/:tenantId?" element={<CaptivePortal />} />
-          <Route path="/dashboard" element={<ProtectedRoute><Dashboard /></ProtectedRoute>} />
-          <Route path="/branch" element={<ProtectedRoute><Branch /></ProtectedRoute>} />
-          <Route path="/routers" element={<ProtectedRoute><Routers /></ProtectedRoute>} />
-          <Route path="/tplink" element={<ProtectedRoute><Tplink /></ProtectedRoute>} />
+          <Route path="/dashboard" element={<SubscriptionProtectedRoute><Dashboard /></SubscriptionProtectedRoute>} />
+          <Route path="/branch" element={<SubscriptionProtectedRoute><Branch /></SubscriptionProtectedRoute>} />
+          <Route path="/routers" element={<SubscriptionProtectedRoute><Routers /></SubscriptionProtectedRoute>} />
+          <Route path="/tplink" element={<SubscriptionProtectedRoute><Tplink /></SubscriptionProtectedRoute>} />
           <Route path="/subscription" element={<ProtectedRoute><Subscription /></ProtectedRoute>} />
-          <Route path="/packages" element={<ProtectedRoute><PackagesDashboard /></ProtectedRoute>} />
-          <Route path="/vouchers" element={<ProtectedRoute><Vouchers /></ProtectedRoute>} />
-          <Route path="/customers" element={<ProtectedRoute><Customers /></ProtectedRoute>} />
-          <Route path="/payments" element={<ProtectedRoute><Payments /></ProtectedRoute>} />
-          <Route path="/income" element={<ProtectedRoute><Income /></ProtectedRoute>} />
-          <Route path="/withdrawals" element={<ProtectedRoute><Withdrawals /></ProtectedRoute>} />
-          <Route path="/sessions" element={<ProtectedRoute><Sessions /></ProtectedRoute>} />
-          <Route path="/settings" element={<ProtectedRoute><Settings /></ProtectedRoute>} />
+          <Route path="/packages" element={<SubscriptionProtectedRoute><PackagesDashboard /></SubscriptionProtectedRoute>} />
+          <Route path="/vouchers" element={<SubscriptionProtectedRoute><Vouchers /></SubscriptionProtectedRoute>} />
+          <Route path="/customers" element={<SubscriptionProtectedRoute><Customers /></SubscriptionProtectedRoute>} />
+          <Route path="/payments" element={<SubscriptionProtectedRoute><Payments /></SubscriptionProtectedRoute>} />
+          <Route path="/income" element={<SubscriptionProtectedRoute><Income /></SubscriptionProtectedRoute>} />
+          <Route path="/withdrawals" element={<SubscriptionProtectedRoute><Withdrawals /></SubscriptionProtectedRoute>} />
+          <Route path="/sessions" element={<SubscriptionProtectedRoute><Sessions /></SubscriptionProtectedRoute>} />
+          <Route path="/settings" element={<SubscriptionProtectedRoute><Settings /></SubscriptionProtectedRoute>} />
           <Route path="/admin" element={<AdminRoute><Admin /></AdminRoute>} />
           <Route path="*" element={<Login />} />
-          <Route path="/support-desk" element={<ProtectedRoute><SupportDesk /></ProtectedRoute>} />
+          <Route path="/support-desk" element={<SubscriptionProtectedRoute><SupportDesk /></SubscriptionProtectedRoute>} />
           <Route path="/privacy-policy" element={<PrivacyPolicy />} />
           <Route path="/terms-and-conditions" element={<TermsAndConditions />} />
           <Route path="/refund-policy" element={<RefundPolicy />} />

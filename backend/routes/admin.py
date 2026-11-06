@@ -1,7 +1,9 @@
 from typing import Optional
+import asyncio
 from fastapi import APIRouter, Query
 from pydantic import BaseModel
 from controllers.admin import AdminController
+from services.disbursements import DisbursementService
 
 router = APIRouter()
 admin_controller = AdminController()
@@ -90,6 +92,15 @@ async def delete_admin(admin_id: int):
 @router.get("/stats")
 async def get_admin_stats():
     return await admin_controller.get_stats()
+
+@router.get("/revenue")
+async def get_system_revenue():
+    return await admin_controller.get_system_revenue()
+
+
+@router.get("/disbursement/balance")
+async def get_disbursement_balance():
+    return await asyncio.to_thread(DisbursementService().check_balance)
 
 
 @router.get("/logs")

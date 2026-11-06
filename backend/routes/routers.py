@@ -7,6 +7,7 @@ from models.routers import RouterRegister, RouterUpdate, RouterDelete, RouterRes
 from controllers.routers import RouterController
 from config.db import connection
 from utils.mac import normalize_mac
+from utils.subscription_access import require_active_subscription
 
 FRONTEND_URL = os.getenv("FRONTEND_URL", "https://netkitonga.com")
 
@@ -40,25 +41,25 @@ async def handle_router_resolve(
 #  SECTION 1: DASHBOARD CRUD OPERATION PATHS (Frontend Form Handling)
 # =====================================================================
 
-@router.get("")
+@router.get("", dependencies=[Depends(require_active_subscription)])
 async def handle_router_listing(tenant_id: int = Query(..., description="The tenant owning the routers")):
     return await controller.list_routers(tenant_id)
 
-@router.get("/")
+@router.get("/", dependencies=[Depends(require_active_subscription)])
 async def handle_router_listing_slash(tenant_id: int = Query(..., description="The tenant owning the routers")):
     return await controller.list_routers(tenant_id)
 
-@router.post("/register", response_model=Dict[str, Any], status_code=status.HTTP_201_CREATED)
+@router.post("/register", response_model=Dict[str, Any], status_code=status.HTTP_201_CREATED, dependencies=[Depends(require_active_subscription)])
 async def handle_router_registration(router_data: RouterRegister):
     """Processes user form request schemas to provision hardware nodes."""
     return await controller.register_router(router_data)
 
-@router.put("/update", response_model=RouterResponse)
+@router.put("/update", response_model=RouterResponse, dependencies=[Depends(require_active_subscription)])
 async def handle_router_modifications(router_data: RouterUpdate):
     """Processes pipeline data alterations for network devices."""
     return await controller.update_router(router_data)
 
-@router.delete("/delete", response_model=RouterResponse)
+@router.delete("/delete", response_model=RouterResponse, dependencies=[Depends(require_active_subscription)])
 async def handle_router_removal(router_data: RouterDelete):
     """Purges target interface entries safely out of PostgreSQL storage blocks."""
     return await controller.delete_router(router_data)
@@ -67,7 +68,7 @@ async def handle_router_removal(router_data: RouterDelete):
 #  SECTION 2: DASHBOARD MONITORING PATH (Status Check Enforced by Model)
 # =====================================================================
 
-@router.get("/status", response_model=RouterResponse)
+@router.get("/status", response_model=RouterResponse, dependencies=[Depends(require_active_subscription)])
 async def handle_get_device_status(router_id: int = Query(..., description="The unique ID of the router")):
     """
     Exposes a validated status query endpoint for the frontend dashboard interface.
@@ -75,7 +76,7 @@ async def handle_get_device_status(router_id: int = Query(..., description="The 
     """
     return await controller.get_device_status(router_id)
 
-@router.get("/status/")
+@router.get("/status/", dependencies=[Depends(require_active_subscription)])
 async def handle_get_device_status_slash(router_id: int = Query(..., description="The unique ID of the router")):
     return await controller.get_device_status(router_id)
 
