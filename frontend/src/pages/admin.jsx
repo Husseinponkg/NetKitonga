@@ -212,8 +212,20 @@ function Admin() {
                     payout_provider: cashoutForm.payout_provider,
                 }),
             });
-            const data = await response.json();
-            if (!response.ok) throw new Error(data.detail || "System cashout failed.");
+            const responseText = await response.text();
+            let data = {};
+            if (responseText) {
+                try {
+                    data = JSON.parse(responseText);
+                } catch {
+                    data = { detail: responseText.slice(0, 500) };
+                }
+            }
+            if (!response.ok) {
+                throw new Error(
+                    data.detail || data.message || `System cashout failed (HTTP ${response.status}).`
+                );
+            }
             setMessage(
                 `${data.message} Net payout: ${fmt(data.net_amount)}; fee: ${fmt(data.fee_amount)}.`
             );

@@ -29,6 +29,36 @@ CREATE TABLE IF NOT EXISTS system_cashouts (
     CHECK (gross_amount = fee_amount + net_amount)
 );
 
+ALTER TABLE system_cashouts
+    ADD COLUMN IF NOT EXISTS external_reference VARCHAR(150);
+
+UPDATE system_cashouts
+SET external_reference = 'NETKITONGA-ADMIN-WD-LEGACY-' || id::text
+WHERE external_reference IS NULL OR BTRIM(external_reference) = '';
+
+ALTER TABLE system_cashouts
+    ALTER COLUMN external_reference SET NOT NULL;
+
+DO $$
+BEGIN
+    IF NOT EXISTS (
+        SELECT 1
+        FROM pg_constraint
+        WHERE conrelid = 'system_cashouts'::regclass
+          AND contype = 'u'
+          AND conkey = ARRAY[(
+              SELECT attnum
+              FROM pg_attribute
+              WHERE attrelid = 'system_cashouts'::regclass
+                AND attname = 'external_reference'
+                AND NOT attisdropped
+          )]::smallint[]
+    ) THEN
+        ALTER TABLE system_cashouts
+            ADD CONSTRAINT system_cashouts_external_reference_key UNIQUE (external_reference);
+    END IF;
+END $$;
+
 CREATE INDEX IF NOT EXISTS idx_system_cashouts_status
     ON system_cashouts(status);
 
