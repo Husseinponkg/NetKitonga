@@ -245,6 +245,52 @@ function submitHotspotLogin(
     return true;
 }
 
+function submitOmadaLogin(target, clientMac, radiusServerIp, password) {
+    if (!target || !clientMac || !password) {
+        console.error("Cannot start Omada login: target, client MAC, or password is missing.");
+        return false;
+    }
+
+    const targetHost = String(target)
+        .trim()
+        .replace(/^https?:\/\//i, "")
+        .replace(/\/+$/, "");
+    const authority = targetHost.split(":").length > 2 && !targetHost.startsWith("[")
+        ? `[${targetHost}]`
+        : targetHost;
+
+    let action;
+    try {
+        action = new URL("/portal/auth", `http://${authority}`).href;
+    } catch (error) {
+        console.error("Invalid Omada authentication target:", target, error);
+        return false;
+    }
+
+    const form = document.createElement("form");
+    form.method = "POST";
+    form.action = action;
+    form.style.display = "none";
+
+    [
+        { name: "username", value: normalizeMac(clientMac) },
+        { name: "password", value: password },
+        { name: "clientMac", id: "cid", value: clientMac },
+        { name: "radiusSvrIp", id: "radiusServerIp", value: radiusServerIp || "" },
+    ].forEach(({ name, id, value }) => {
+        const input = document.createElement("input");
+        input.type = "hidden";
+        input.name = name;
+        if (id) input.id = id;
+        input.value = value;
+        form.appendChild(input);
+    });
+
+    document.body.appendChild(form);
+    form.submit();
+    return true;
+}
+
 /**
  * Send the buyer back to the WiFiDog/OpenWrt gateway after a successful
  * payment or voucher redemption.
@@ -364,6 +410,7 @@ function Portal() {
     const routerId = queryParams.get("router_id");
 
     const buyerMac =
+        queryParams.get("clientMac") ||
         queryParams.get("mac") ||
         "unknown-device";
 
@@ -384,6 +431,7 @@ function Portal() {
         queryParams.get("gateway_id") ||
         "";
 const routerIp =
+    queryParams.get("target") ||
     queryParams.get("gw_address") ||
     queryParams.get("router_ip") ||
     queryParams.get("gateway_ip") ||
@@ -398,6 +446,14 @@ const gatewayPort =
     const nasId =
         queryParams.get("nas_id") ||
         "";
+
+    const radiusServerIp =
+        queryParams.get("radiusServerIp") ||
+        queryParams.get("raidusServerIp") ||
+        "";
+
+    const isOmadaPortal =
+        Boolean(queryParams.get("target") && queryParams.get("clientMac"));
 
     const clientIp =
         queryParams.get("ip") ||
@@ -460,8 +516,8 @@ const gatewayPort =
     const resolveRouter = async (existingResolution = null) => {
         if (
             (!routerIp && !nasId && !gwId) ||
-            routerId ||
-            (tenantId && branchId)
+            (routerId && !isOmadaPortal) ||
+            ((tenantId && branchId) && !isOmadaPortal)
         ) {
             return existingResolution || null;
         }
@@ -471,14 +527,16 @@ const gatewayPort =
             return existingResolution;
         }
 
-        const lookup = gwId
-            ? `gw_id=${encodeURIComponent(gwId)}`
-            : nasId
-                ? `nas_id=${encodeURIComponent(nasId)}`
-                : `ip_address=${encodeURIComponent(routerIp)}`;
+        const lookup = isOmadaPortal
+            ? `ip_address=${encodeURIComponent(routerIp)}`
+            : gwId
+                ? `gw_id=${encodeURIComponent(gwId)}`
+                : nasId
+                    ? `nas_id=${encodeURIComponent(nasId)}`
+                    : `ip_address=${encodeURIComponent(routerIp)}`;
 
         const response = await fetch(
-            `${API_BASE_URL}/routers/resolve?${lookup}`
+            `${API_BASE_URL}/${isOmadaPortal ? "tplink/resolve" : "routers/resolve"}?${lookup}`
         );
 
         if (!response.ok) {
@@ -525,6 +583,10 @@ const gatewayPort =
     const isWifidogGateway =
         resolvedRouter?.driver_type === "wifidog_http" ||
         Boolean(effectiveGwId);
+
+    const isTplinkGateway =
+        resolvedRouter?.driver_type === "tplink_radius" ||
+        isOmadaPortal;
 
     // ================================================================
     // FETCH PACKAGES
@@ -725,7 +787,14 @@ const gatewayPort =
                                 payment.auth_token,
                                 destination
                             )
-                            : submitHotspotLogin(
+                            : isTplinkGateway
+                                ? submitOmadaLogin(
+                                    routerIp,
+                                    buyerMac,
+                                    radiusServerIp,
+                                    payment.auth_token
+                                )
+                                : submitHotspotLogin(
                                 linkLogin,
                                 effectiveGatewayIp || routerIp,
                                 normalizeMac(buyerMac),
@@ -789,8 +858,10 @@ const gatewayPort =
         routerIp,
         destination,
         isWifidogGateway,
+        isTplinkGateway,
         effectiveGatewayIp,
         effectiveGwId,
+        radiusServerIp,
         API_BASE_URL,
     ]);
 
@@ -1080,7 +1151,14 @@ const gatewayPort =
                             result.auth_token,
                             destination
                         )
-                        : submitHotspotLogin(
+                        : isTplinkGateway
+                            ? submitOmadaLogin(
+                                routerIp,
+                                buyerMac,
+                                radiusServerIp,
+                                result.auth_token
+                            )
+                            : submitHotspotLogin(
                             linkLogin,
                             effectiveGatewayIp || routerIp,
                             normalizeMac(buyerMac),

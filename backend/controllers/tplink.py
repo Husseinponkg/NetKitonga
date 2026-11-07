@@ -1,4 +1,5 @@
 
+from ipaddress import ip_address as parse_ip_address
 from typing import Dict, Any
 
 from fastapi import HTTPException
@@ -17,6 +18,54 @@ class TplinkController:
 
     def __init__(self):
         self.tplink_service = TplinkService()
+
+    async def resolve_by_ip(self, ip_address: str) -> Dict[str, Any]:
+        """Resolve an Omada redirect target using the TP-Link device registry."""
+        try:
+            target_ip = str(parse_ip_address(ip_address))
+        except ValueError as exc:
+            raise HTTPException(
+                status_code=400,
+                detail="The TP-Link portal target must be an IP address.",
+            ) from exc
+
+        conn = await connection()
+        try:
+            async with conn.cursor() as cursor:
+                await cursor.execute(
+                    """
+                    SELECT
+                        t.router_id,
+                        t.tenant_id,
+                        t.branch_id,
+                        t.ip_address,
+                        r.router_name
+                    FROM tplink t
+                    JOIN routers r ON r.id = t.router_id
+                    WHERE host(t.ip_address) = host(%s::inet)
+                      AND t.tenant_id = r.tenant_id
+                    ORDER BY t.id
+                    LIMIT 1;
+                    """,
+                    (target_ip,),
+                )
+                device = await cursor.fetchone()
+                if not device:
+                    raise HTTPException(
+                        status_code=404,
+                        detail="No registered TP-Link device matches this portal target.",
+                    )
+
+                return {
+                    "router_id": device[0],
+                    "tenant_id": device[1],
+                    "branch_id": device[2],
+                    "router_ip": str(device[3]) if device[3] else None,
+                    "router_name": device[4],
+                    "driver_type": "tplink_radius",
+                }
+        finally:
+            await conn.close()
 
     # ============================================================
     # REGISTER TP-LINK DEVICE
