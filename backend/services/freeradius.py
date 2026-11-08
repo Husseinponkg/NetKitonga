@@ -1,3 +1,4 @@
+import logging
 import os
 import re
 from datetime import datetime
@@ -5,6 +6,8 @@ from typing import Any, Dict, List, Optional
 from zoneinfo import ZoneInfo
 
 from config.db import connection
+
+logger = logging.getLogger(__name__)
 
 TANZANIA_TZ = ZoneInfo("Africa/Dar_es_Salaam")
 
@@ -167,8 +170,32 @@ class FreeRADIUSService:
                     if router_row:
                         router_id = router_row[0]
 
+                # TP-Link Omada may use the AP MAC as its NAS-Identifier.
+                if router_id is None and nas_identifier:
+                    compact_nas_id = self._normalize_mac(nas_identifier)
+                    if len(compact_nas_id) == 12:
+                        await cursor.execute(
+                            """
+                            SELECT id
+                            FROM routers
+                            WHERE driver_type IN ('mikrotik_radius', 'tplink_radius', 'radius_aaa')
+                              AND regexp_replace(
+                                    upper(coalesce(mac_address, '')),
+                                    '[^0-9A-F]',
+                                    '',
+                                    'g'
+                                  ) = %s
+                            ORDER BY id
+                            LIMIT 2
+                            """,
+                            (compact_nas_id,),
+                        )
+                        router_rows = await cursor.fetchall()
+                        if len(router_rows) == 1:
+                            router_id = router_rows[0][0]
+
                 # If NAS-Identifier was absent/unmatched, use the NAS source IP
-                # only when it uniquely identifies a registered MikroTik router.
+                # only when it uniquely identifies a registered RADIUS device.
                 if router_id is None and nas_ip_address:
                     await cursor.execute(
                         """
@@ -205,7 +232,10 @@ class FreeRADIUSService:
                 finally:
                     await conn2.close()
             except Exception:
-                pass
+                logger.exception(
+                    "Could not record RADIUS heartbeat for router %s.",
+                    router_id,
+                )
 
         session = await self.get_active_session_for_mac(
             tenant_id=None,
@@ -358,12 +388,17 @@ class FreeRADIUSService:
                 continue
             secret = secret.replace("\\", "\\\\").replace('"', '\\"')
             nas_identifier = str(router.get("nas_identifier") or name).replace('"', '\\"')
+            nas_type = (
+                "mikrotik"
+                if router.get("driver_type") == "mikrotik_radius"
+                else "other"
+            )
             blocks.append(
                 f'client {name} {{\n'
                 f'    ipaddr = {ip_address}\n'
                 f'    secret = "{secret}"\n'
                 f'    shortname = {name}\n'
-                f'    nas_type = mikrotik\n'
+                f'    nas_type = {nas_type}\n'
                 f'    require_message_authenticator = no\n'
                 f'    # NAS-Identifier expected by NetKitonga: {nas_identifier}\n'
                 f'}}'

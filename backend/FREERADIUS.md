@@ -10,6 +10,19 @@ This backend provides API endpoints that FreeRADIUS can use to authorize and acc
 - `GET /radius/config/clients` - Generate `clients.conf` content
 - `GET /radius/config/users` - Generate `users` content
 
+## TP-Link heartbeat and online status
+
+TP-Link access points do not call the NetKitonga `/tplink/ping` endpoint
+automatically. Their router status is marked online when FreeRADIUS receives
+an authorization request and identifies the AP by its configured
+`NAS-Identifier`, AP MAC, or NAS IP address.
+
+The `/radius/config/clients` endpoint includes TP-Link routers that have an
+IP address and a non-empty RADIUS shared secret. Apply the generated client
+configuration and reload FreeRADIUS. Configure the same shared secret in
+Omada, then reconnect a client to the Wi-Fi to generate an authorization
+request and update `routers.last_heartbeat_at`.
+
 ## Example FreeRADIUS setup
 
 ### clients.conf

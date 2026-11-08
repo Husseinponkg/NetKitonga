@@ -139,16 +139,16 @@ async def radius_accounting(payload: Dict[str, Any]):
 
 @radius_endpoints.get("/config/clients")
 async def get_freeradius_clients(tenant_id: Optional[int] = Query(None)):
-    """Return generated FreeRADIUS client blocks for registered MikroTik routers."""
+    """Return generated FreeRADIUS client blocks for registered RADIUS devices."""
     conn = await connection()
     try:
         async with conn.cursor() as cursor:
             query = """
-                SELECT router_name, ip_address, nas_identifier, radius_secret
+                SELECT router_name, ip_address, nas_identifier, radius_secret, driver_type
                 FROM routers
-                WHERE driver_type = 'mikrotik_radius'
+                WHERE driver_type IN ('mikrotik_radius', 'tplink_radius', 'radius_aaa')
                   AND ip_address IS NOT NULL
-                  AND radius_secret IS NOT NULL
+                  AND NULLIF(TRIM(radius_secret), '') IS NOT NULL
             """
             params: List[Any] = []
             if tenant_id is not None:
@@ -164,6 +164,7 @@ async def get_freeradius_clients(tenant_id: Optional[int] = Query(None)):
                     "ip_address": str(row[1]),
                     "nas_identifier": row[2],
                     "radius_secret": row[3],
+                    "driver_type": row[4],
                 }
                 for row in rows
             ]
