@@ -59,6 +59,52 @@ class TplinkController:
                     await cursor.execute(
                         """
                         SELECT
+                            r.id,
+                            r.tenant_id,
+                            r.branch_id,
+                            r.ip_address,
+                            r.router_name
+                        FROM routers r
+                        WHERE REPLACE(
+                            REPLACE(
+                                REPLACE(UPPER(TRIM(r.mac_address)), '-', ''),
+                                ':',
+                                ''
+                            ),
+                            '.',
+                            ''
+                        ) = %s
+                          AND r.driver_type = 'tplink_radius'
+                        ORDER BY r.id
+                        LIMIT 1;
+                        """,
+                        (compact_ap_mac,),
+                    )
+                    device = await cursor.fetchone()
+
+                if not device and target_ip:
+                    await cursor.execute(
+                        """
+                        SELECT
+                            r.id,
+                            r.tenant_id,
+                            r.branch_id,
+                            r.ip_address,
+                            r.router_name
+                        FROM routers r
+                        WHERE host(r.ip_address) = host(%s::inet)
+                          AND r.driver_type = 'tplink_radius'
+                        ORDER BY r.id
+                        LIMIT 1;
+                        """,
+                        (target_ip,),
+                    )
+                    device = await cursor.fetchone()
+
+                if not device and compact_ap_mac:
+                    await cursor.execute(
+                        """
+                        SELECT
                             t.router_id,
                             t.tenant_id,
                             t.branch_id,
