@@ -627,12 +627,14 @@ const gatewayPort =
             // ----------------------------------------------------------
 
             let routerResolution = null;
+            let routerResolutionError = null;
 
             try {
                 routerResolution = await resolveRouter(
                     existingResolution
                 );
             } catch (error) {
+                routerResolutionError = error;
                 console.error(
                     "Failed to resolve router by gateway ID, NAS ID, IP, or TP-Link AP MAC:",
                     error
@@ -647,6 +649,21 @@ const gatewayPort =
                     );
                     return;
                 }
+            }
+
+            if (
+                isOmadaPortal &&
+                !routerId &&
+                !routerResolution?.router_id
+            ) {
+                setUiMessage(
+                    `Could not identify this TP-Link access point from its AP MAC` +
+                    `${tplinkApMac ? ` (${tplinkApMac})` : ""}. ` +
+                    `${routerResolutionError?.message || "No router ID was returned."} ` +
+                    `Confirm this AP is registered with the same MAC address, and that ` +
+                    `the server supports TP-Link lookup by AP MAC.`
+                );
+                return;
             }
 
             const effectiveRouter =
