@@ -57,19 +57,16 @@ async def delete_tplink(data: TplinkDelete):
 
 
 
-@router.get("/ping")
-async def tplink_ping(nas_id: Optional[str] = Query(None), tplink_id: Optional[int] = Query(None)):
-    identifier = nas_id if nas_id else (str(tplink_id) if tplink_id else None)
-    if not identifier:
-        raise HTTPException(status_code=400, detail="nas_id or tplink_id is required.")
-    return await controller.process_heartbeat(identifier)
+@router.get("/ping", dependencies=[Depends(require_active_subscription)])
+async def tplink_ping(tplink_id: int = Query(..., description="Registered TP-Link device ID")):
+    return await controller.process_heartbeat(tplink_id)
 
-@router.get("/ping/")
-async def tplink_ping_slash(nas_id: Optional[str] = Query(None), tplink_id: Optional[int] = Query(None)):
-    identifier = nas_id if nas_id else (str(tplink_id) if tplink_id else None)
-    if not identifier:
-        raise HTTPException(status_code=400, detail="nas_id or tplink_id is required.")
-    return await controller.process_heartbeat(identifier)
+@router.get(
+    "/ping/",
+    dependencies=[Depends(require_active_subscription)],
+)
+async def tplink_ping_slash(tplink_id: int = Query(..., description="Registered TP-Link device ID")):
+    return await controller.process_heartbeat(tplink_id)
 
 @router.get("/status", response_model=Dict[str, Any], dependencies=[Depends(require_active_subscription)])
 async def get_status(tplink_id: int = Query(..., description="The unique ID of the device")):

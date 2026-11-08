@@ -1,7 +1,8 @@
 
 import logging
 import asyncio
-from ipaddress import ip_address as parse_ip_address
+import ipaddress
+import shutil
 from typing import Dict, Any, Optional
 
 from fastapi import HTTPException
@@ -129,7 +130,7 @@ class TplinkController:
         target_ip = None
         if ip_address:
             try:
-                target_ip = str(parse_ip_address(ip_address))
+                target_ip = str(ipaddress.ip_address(ip_address))
             except ValueError:
                 if not ap_mac:
                     raise HTTPException(
@@ -759,82 +760,78 @@ class TplinkController:
     # PROCESS TP-LINK HEARTBEAT
     # ============================================================
 
-    async def process_heartbeat(self, identifier: str) -> Dict[str, Any]:
-        """Record a heartbeat for a registered TP-Link device.
-
-        `identifier` may be the configured NAS-Identifier or the TP-Link
-        row ID. This endpoint only records a heartbeat when a caller invokes
-        it; standalone EAP firmware does not automatically call this API.
-        """
-        cleaned_identifier = str(identifier or "").strip()
-        if not cleaned_identifier:
-            raise HTTPException(status_code=400, detail="A NAS ID or TP-Link ID is required.")
-
+    async def process_heartbeat(self, tplink_id: int) -> Dict[str, Any]:
+        """Ping a registered AP and persist online status only when reachable."""
         conn = await connection()
         try:
             async with conn.cursor() as cursor:
-                # Prefer exact NAS-Identifier lookup. If the value is numeric
-                # and no NAS ID matches, allow it to identify the TP-Link row.
                 await cursor.execute(
                     """
-                    SELECT id, router_id, nas_identifier
+                    SELECT id, router_id, ip_address, device_name
                     FROM tplink
-                    WHERE LOWER(TRIM(COALESCE(nas_identifier, ''))) = LOWER(%s)
-                    ORDER BY id
-                    LIMIT 1;
-                    """,
-                    (cleaned_identifier,),
-                )
-                device = await cursor.fetchone()
-
-                if not device and cleaned_identifier.isdigit():
-                    await cursor.execute(
-                        """
-                        SELECT id, router_id, nas_identifier
-                        FROM tplink
-                        WHERE id = %s
-                        LIMIT 1;
-                        """,
-                        (int(cleaned_identifier),),
-                    )
-                    device = await cursor.fetchone()
-
-                if not device:
-                    raise HTTPException(
-                        status_code=404,
-                        detail="No registered TP-Link device matches this NAS ID or device ID.",
-                    )
-
-                tplink_id, linked_router_id, nas_identifier = device
-
-                await cursor.execute(
-                    """
-                    UPDATE tplink
-                    SET status = 'online', last_heartbeat_at = CURRENT_TIMESTAMP
                     WHERE id = %s;
                     """,
                     (tplink_id,),
                 )
+                device = await cursor.fetchone()
 
-                # The dashboard uses the linked routers row for status, so
-                # keep it synchronized with the TP-Link device heartbeat.
+                if not device:
+                    raise HTTPException(
+                        status_code=404,
+                        detail="TP-Link device not found.",
+                    )
+
+                device_id, linked_router_id, ip_address, device_name = device
+
+            reachable = await self._ping_ip(str(ip_address)) if ip_address else False
+            status_value = "online" if reachable else "offline"
+
+            async with conn.cursor() as cursor:
+                await cursor.execute(
+                    """
+                    UPDATE tplink
+                    SET
+                        status = %s,
+                        last_heartbeat_at = CASE
+                            WHEN %s THEN CURRENT_TIMESTAMP
+                            ELSE last_heartbeat_at
+                        END
+                    WHERE id = %s
+                    RETURNING last_heartbeat_at;
+                    """,
+                    (status_value, reachable, device_id),
+                )
+                heartbeat = await cursor.fetchone()
+
                 if linked_router_id is not None:
                     await cursor.execute(
                         """
                         UPDATE routers
-                        SET status = 'online', last_heartbeat_at = CURRENT_TIMESTAMP
+                        SET
+                            status = %s,
+                            last_heartbeat_at = CASE
+                                WHEN %s THEN CURRENT_TIMESTAMP
+                                ELSE last_heartbeat_at
+                            END
                         WHERE id = %s AND driver_type = 'tplink_radius';
                         """,
-                        (linked_router_id,),
+                        (status_value, reachable, linked_router_id),
                     )
 
                 await conn.commit()
                 return {
-                    "message": "TP-Link heartbeat recorded.",
-                    "tplink_id": tplink_id,
+                    "message": (
+                        "TP-Link AP responded to ping."
+                        if reachable
+                        else "TP-Link AP did not respond to ping."
+                    ),
+                    "tplink_id": device_id,
                     "router_id": linked_router_id,
-                    "nas_identifier": nas_identifier,
-                    "status": "online",
+                    "device_name": device_name,
+                    "ip_address": str(ip_address) if ip_address else None,
+                    "reachable": reachable,
+                    "status": status_value,
+                    "last_heartbeat": heartbeat[0].isoformat() if heartbeat and heartbeat[0] else None,
                 }
 
         except HTTPException:
@@ -849,6 +846,51 @@ class TplinkController:
         finally:
             await conn.close()
 
+    @staticmethod
+    async def _ping_ip(ip_address: str) -> bool:
+        """Send one bounded ICMP echo to a registered device address."""
+        try:
+            target = ipaddress.ip_address(ip_address)
+        except ValueError:
+            return False
+
+        ping_command = shutil.which("ping")
+        if not ping_command:
+            raise HTTPException(
+                status_code=503,
+                detail="The backend server does not have the ping utility installed.",
+            )
+
+        command = [ping_command, "-n", "-c", "1", "-W", "2"]
+        if target.version == 6:
+            command.insert(1, "-6")
+        command.append(str(target))
+
+        try:
+            process = await asyncio.create_subprocess_exec(
+                *command,
+                stdout=asyncio.subprocess.DEVNULL,
+                stderr=asyncio.subprocess.DEVNULL,
+            )
+        except OSError as exc:
+            logger.exception("Could not start ping for TP-Link IP %s.", target)
+            raise HTTPException(
+                status_code=503,
+                detail="The backend could not start the ping utility.",
+            ) from exc
+
+        try:
+            await asyncio.wait_for(process.communicate(), timeout=3)
+        except asyncio.TimeoutError:
+            try:
+                process.kill()
+            except ProcessLookupError:
+                pass
+            await process.wait()
+            return False
+
+        return process.returncode == 0
+
     # ============================================================
     # GET TP-LINK STATUS
     # ============================================================
@@ -857,48 +899,4 @@ class TplinkController:
         self,
         tplink_id: int,
     ) -> Dict[str, Any]:
-
-        conn = await connection()
-
-        try:
-            async with conn.cursor() as cursor:
-
-                await cursor.execute(
-                    """
-                    SELECT
-                        t.id,
-                        t.device_name,
-                        COALESCE(
-                            r.status,
-                            t.status
-                        ) AS status,
-                        t.last_heartbeat_at
-                    FROM tplink t
-                    LEFT JOIN routers r
-                        ON r.id = t.router_id
-                    WHERE t.id = %s;
-                    """,
-                    (tplink_id,),
-                )
-
-                row = await cursor.fetchone()
-
-                if not row:
-                    raise HTTPException(
-                        status_code=404,
-                        detail="TP-Link device not found.",
-                    )
-
-                return {
-                    "tplink_id": row[0],
-                    "device_name": row[1],
-                    "status": row[2],
-                    "last_heartbeat": (
-                        row[3].isoformat()
-                        if row[3]
-                        else None
-                    ),
-                }
-
-        finally:
-            await conn.close()
+        return await self.process_heartbeat(tplink_id)
