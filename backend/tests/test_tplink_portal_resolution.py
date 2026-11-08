@@ -39,6 +39,7 @@ class TplinkPortalResolutionTests(unittest.IsolatedAsyncioTestCase):
         self.assertEqual(result["router_id"], 15)
         self.assertEqual(result["tenant_id"], 2)
         self.assertEqual(result["driver_type"], "tplink_radius")
+        self.assertEqual(result["router_ip"], "197.186.65.217")
         cursor.execute.assert_awaited_once()
         self.assertIn("FROM routers r", cursor.execute.await_args.args[0])
         self.assertEqual(cursor.execute.await_args.args[1], ("AABBCCDDEEFF",))

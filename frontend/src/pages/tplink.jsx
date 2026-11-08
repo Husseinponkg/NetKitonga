@@ -11,9 +11,6 @@ function Tplink() {
     const [deviceName, setDeviceName] = useState("");
     const [macAddress, setMacAddress] = useState("");
     const [ipAddress, setIpAddress] = useState("");
-    const [radiusClientIp, setRadiusClientIp] = useState("");
-    const [nasIdentifier, setNasIdentifier] = useState("");
-    const [radiusSecret, setRadiusSecret] = useState("");
     const [portalUrl, setPortalUrl] = useState("");
     const [selectedBranchId, setSelectedBranchId] = useState("");
     const [selectedRouterId, setSelectedRouterId] = useState("");
@@ -136,9 +133,6 @@ function Tplink() {
         setDeviceName("");
         setMacAddress("");
         setIpAddress("");
-        setRadiusClientIp("");
-        setNasIdentifier("");
-        setRadiusSecret("");
         setPortalUrl("");
         setEditingId(null);
         setProvisioningConfig("");
@@ -164,9 +158,6 @@ function Tplink() {
             device_name: deviceName,
             mac_address: macAddress,
             ip_address: ipAddress,
-            radius_client_ip: radiusClientIp || null,
-            nas_identifier: nasIdentifier || null,
-            radius_secret: radiusSecret || null,
             portal_url: portalUrl || null,
             status: "offline",
             last_heartbeat_at: null,
@@ -206,9 +197,6 @@ function Tplink() {
                 router_id: selectedRouterId ? Number(selectedRouterId) : null,
                 mac_address: macAddress,
                 ip_address: ipAddress,
-                radius_client_ip: radiusClientIp || null,
-                nas_identifier: nasIdentifier || null,
-                radius_secret: radiusSecret || null,
                 portal_url: portalUrl || null,
             }),
         });
@@ -243,9 +231,6 @@ function Tplink() {
         setDeviceName(d.device_name || "");
         setMacAddress(d.mac_address || "");
         setIpAddress(d.ip_address || "");
-        setRadiusClientIp(d.radius_client_ip || "");
-        setNasIdentifier(d.nas_identifier || "");
-        setRadiusSecret(d.radius_secret || "");
         setPortalUrl(d.portal_url || "");
         if (d.branch_id) setSelectedBranchId(String(d.branch_id));
         if (d.router_id) setSelectedRouterId(String(d.router_id));
@@ -297,22 +282,12 @@ function Tplink() {
                             <input required value={ipAddress} onChange={(e) => setIpAddress(e.target.value)} style={{ width: "100%", padding: 8, background: "#000", color: "#fff", border: "1px solid #1f1f1f" }} />
                         </div>
                         <div style={{ marginBottom: 10 }}>
-                            <label style={{ display: "block", fontSize: "0.65rem", textTransform: "uppercase", color: "#808080" }}>RADIUS Client Source IP</label>
-                            <input value={radiusClientIp} onChange={(e) => setRadiusClientIp(e.target.value)} placeholder="Public IP seen by the VPS (optional)" style={{ width: "100%", padding: 8, background: "#000", color: "#fff", border: "1px solid #1f1f1f" }} />
-                            <small style={{ color: "#808080" }}>Set this to the public IP FreeRADIUS sees from the access point. Leave blank for the device IP.</small>
-                        </div>
-                        <div style={{ marginBottom: 10 }}>
-                            <label style={{ display: "block", fontSize: "0.65rem", textTransform: "uppercase", color: "#808080" }}>NAS ID</label>
-                            <input value={nasIdentifier} onChange={(e) => setNasIdentifier(e.target.value)} style={{ width: "100%", padding: 8, background: "#000", color: "#fff", border: "1px solid #1f1f1f" }} />
-                        </div>
-                        <div style={{ marginBottom: 10 }}>
-                            <label style={{ display: "block", fontSize: "0.65rem", textTransform: "uppercase", color: "#808080" }}>RADIUS Secret</label>
-                            <input value={radiusSecret} onChange={(e) => setRadiusSecret(e.target.value)} style={{ width: "100%", padding: 8, background: "#000", color: "#fff", border: "1px solid #1f1f1f" }} />
-                        </div>
-                        <div style={{ marginBottom: 10 }}>
                             <label style={{ display: "block", fontSize: "0.65rem", textTransform: "uppercase", color: "#808080" }}>Portal URL</label>
                             <input value={portalUrl} onChange={(e) => setPortalUrl(e.target.value)} style={{ width: "100%", padding: 8, background: "#000", color: "#fff", border: "1px solid #1f1f1f" }} />
                         </div>
+                        <small style={{ display: "block", marginBottom: 10, color: "#808080" }}>
+                            Omada uses an External Portal Server. Set the Controller operator credentials on the backend; do not configure RADIUS.
+                        </small>
                         <div style={{ display: "flex", gap: 8 }}>
                             <button type="submit" style={{ flex: 1, padding: 10, background: "#e50914", border: "none", color: "#fff", cursor: "pointer", fontWeight: 900 }}>{editingId ? "Update" : "Register"}</button>
                             {editingId && <button type="button" onClick={clearForm} style={{ flex: 1, padding: 10, background: "transparent", border: "1px solid #333", color: "#b3b3b3", cursor: "pointer" }}>Cancel</button>}
@@ -338,7 +313,6 @@ function Tplink() {
                                             <div>IP: {d.ip_address}</div>
                                             <div>Branch: {d.branch_name || "-"}</div>
                                             <div>Router: {d.router_name || "-"}</div>
-                                            <div>NAS ID: {d.nas_identifier || "-"}</div>
                                         </div>
                                         <div style={{ display: "flex", gap: 8, marginTop: 10 }}>
                                             <button onClick={() => startEditing(d)} style={{ flex: 1, padding: 8, background: "transparent", border: "1px solid #262626", color: "#b3b3b3", cursor: "pointer" }}>Edit</button>

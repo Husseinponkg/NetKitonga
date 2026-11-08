@@ -7,8 +7,8 @@ ROOT = Path(__file__).resolve().parents[1]
 if str(ROOT) not in sys.path:
     sys.path.insert(0, str(ROOT))
 
-from services.freeradius import FreeRADIUSService
 from routes import radius as radius_route
+from services.freeradius import FreeRADIUSService
 
 
 def make_connection(cursor):
@@ -19,72 +19,42 @@ def make_connection(cursor):
     conn = MagicMock()
     conn.cursor.return_value = cursor_context
     conn.close = AsyncMock()
-    conn.commit = AsyncMock()
     return conn
 
 
-class FreeRadiusHeartbeatTests(unittest.IsolatedAsyncioTestCase):
-    async def test_ap_mac_nas_identifier_marks_tplink_router_online(self):
-        lookup_cursor = AsyncMock()
-        lookup_cursor.fetchone.return_value = None
-        lookup_cursor.fetchall.return_value = [(15,)]
-        update_cursor = AsyncMock()
+class FreeRadiusClientConfigTests(unittest.IsolatedAsyncioTestCase):
+    async def test_active_session_lookup_excludes_tplink_omada(self):
+        cursor = AsyncMock()
+        cursor.fetchone.return_value = None
+        conn = make_connection(cursor)
 
         with (
             patch(
                 "services.freeradius.connection",
-                new=AsyncMock(
-                    side_effect=[
-                        make_connection(lookup_cursor),
-                        make_connection(update_cursor),
-                    ]
-                ),
-            ),
-            patch.object(
-                FreeRADIUSService,
-                "get_active_session_for_mac",
-                new=AsyncMock(return_value=None),
+                new=AsyncMock(return_value=conn),
             ),
         ):
-            result = await FreeRADIUSService().authenticate(
-                username="AA:BB:CC:DD:EE:FF",
-                password="unused",
-                nas_identifier="10-5A-95-51-D4-E4",
+            await FreeRADIUSService().get_active_session_for_mac(
+                tenant_id=None,
+                mac_address="AA:BB:CC:DD:EE:FF",
             )
 
-        self.assertEqual(result["control:Auth-Type"], "Reject")
-        self.assertIn("mac_address", lookup_cursor.execute.await_args.args[0])
-        self.assertEqual(
-            lookup_cursor.execute.await_args.args[1],
-            ("105A9551D4E4",),
+        query = cursor.execute.await_args.args[0]
+        self.assertIn(
+            "r.driver_type IN ('mikrotik_radius', 'radius_aaa')",
+            query,
         )
-        self.assertEqual(update_cursor.execute.await_count, 2)
+        conn.close.assert_awaited_once()
 
-    def test_clients_config_includes_tplink_with_generic_nas_type(self):
-        config = FreeRADIUSService.build_clients_config(
-            [
-                {
-                    "router_name": "tplink",
-                    "ip_address": "197.186.65.217",
-                    "nas_identifier": "10-5A-95-51-D4-E4",
-                    "radius_secret": "configured-secret",
-                    "driver_type": "tplink_radius",
-                }
-            ]
-        )
-
-        self.assertIn("client tplink", config)
-        self.assertIn("nas_type = other", config)
-
-    async def test_clients_config_uses_radius_source_ip_when_configured(self):
+    async def test_clients_config_excludes_tplink_omada_devices(self):
         cursor = AsyncMock()
         cursor.fetchall.return_value = [
             (
-                "Outdoor EAP",
-                "197.186.53.5",
-                "10-5A-95-51-D4-E4",
+                "MikroTik",
+                "197.186.65.217",
+                "mikrotik-01",
                 "configured-secret",
-                "tplink_radius",
+                "mikrotik_radius",
             )
         ]
         conn = make_connection(cursor)
@@ -95,8 +65,10 @@ class FreeRadiusHeartbeatTests(unittest.IsolatedAsyncioTestCase):
         ):
             result = await radius_route.get_freeradius_clients(tenant_id=2)
 
-        self.assertIn("COALESCE(radius_client_ip, ip_address)", cursor.execute.await_args.args[0])
-        self.assertIn("ipaddr = 197.186.53.5", result["config"])
+        query = cursor.execute.await_args.args[0]
+        self.assertIn("driver_type IN ('mikrotik_radius', 'radius_aaa')", query)
+        self.assertNotIn("'tplink_radius'", query)
+        self.assertIn("ipaddr = 197.186.65.217", result["config"])
         conn.close.assert_awaited_once()
 
 

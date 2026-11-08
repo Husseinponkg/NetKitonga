@@ -88,6 +88,7 @@ class FreeRADIUSService:
                     JOIN buyers AS b ON b.id = s.buyer_id
                     WHERE s.status = 'active'
                       AND s.expiration_time > NOW()
+                      AND r.driver_type IN ('mikrotik_radius', 'radius_aaa')
                       AND regexp_replace(upper(coalesce(b.buyer_mac, '')), '[^0-9A-F]', '', 'g') = %s
                       {router_filter}
                       {tenant_filter}
@@ -159,7 +160,7 @@ class FreeRADIUSService:
                         """
                                                 SELECT id
                         FROM routers
-                        WHERE driver_type IN ('mikrotik_radius', 'tplink_radius', 'radius_aaa')
+                        WHERE driver_type IN ('mikrotik_radius', 'radius_aaa')
                           AND lower(trim(nas_identifier)) = lower(trim(%s))
                         ORDER BY id
                         LIMIT 1
@@ -170,7 +171,6 @@ class FreeRADIUSService:
                     if router_row:
                         router_id = router_row[0]
 
-                # TP-Link Omada may use the AP MAC as its NAS-Identifier.
                 if router_id is None and nas_identifier:
                     compact_nas_id = self._normalize_mac(nas_identifier)
                     if len(compact_nas_id) == 12:
@@ -178,7 +178,7 @@ class FreeRADIUSService:
                             """
                             SELECT id
                             FROM routers
-                            WHERE driver_type IN ('mikrotik_radius', 'tplink_radius', 'radius_aaa')
+                            WHERE driver_type IN ('mikrotik_radius', 'radius_aaa')
                               AND regexp_replace(
                                     upper(coalesce(mac_address, '')),
                                     '[^0-9A-F]',
@@ -201,7 +201,7 @@ class FreeRADIUSService:
                         """
                         SELECT id
                         FROM routers
-                        WHERE driver_type IN ('mikrotik_radius', 'tplink_radius', 'radius_aaa')
+                        WHERE driver_type IN ('mikrotik_radius', 'radius_aaa')
                           AND host(ip_address) = host(%s::inet)
                         ORDER BY id
                         LIMIT 2
@@ -222,10 +222,6 @@ class FreeRADIUSService:
                     async with conn2.cursor() as c2:
                         await c2.execute(
                             "UPDATE routers SET status = 'online', last_heartbeat_at = NOW() WHERE id = %s;",
-                            (router_id,),
-                        )
-                        await c2.execute(
-                            "UPDATE tplink SET status = 'online', last_heartbeat_at = NOW() WHERE router_id = %s;",
                             (router_id,),
                         )
                         await conn2.commit()

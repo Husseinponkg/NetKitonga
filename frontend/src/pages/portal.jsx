@@ -245,50 +245,73 @@ function submitHotspotLogin(
     return true;
 }
 
-function submitOmadaLogin(target, clientMac, radiusServerIp, password) {
-    if (!target || !clientMac || !password) {
-        console.error("Cannot start Omada login: target, client MAC, or password is missing.");
-        return false;
+async function submitOmadaLogin(
+    apiBaseUrl,
+    routerId,
+    clientMac,
+    authToken,
+    portalContext
+) {
+    if (
+        !routerId ||
+        !clientMac ||
+        !authToken ||
+        !portalContext.apMac ||
+        !portalContext.ssidName ||
+        !portalContext.site ||
+        !["0", "1"].includes(String(portalContext.radioId))
+    ) {
+        throw new Error(
+            "Omada did not provide all required client, AP, SSID, radio, and site details."
+        );
     }
 
-    const targetHost = String(target)
-        .trim()
-        .replace(/^https?:\/\//i, "")
-        .replace(/\/+$/, "");
-    const authority = targetHost.split(":").length > 2 && !targetHost.startsWith("[")
-        ? `[${targetHost}]`
-        : targetHost;
-
-    let action;
-    try {
-        action = new URL("/portal/auth", `http://${authority}`).href;
-    } catch (error) {
-        console.error("Invalid Omada authentication target:", target, error);
-        return false;
+    let destinationHref = null;
+    if (portalContext.redirectUrl) {
+        let destinationUrl;
+        try {
+            destinationUrl = new URL(portalContext.redirectUrl);
+        } catch {
+            throw new Error("Omada returned an invalid landing-page URL.");
+        }
+        if (!["http:", "https:"].includes(destinationUrl.protocol)) {
+            throw new Error("Omada returned an unsupported landing-page URL.");
+        }
+        destinationHref = destinationUrl.href;
     }
 
-    const form = document.createElement("form");
-    form.method = "POST";
-    form.action = action;
-    form.style.display = "none";
-
-    [
-        { name: "username", value: normalizeMac(clientMac) },
-        { name: "password", value: password },
-        { name: "clientMac", id: "cid", value: clientMac },
-        { name: "radiusSvrIp", id: "radiusServerIp", value: radiusServerIp || "" },
-    ].forEach(({ name, id, value }) => {
-        const input = document.createElement("input");
-        input.type = "hidden";
-        input.name = name;
-        if (id) input.id = id;
-        input.value = value;
-        form.appendChild(input);
+    const response = await fetch(`${apiBaseUrl}/tplink/authorize`, {
+        method: "POST",
+        headers: { "Content-Type": "application/json" },
+        body: JSON.stringify({
+            router_id: Number(routerId),
+            buyerMac: clientMac,
+            auth_token: authToken,
+            clientIp: portalContext.clientIp || null,
+            apMac: portalContext.apMac,
+            ssidName: portalContext.ssidName,
+            radioId: Number(portalContext.radioId),
+            site: portalContext.site,
+            t: portalContext.portalTime || null,
+            redirectUrl: portalContext.redirectUrl || null,
+        }),
     });
 
-    document.body.appendChild(form);
-    form.submit();
-    return true;
+    let result;
+    try {
+        result = await response.json();
+    } catch {
+        throw new Error("The authorization server returned an invalid response.");
+    }
+
+    if (!response.ok || result?.authorized !== true) {
+        const detail = extractApiErrorMessage(result);
+        throw new Error(detail || `Omada authorization failed (HTTP ${response.status}).`);
+    }
+
+    if (destinationHref) {
+        window.location.assign(destinationHref);
+    }
 }
 
 /**
@@ -365,6 +388,8 @@ function Portal() {
     const [imageErrors, setImageErrors] = useState({});
     const [pendingGatewayReference, setPendingGatewayReference] =
         useState(null);
+    const [omadaRetry, setOmadaRetry] = useState(null);
+    const [isOmadaRetrying, setIsOmadaRetrying] = useState(false);
 
     const [resolvedRouter, setResolvedRouter] = useState(null);
 
@@ -418,6 +443,21 @@ function Portal() {
         queryParams.get("apMac") ||
         queryParams.get("ap_mac") ||
         "";
+    const omadaSsidName =
+        queryParams.get("ssidName") ||
+        "";
+    const omadaRadioId =
+        queryParams.get("radioId") ||
+        "";
+    const omadaSite =
+        queryParams.get("site") ||
+        "";
+    const omadaPortalTime =
+        queryParams.get("t") ||
+        "";
+    const omadaRedirectUrl =
+        queryParams.get("redirectUrl") ||
+        "";
 
     // ================================================================
     // WiFiDog / RUIJIE PARAMETERS
@@ -452,11 +492,6 @@ const gatewayPort =
         queryParams.get("nas_id") ||
         "";
 
-    const radiusServerIp =
-        queryParams.get("radiusServerIp") ||
-        queryParams.get("raidusServerIp") ||
-        "";
-
     const isOmadaPortal =
         Boolean(
             queryParams.get("portal_type") === "tplink" ||
@@ -465,6 +500,7 @@ const gatewayPort =
         );
 
     const clientIp =
+        queryParams.get("clientIp") ||
         queryParams.get("ip") ||
         "";
 
@@ -489,6 +525,7 @@ const gatewayPort =
     // WiFiDog passes the originally requested page as "url", while
     // MikroTik passes it as "dst" or "link-orig".
     const destination =
+        omadaRedirectUrl ||
         queryParams.get("dst") ||
         queryParams.get("link-orig") ||
         queryParams.get("url") ||
@@ -605,6 +642,28 @@ const gatewayPort =
     const isTplinkGateway =
         resolvedRouter?.driver_type === "tplink_radius" ||
         isOmadaPortal;
+
+    const retryOmadaAuthorization = async () => {
+        if (!omadaRetry) {
+            return;
+        }
+        setIsOmadaRetrying(true);
+        try {
+            await submitOmadaLogin(
+                API_BASE_URL,
+                omadaRetry.routerId,
+                omadaRetry.buyerMac,
+                omadaRetry.authToken,
+                omadaRetry.portalContext
+            );
+            setOmadaRetry(null);
+            setUiMessage("Omada authorized this WiFi client.");
+        } catch (error) {
+            setUiMessage(`Omada authorization failed: ${error.message}`);
+        } finally {
+            setIsOmadaRetrying(false);
+        }
+    };
 
     // ================================================================
     // FETCH PACKAGES
@@ -815,6 +874,42 @@ const gatewayPort =
                             null
                         );
 
+                        if (isTplinkGateway) {
+                            const retryData = {
+                                routerId: effectiveRouterId,
+                                buyerMac,
+                                authToken: payment.auth_token,
+                                portalContext: {
+                                    clientIp,
+                                    apMac: tplinkApMac,
+                                    ssidName: omadaSsidName,
+                                    radioId: omadaRadioId,
+                                    site: omadaSite,
+                                    portalTime: omadaPortalTime,
+                                    redirectUrl: omadaRedirectUrl,
+                                },
+                            };
+                            setOmadaRetry(retryData);
+                            try {
+                                await submitOmadaLogin(
+                                    API_BASE_URL,
+                                    retryData.routerId,
+                                    retryData.buyerMac,
+                                    retryData.authToken,
+                                    retryData.portalContext
+                                );
+                                setOmadaRetry(null);
+                                setUiMessage(
+                                    "Payment confirmed and Omada authorized this WiFi client."
+                                );
+                            } catch (error) {
+                                setUiMessage(
+                                    `Payment confirmed, but Omada authorization failed: ${error.message}`
+                                );
+                            }
+                            return;
+                        }
+
                         const loginStarted = isWifidogGateway
                             ? submitWifidogLogin(
                                 effectiveGatewayIp,
@@ -822,14 +917,7 @@ const gatewayPort =
                                 payment.auth_token,
                                 destination
                             )
-                            : isTplinkGateway
-                                ? submitOmadaLogin(
-                                    effectiveGatewayIp,
-                                    buyerMac,
-                                    radiusServerIp,
-                                    payment.auth_token
-                                )
-                                : submitHotspotLogin(
+                            : submitHotspotLogin(
                                 linkLogin,
                                 effectiveGatewayIp || routerIp,
                                 normalizeMac(buyerMac),
@@ -896,7 +984,13 @@ const gatewayPort =
         isTplinkGateway,
         effectiveGatewayIp,
         effectiveGwId,
-        radiusServerIp,
+        clientIp,
+        tplinkApMac,
+        omadaSsidName,
+        omadaRadioId,
+        omadaSite,
+        omadaPortalTime,
+        omadaRedirectUrl,
         API_BASE_URL,
     ]);
 
@@ -1170,14 +1264,46 @@ const gatewayPort =
 
                 if (response.ok) {
                     // =================================================
-                    // IMPORTANT:
-                    //
-                    // Automatically send the voucher auth_token
-                    // to MikroTik /login.
-                    //
-                    // This causes MikroTik to initiate the RADIUS
-                    // authentication request.
+                    // Hand the voucher's authorization token to the
+                    // selected gateway's authentication flow.
                     // =================================================
+
+                    if (isTplinkGateway) {
+                        const retryData = {
+                            routerId: effectiveRouterId,
+                            buyerMac,
+                            authToken: result.auth_token,
+                            portalContext: {
+                                clientIp,
+                                apMac: tplinkApMac,
+                                ssidName: omadaSsidName,
+                                radioId: omadaRadioId,
+                                site: omadaSite,
+                                portalTime: omadaPortalTime,
+                                redirectUrl: omadaRedirectUrl,
+                            },
+                        };
+                        setOmadaRetry(retryData);
+                        try {
+                            await submitOmadaLogin(
+                                API_BASE_URL,
+                                retryData.routerId,
+                                retryData.buyerMac,
+                                retryData.authToken,
+                                retryData.portalContext
+                            );
+                            setOmadaRetry(null);
+                            setUiMessage(
+                                "Voucher accepted and Omada authorized this WiFi client."
+                            );
+                        } catch (error) {
+                            setUiMessage(
+                                `Voucher accepted, but Omada authorization failed: ${error.message}`
+                            );
+                        }
+                        setVoucherCode("");
+                        return;
+                    }
 
                     const loginStarted = isWifidogGateway
                         ? submitWifidogLogin(
@@ -1186,14 +1312,7 @@ const gatewayPort =
                             result.auth_token,
                             destination
                         )
-                        : isTplinkGateway
-                            ? submitOmadaLogin(
-                                effectiveGatewayIp,
-                                buyerMac,
-                                radiusServerIp,
-                                result.auth_token
-                            )
-                            : submitHotspotLogin(
+                        : submitHotspotLogin(
                             linkLogin,
                             effectiveGatewayIp || routerIp,
                             normalizeMac(buyerMac),
@@ -2074,10 +2193,13 @@ const gatewayPort =
                                 "Validating"
                             ) ||
                             uiMessage.includes(
-                                ""
+                                "Voucher accepted and"
                             ) ||
                             uiMessage.includes(
-                                "Voucher accepted"
+                                "Payment confirmed and"
+                            ) ||
+                            uiMessage.includes(
+                                "authorized this WiFi client"
                             )
                                 ? "success"
                                 : "error"
@@ -2085,6 +2207,17 @@ const gatewayPort =
                     >
                         {uiMessage}
                     </div>
+                )}
+                {omadaRetry && (
+                    <button
+                        type="button"
+                        onClick={retryOmadaAuthorization}
+                        disabled={isOmadaRetrying}
+                    >
+                        {isOmadaRetrying
+                            ? "Retrying Omada authorization..."
+                            : "Retry WiFi authorization"}
+                    </button>
                 )}
 
                 {/* Tabs */}

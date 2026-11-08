@@ -1,6 +1,12 @@
 from fastapi import APIRouter, status, Query, HTTPException, Depends
 from typing import Dict, Any, Optional
-from models.tplink import TplinkRegister, TplinkUpdate, TplinkDelete, TplinkResponse
+from models.tplink import (
+    TplinkAuthorizeRequest,
+    TplinkRegister,
+    TplinkUpdate,
+    TplinkDelete,
+    TplinkResponse,
+)
 from controllers.tplink import TplinkController
 from utils.subscription_access import require_active_subscription
 
@@ -28,6 +34,11 @@ async def resolve_tplink(
             detail="ip_address or ap_mac is required.",
         )
     return await controller.resolve_portal_device(ip_address, ap_mac)
+
+
+@router.post("/authorize")
+async def authorize_tplink_client(data: TplinkAuthorizeRequest):
+    return await controller.authorize_portal_client(data)
 
 
 @router.post("/register", response_model=Dict[str, Any], status_code=status.HTTP_201_CREATED, dependencies=[Depends(require_active_subscription)])

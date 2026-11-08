@@ -151,7 +151,7 @@ async def get_freeradius_clients(tenant_id: Optional[int] = Query(None)):
                     radius_secret,
                     driver_type
                 FROM routers
-                WHERE driver_type IN ('mikrotik_radius', 'tplink_radius', 'radius_aaa')
+                WHERE driver_type IN ('mikrotik_radius', 'radius_aaa')
                   AND COALESCE(radius_client_ip, ip_address) IS NOT NULL
                   AND NULLIF(TRIM(radius_secret), '') IS NOT NULL
             """

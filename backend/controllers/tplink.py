@@ -1,5 +1,6 @@
 
 import logging
+import asyncio
 from ipaddress import ip_address as parse_ip_address
 from typing import Dict, Any, Optional
 
@@ -11,6 +12,12 @@ from models.tplink import (
     TplinkUpdate,
     TplinkDelete,
     TplinkResponse,
+    TplinkAuthorizeRequest,
+)
+from services.omada import (
+    OmadaConfigurationError,
+    OmadaControllerError,
+    OmadaService,
 )
 from services.tplink import TplinkService
 from utils.mac import normalize_mac
@@ -22,6 +29,96 @@ class TplinkController:
 
     def __init__(self):
         self.tplink_service = TplinkService()
+        self.omada_service = OmadaService()
+
+    async def authorize_portal_client(
+        self,
+        data: TplinkAuthorizeRequest,
+    ) -> Dict[str, Any]:
+        client_mac = normalize_mac(data.buyer_mac).replace(":", "")
+        if len(client_mac) != 12:
+            raise HTTPException(
+                status_code=400,
+                detail="The Omada client MAC address is invalid.",
+            )
+
+        ap_mac = normalize_mac(data.ap_mac).replace(":", "")
+        if len(ap_mac) != 12:
+            raise HTTPException(
+                status_code=400,
+                detail="The Omada access point MAC address is invalid.",
+            )
+
+        conn = await connection()
+        try:
+            async with conn.cursor() as cursor:
+                await cursor.execute(
+                    """
+                    SELECT FLOOR(
+                        EXTRACT(EPOCH FROM s.expiration_time::timestamptz)
+                        * 1000000
+                    )::bigint
+                    FROM payments p
+                    JOIN buyers b
+                      ON b.id = p.buyer_id
+                     AND b.tenant_id = p.tenant_id
+                    JOIN active_sessions s
+                      ON s.payment_id = p.id
+                     AND s.router_id = p.router_id
+                     AND s.buyer_id = p.buyer_id
+                    JOIN routers r
+                      ON r.id = p.router_id
+                    WHERE p.router_id = %s
+                      AND p.auth_token = %s
+                      AND p.status = 'completed'
+                      AND s.status = 'active'
+                      AND s.expiration_time > NOW()
+                      AND r.driver_type = 'tplink_radius'
+                      AND regexp_replace(
+                            upper(coalesce(b.buyer_mac, '')),
+                            '[^0-9A-F]',
+                            '',
+                            'g'
+                          ) = %s
+                      AND EXISTS (
+                          SELECT 1
+                          FROM tplink t
+                          WHERE t.router_id = p.router_id
+                            AND t.tenant_id = p.tenant_id
+                            AND regexp_replace(
+                                upper(coalesce(t.mac_address, '')),
+                                '[^0-9A-F]',
+                                '',
+                                'g'
+                            ) = %s
+                      )
+                    ORDER BY s.expiration_time DESC
+                    LIMIT 1;
+                    """,
+                    (data.router_id, data.auth_token, client_mac, ap_mac),
+                )
+                session = await cursor.fetchone()
+        finally:
+            await conn.close()
+
+        if not session or not session[0] or session[0] <= 0:
+            raise HTTPException(
+                status_code=403,
+                detail="No active, paid session matches this client and router.",
+            )
+
+        try:
+            await asyncio.to_thread(
+                self.omada_service.authorize_client,
+                data,
+                session[0],
+            )
+        except OmadaConfigurationError as exc:
+            raise HTTPException(status_code=503, detail=str(exc)) from exc
+        except OmadaControllerError as exc:
+            raise HTTPException(status_code=502, detail=str(exc)) from exc
+
+        return {"authorized": True}
 
     async def resolve_portal_device(
         self,
@@ -228,15 +325,12 @@ class TplinkController:
                         device_name,
                         mac_address,
                         ip_address,
-                        nas_identifier,
-                        radius_secret,
                         portal_url,
                         status,
                         last_heartbeat_at
                     )
                     VALUES (
-                        %s, %s, %s, %s, %s,
-                        %s, %s, %s, %s, %s, %s
+                        %s, %s, %s, %s, %s, %s, %s, %s, %s
                     )
                     RETURNING id;
                 """
@@ -248,8 +342,6 @@ class TplinkController:
                     data.device_name,
                     data.mac_address,
                     str(data.ip_address),
-                    data.nas_identifier,
-                    data.radius_secret,
                     data.portal_url,
                     data.status,
                     data.last_heartbeat_at,
@@ -267,40 +359,19 @@ class TplinkController:
 
                 new_id = row[0]
 
-                # ------------------------------------------------
-                # 3. Synchronize the linked router's RADIUS
-                #    configuration.
-                #
-                #    This updates only the router linked to this
-                #    TP-Link device.
-                # ------------------------------------------------
-
                 await cursor.execute(
                     """
                     UPDATE routers
                     SET
-                        nas_identifier = COALESCE(
-                            %s, nas_identifier
-                        ),
-                        radius_secret = COALESCE(
-                            %s, radius_secret
-                        ),
-                        radius_client_ip = COALESCE(
-                            %s, radius_client_ip
-                        ),
+                        nas_identifier = NULL,
+                        radius_secret = NULL,
+                        radius_client_ip = NULL,
                         driver_type = 'tplink_radius'
                     WHERE id = %s
                       AND tenant_id = %s
                       AND branch_id = %s;
                     """,
                     (
-                        data.nas_identifier,
-                        data.radius_secret,
-                        (
-                            str(data.radius_client_ip)
-                            if data.radius_client_ip is not None
-                            else None
-                        ),
                         data.router_id,
                         data.tenant_id,
                         data.branch_id,
@@ -323,10 +394,6 @@ class TplinkController:
                 config = self.tplink_service.build_config(
                     device_name=data.device_name,
                     ip_address=str(data.ip_address),
-                    nas_identifier=(
-                        data.nas_identifier or data.device_name
-                    ),
-                    radius_secret=data.radius_secret or "",
                     portal_url=data.portal_url or "",
                     router_id=data.router_id,
                     tenant_id=data.tenant_id,
@@ -382,9 +449,7 @@ class TplinkController:
                         id,
                         tenant_id,
                         branch_id,
-                        router_id,
-                        nas_identifier,
-                        radius_secret
+                        router_id
                     FROM tplink
                     WHERE id = %s;
                     """,
@@ -400,12 +465,9 @@ class TplinkController:
                     )
 
                 (
-                    current_id,
                     tenant_id,
                     current_branch_id,
                     current_router_id,
-                    current_nas_identifier,
-                    current_radius_secret,
                 ) = current
 
                 target_branch_id = (
@@ -475,12 +537,8 @@ class TplinkController:
                         ip_address = COALESCE(
                             %s, ip_address
                         ),
-                        nas_identifier = COALESCE(
-                            %s, nas_identifier
-                        ),
-                        radius_secret = COALESCE(
-                            %s, radius_secret
-                        ),
+                        nas_identifier = NULL,
+                        radius_secret = NULL,
                         portal_url = COALESCE(
                             %s, portal_url
                         ),
@@ -504,8 +562,6 @@ class TplinkController:
                         if data.ip_address is not None
                         else None
                     ),
-                    data.nas_identifier,
-                    data.radius_secret,
                     data.portal_url,
                     data.status,
                     data.last_heartbeat_at,
@@ -522,56 +578,23 @@ class TplinkController:
                         detail="TP-Link device not found.",
                     )
 
-                # -----------------------------------------------
-                # 4. Synchronize RADIUS settings on the linked
-                #    router only when relevant fields change.
-                # -----------------------------------------------
-
-                if (
-                    data.router_id is not None
-                    or data.branch_id is not None
-                    or data.nas_identifier is not None
-                    or data.radius_secret is not None
-                    or data.radius_client_ip is not None
-                ):
-                    new_nas_identifier = (
-                        data.nas_identifier
-                        if data.nas_identifier is not None
-                        else current_nas_identifier
-                    )
-
-                    new_radius_secret = (
-                        data.radius_secret
-                        if data.radius_secret is not None
-                        else current_radius_secret
-                    )
-
+                if data.router_id is not None or data.branch_id is not None:
                     await cursor.execute(
                         """
                         UPDATE routers
                         SET
-                            nas_identifier = COALESCE(
-                                %s, nas_identifier
-                            ),
-                            radius_secret = COALESCE(
-                                %s, radius_secret
-                            ),
-                            radius_client_ip = COALESCE(
-                                %s, radius_client_ip
-                            ),
+                            nas_identifier = NULL,
+                            radius_secret = NULL,
+                            radius_client_ip = NULL,
+                            nas_identifier = NULL,
+                            radius_secret = NULL,
+                            radius_client_ip = NULL,
                             driver_type = 'tplink_radius'
                         WHERE id = %s
                           AND tenant_id = %s
                           AND branch_id = %s;
                         """,
                         (
-                            new_nas_identifier,
-                            new_radius_secret,
-                            (
-                                str(data.radius_client_ip)
-                                if data.radius_client_ip is not None
-                                else None
-                            ),
                             target_router_id,
                             tenant_id,
                             target_branch_id,
@@ -583,7 +606,7 @@ class TplinkController:
                             status_code=400,
                             detail=(
                                 "Could not synchronize the linked "
-                                "router's RADIUS configuration."
+                                "router's Omada portal configuration."
                             ),
                         )
 
@@ -689,12 +712,9 @@ class TplinkController:
                         t.router_id,
                         r.router_name,
                         r.status AS router_status,
-                        r.radius_client_ip,
                         t.device_name,
                         t.mac_address,
                         t.ip_address,
-                        t.nas_identifier,
-                        t.radius_secret,
                         t.portal_url,
                         t.status,
                         t.last_heartbeat_at
@@ -725,10 +745,6 @@ class TplinkController:
                     # the linked router status when available.
                     if item.get("router_status"):
                         item["status"] = item["router_status"]
-
-                    # Never expose the RADIUS shared secret in
-                    # the device listing response.
-                    item.pop("radius_secret", None)
 
                     devices.append(item)
 

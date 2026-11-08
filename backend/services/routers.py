@@ -116,7 +116,7 @@ class RouterService:
                     FROM routers r
                     LEFT JOIN tenants t ON t.id = r.tenant_id
                     WHERE r.nas_identifier = %s
-                      AND r.driver_type IN ('mikrotik_radius', 'tplink_radius', 'radius_aaa');
+                      AND r.driver_type IN ('mikrotik_radius', 'radius_aaa');
                     """,
                     (nas_identifier.strip(),)
                 )
@@ -295,11 +295,32 @@ class RouterService:
             )
         }
 
+        if driver_type == "tplink_radius":
+            portal_url = (
+                f"{frontend_url}/portal"
+                f"?portal_type=tplink&router_id={router_id or ''}"
+            )
+            return {
+                "url": portal_url,
+                "router": router_payload,
+                "provision_method": (
+                    "Configure Omada with an External Portal Server"
+                ),
+                "hardware_config_block": {
+                    "Portal Type": "External Portal Server",
+                    "Portal URL": portal_url,
+                    "Configuration": (
+                        "Set the Omada Controller operator credentials "
+                        "on the NetKitonga backend; do not configure RADIUS."
+                    ),
+                },
+            }
+
         # ---------------------------------------------------------
         # MIKROTIK / RADIUS AAA
         # ---------------------------------------------------------
 
-        if driver_type in ("radius_aaa", "mikrotik_radius", "tplink_radius"):
+        if driver_type in ("radius_aaa", "mikrotik_radius"):
 
             api_url = (
                 f"{api_scheme}://"

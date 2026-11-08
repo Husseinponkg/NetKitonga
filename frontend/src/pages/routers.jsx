@@ -145,8 +145,8 @@ function Routers() {
             branch_id: Number(selectedBranchId),
             router_name: routerName,
             driver_type: driverType,
-            nas_identifier: driverType === "mikrotik_radius" || driverType === "tplink_radius" ? nasIdentifier : null,
-            radius_secret: driverType === "mikrotik_radius" || driverType === "tplink_radius" ? radiusSecret : null,
+            nas_identifier: driverType === "mikrotik_radius" ? nasIdentifier : null,
+            radius_secret: driverType === "mikrotik_radius" ? radiusSecret : null,
                  gw_id: driverType === "wifidog_http" ? gwId : null,
             mac_address: macAddress,
             ip_address: ipAddress,
@@ -194,8 +194,8 @@ function Routers() {
                 router_id: routerId,
                 router_name: routerName,
                 driver_type: driverType,
-                nas_identifier: driverType === "mikrotik_radius" || driverType === "tplink_radius" ? nasIdentifier : null,
-                radius_secret: driverType === "mikrotik_radius" || driverType === "tplink_radius" ? radiusSecret : null,
+                nas_identifier: driverType === "mikrotik_radius" ? nasIdentifier : null,
+                radius_secret: driverType === "mikrotik_radius" ? radiusSecret : null,
             gw_id: driverType === "wifidog_http" ? gwId : null,
                 mac_address: macAddress,
                 ip_address: ipAddress,
@@ -1359,11 +1359,11 @@ function Routers() {
                                 >
                                     <option value="mikrotik_radius">MikroTik RouterOS (RADIUS)</option>
                                     <option value="wifidog_http">Ruijie / OpenWrt (Wifidog)</option>
-                                    <option value="tplink_radius">TP-Link EAP225 (RADIUS)</option>
+                                    <option value="tplink_radius">TP-Link Omada (External Portal)</option>
                                 </select>
                             </div>
 
-                            {driverType === "mikrotik_radius" || driverType === "tplink_radius" ? (
+                            {driverType === "mikrotik_radius" ? (
                                 <>
                                     <div className="form-group">
                                         <label>NAS Identifier</label>
@@ -1386,7 +1386,7 @@ function Routers() {
                                         />
                                     </div>
                                 </>
-                            ) : (
+                            ) : driverType === "wifidog_http" ? (
                                 <div className="form-group">
                                     <label>Gateway ID</label>
                                     <input
@@ -1397,6 +1397,10 @@ function Routers() {
                                         onChange={(e) => setGwId(e.target.value)}
                                     />
                                 </div>
+                            ) : (
+                                <p>
+                                    Omada authorization is handled by the External Portal Server. No RADIUS credentials are required.
+                                </p>
                             )}
 
                             <div className="form-group">

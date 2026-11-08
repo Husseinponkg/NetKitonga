@@ -11,12 +11,6 @@ class TplinkRegister(BaseModel):
     device_name: str = Field(..., max_length=100, json_schema_extra={"example": "Lobby EAP225"})
     mac_address: str = Field(..., max_length=50, json_schema_extra={"example": "AA:BB:CC:11:22:33"})
     ip_address: IPv4Address | IPv6Address = Field(..., description="The physical device IP address")
-    radius_client_ip: Optional[IPv4Address | IPv6Address] = Field(
-        None,
-        description="Public source IP FreeRADIUS sees for this device's RADIUS traffic",
-    )
-    nas_identifier: Optional[str] = Field(None, max_length=100, description="NAS ID used for RADIUS")
-    radius_secret: Optional[str] = Field(None, max_length=100, description="Shared secret for RADIUS")
     portal_url: Optional[str] = Field(None, max_length=255, description="External captive portal URL")
     status: str = Field(default="offline", description="Defaults to offline until heartbeat")
     last_heartbeat_at: Optional[datetime] = Field(default=None)
@@ -33,9 +27,6 @@ class TplinkUpdate(BaseModel):
     router_id: Optional[int] = None
     mac_address: Optional[str] = Field(None, max_length=50)
     ip_address: Optional[IPv4Address | IPv6Address] = None
-    radius_client_ip: Optional[IPv4Address | IPv6Address] = None
-    nas_identifier: Optional[str] = Field(None, max_length=100)
-    radius_secret: Optional[str] = Field(None, max_length=100)
     portal_url: Optional[str] = Field(None, max_length=255)
     status: Optional[str] = None
     last_heartbeat_at: Optional[datetime] = None
@@ -51,3 +42,16 @@ class TplinkResponse(BaseModel):
     device_name: Optional[str] = None
     status: str
     last_heartbeat: Optional[str] = None
+
+
+class TplinkAuthorizeRequest(BaseModel):
+    router_id: int = Field(..., gt=0)
+    buyer_mac: str = Field(..., alias="buyerMac", min_length=12, max_length=24)
+    auth_token: str = Field(..., min_length=1, max_length=512)
+    client_ip: Optional[str] = Field(None, alias="clientIp", max_length=45)
+    ap_mac: str = Field(..., alias="apMac", min_length=12, max_length=24)
+    ssid_name: str = Field(..., alias="ssidName", min_length=1, max_length=128)
+    radio_id: int = Field(..., alias="radioId", ge=0, le=1)
+    site: str = Field(..., min_length=1, max_length=128)
+    portal_time: Optional[str] = Field(None, alias="t", max_length=32)
+    redirect_url: Optional[str] = Field(None, alias="redirectUrl", max_length=2048)

@@ -92,8 +92,16 @@ class RouterController:
                     UPDATE routers SET 
                         router_name = COALESCE(%s, router_name),
                         driver_type = COALESCE(%s, driver_type),
-                        nas_identifier = COALESCE(%s, nas_identifier),
-                        radius_secret = COALESCE(%s, radius_secret),
+                        nas_identifier = CASE
+                            WHEN COALESCE(%s, driver_type) = 'tplink_radius'
+                            THEN NULL
+                            ELSE COALESCE(%s, nas_identifier)
+                        END,
+                        radius_secret = CASE
+                            WHEN COALESCE(%s, driver_type) = 'tplink_radius'
+                            THEN NULL
+                            ELSE COALESCE(%s, radius_secret)
+                        END,
                         gw_id = COALESCE(%s, gw_id),
                         mac_address = COALESCE(%s, mac_address),
                         ip_address = COALESCE(%s, ip_address),
@@ -103,7 +111,8 @@ class RouterController:
                 """
                 params = (
                     router_data.router_name, router_data.driver_type,
-                    router_data.nas_identifier, router_data.radius_secret,
+                    router_data.driver_type, router_data.nas_identifier,
+                    router_data.driver_type, router_data.radius_secret,
                     router_data.gw_id, router_data.mac_address,
                     str(router_data.ip_address) if router_data.ip_address else None,
                     router_data.is_licensed, router_data.status,
