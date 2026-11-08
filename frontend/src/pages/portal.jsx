@@ -414,6 +414,11 @@ function Portal() {
         queryParams.get("mac") ||
         "unknown-device";
 
+    const tplinkApMac =
+        queryParams.get("apMac") ||
+        queryParams.get("ap_mac") ||
+        "";
+
     // ================================================================
     // WiFiDog / RUIJIE PARAMETERS
     //
@@ -453,7 +458,11 @@ const gatewayPort =
         "";
 
     const isOmadaPortal =
-        Boolean(queryParams.get("target") && queryParams.get("clientMac"));
+        Boolean(
+            queryParams.get("portal_type") === "tplink" ||
+            tplinkApMac ||
+            (queryParams.get("target") && queryParams.get("clientMac"))
+        );
 
     const clientIp =
         queryParams.get("ip") ||
@@ -515,7 +524,7 @@ const gatewayPort =
 
     const resolveRouter = async (existingResolution = null) => {
         if (
-            (!routerIp && !nasId && !gwId) ||
+            (!routerIp && !tplinkApMac && !nasId && !gwId) ||
             (routerId && !isOmadaPortal) ||
             ((tenantId && branchId) && !isOmadaPortal)
         ) {
@@ -528,7 +537,16 @@ const gatewayPort =
         }
 
         const lookup = isOmadaPortal
-            ? `ip_address=${encodeURIComponent(routerIp)}`
+            ? [
+                tplinkApMac
+                    ? `ap_mac=${encodeURIComponent(tplinkApMac)}`
+                    : "",
+                routerIp
+                    ? `ip_address=${encodeURIComponent(routerIp)}`
+                    : "",
+            ]
+                .filter(Boolean)
+                .join("&")
             : gwId
                 ? `gw_id=${encodeURIComponent(gwId)}`
                 : nasId
@@ -616,7 +634,7 @@ const gatewayPort =
                 );
             } catch (error) {
                 console.error(
-                    "Failed to resolve router by gateway ID, NAS ID, or IP:",
+                    "Failed to resolve router by gateway ID, NAS ID, IP, or TP-Link AP MAC:",
                     error
                 );
 

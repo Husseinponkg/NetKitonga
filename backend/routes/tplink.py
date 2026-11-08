@@ -18,8 +18,16 @@ async def list_tplink_slash(tenant_id: int = Query(..., description="The tenant 
     return await controller.list_tplink(tenant_id)
 
 @router.get("/resolve", response_model=Dict[str, Any])
-async def resolve_tplink(ip_address: str = Query(..., description="TP-Link EAP target IP from the Omada portal redirect")):
-    return await controller.resolve_by_ip(ip_address)
+async def resolve_tplink(
+    ip_address: Optional[str] = Query(None, description="TP-Link EAP target IP from the Omada portal redirect"),
+    ap_mac: Optional[str] = Query(None, description="TP-Link AP MAC from the Omada portal redirect"),
+):
+    if not ip_address and not ap_mac:
+        raise HTTPException(
+            status_code=400,
+            detail="ip_address or ap_mac is required.",
+        )
+    return await controller.resolve_portal_device(ip_address, ap_mac)
 
 
 @router.post("/register", response_model=Dict[str, Any], status_code=status.HTTP_201_CREATED, dependencies=[Depends(require_active_subscription)])

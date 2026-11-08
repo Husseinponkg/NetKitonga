@@ -1,6 +1,6 @@
 
 from ipaddress import ip_address as parse_ip_address
-from typing import Dict, Any
+from typing import Dict, Any, Optional
 
 from fastapi import HTTPException
 
@@ -12,6 +12,7 @@ from models.tplink import (
     TplinkResponse,
 )
 from services.tplink import TplinkService
+from utils.mac import normalize_mac
 
 
 class TplinkController:
@@ -19,41 +20,84 @@ class TplinkController:
     def __init__(self):
         self.tplink_service = TplinkService()
 
-    async def resolve_by_ip(self, ip_address: str) -> Dict[str, Any]:
-        """Resolve an Omada redirect target using the TP-Link device registry."""
-        try:
-            target_ip = str(parse_ip_address(ip_address))
-        except ValueError as exc:
-            raise HTTPException(
-                status_code=400,
-                detail="The TP-Link portal target must be an IP address.",
-            ) from exc
+    async def resolve_portal_device(
+        self,
+        ip_address: Optional[str] = None,
+        ap_mac: Optional[str] = None,
+    ) -> Dict[str, Any]:
+        """Resolve an Omada portal redirect by AP MAC or target IP."""
+        target_ip = None
+        if ip_address:
+            try:
+                target_ip = str(parse_ip_address(ip_address))
+            except ValueError:
+                if not ap_mac:
+                    raise HTTPException(
+                        status_code=400,
+                        detail="The TP-Link portal target must be an IP address.",
+                    )
+
+        normalized_ap_mac = normalize_mac(ap_mac) if ap_mac else ""
+        compact_ap_mac = normalized_ap_mac.replace(":", "")
+        if ap_mac and len(compact_ap_mac) != 12:
+            if not target_ip:
+                raise HTTPException(
+                    status_code=400,
+                    detail="The TP-Link portal AP MAC address is invalid.",
+                )
+            compact_ap_mac = ""
 
         conn = await connection()
         try:
             async with conn.cursor() as cursor:
-                await cursor.execute(
-                    """
-                    SELECT
-                        t.router_id,
-                        t.tenant_id,
-                        t.branch_id,
-                        t.ip_address,
-                        r.router_name
-                    FROM tplink t
-                    JOIN routers r ON r.id = t.router_id
-                    WHERE host(t.ip_address) = host(%s::inet)
-                      AND t.tenant_id = r.tenant_id
-                    ORDER BY t.id
-                    LIMIT 1;
-                    """,
-                    (target_ip,),
-                )
-                device = await cursor.fetchone()
+                device = None
+
+                if compact_ap_mac:
+                    await cursor.execute(
+                        """
+                        SELECT
+                            t.router_id,
+                            t.tenant_id,
+                            t.branch_id,
+                            t.ip_address,
+                            r.router_name
+                        FROM tplink t
+                        JOIN routers r ON r.id = t.router_id
+                        WHERE REGEXP_REPLACE(
+                            UPPER(t.mac_address), '[^0-9A-F]', '', 'g'
+                        ) = %s
+                          AND t.tenant_id = r.tenant_id
+                        ORDER BY t.id
+                        LIMIT 1;
+                        """,
+                        (compact_ap_mac,),
+                    )
+                    device = await cursor.fetchone()
+
+                if not device and target_ip:
+                    await cursor.execute(
+                        """
+                        SELECT
+                            t.router_id,
+                            t.tenant_id,
+                            t.branch_id,
+                            t.ip_address,
+                            r.router_name
+                        FROM tplink t
+                        JOIN routers r ON r.id = t.router_id
+                        WHERE host(t.ip_address) = host(%s::inet)
+                          AND t.tenant_id = r.tenant_id
+                        ORDER BY t.id
+                        LIMIT 1;
+                        """,
+                        (target_ip,),
+                    )
+                    device = await cursor.fetchone()
+
                 if not device:
                     raise HTTPException(
                         status_code=404,
-                        detail="No registered TP-Link device matches this portal target.",
+                        detail="No registered TP-Link device matches this portal AP MAC or target.",
                     )
 
                 return {
