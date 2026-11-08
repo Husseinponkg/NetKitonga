@@ -285,6 +285,9 @@ class TplinkController:
                         radius_secret = COALESCE(
                             %s, radius_secret
                         ),
+                        radius_client_ip = COALESCE(
+                            %s, radius_client_ip
+                        ),
                         driver_type = 'tplink_radius'
                     WHERE id = %s
                       AND tenant_id = %s
@@ -293,6 +296,11 @@ class TplinkController:
                     (
                         data.nas_identifier,
                         data.radius_secret,
+                        (
+                            str(data.radius_client_ip)
+                            if data.radius_client_ip is not None
+                            else None
+                        ),
                         data.router_id,
                         data.tenant_id,
                         data.branch_id,
@@ -524,6 +532,7 @@ class TplinkController:
                     or data.branch_id is not None
                     or data.nas_identifier is not None
                     or data.radius_secret is not None
+                    or data.radius_client_ip is not None
                 ):
                     new_nas_identifier = (
                         data.nas_identifier
@@ -547,6 +556,9 @@ class TplinkController:
                             radius_secret = COALESCE(
                                 %s, radius_secret
                             ),
+                            radius_client_ip = COALESCE(
+                                %s, radius_client_ip
+                            ),
                             driver_type = 'tplink_radius'
                         WHERE id = %s
                           AND tenant_id = %s
@@ -555,6 +567,11 @@ class TplinkController:
                         (
                             new_nas_identifier,
                             new_radius_secret,
+                            (
+                                str(data.radius_client_ip)
+                                if data.radius_client_ip is not None
+                                else None
+                            ),
                             target_router_id,
                             tenant_id,
                             target_branch_id,
@@ -672,6 +689,7 @@ class TplinkController:
                         t.router_id,
                         r.router_name,
                         r.status AS router_status,
+                        r.radius_client_ip,
                         t.device_name,
                         t.mac_address,
                         t.ip_address,

@@ -11,6 +11,7 @@ function Tplink() {
     const [deviceName, setDeviceName] = useState("");
     const [macAddress, setMacAddress] = useState("");
     const [ipAddress, setIpAddress] = useState("");
+    const [radiusClientIp, setRadiusClientIp] = useState("");
     const [nasIdentifier, setNasIdentifier] = useState("");
     const [radiusSecret, setRadiusSecret] = useState("");
     const [portalUrl, setPortalUrl] = useState("");
@@ -135,6 +136,7 @@ function Tplink() {
         setDeviceName("");
         setMacAddress("");
         setIpAddress("");
+        setRadiusClientIp("");
         setNasIdentifier("");
         setRadiusSecret("");
         setPortalUrl("");
@@ -162,6 +164,7 @@ function Tplink() {
             device_name: deviceName,
             mac_address: macAddress,
             ip_address: ipAddress,
+            radius_client_ip: radiusClientIp || null,
             nas_identifier: nasIdentifier || null,
             radius_secret: radiusSecret || null,
             portal_url: portalUrl || null,
@@ -203,6 +206,7 @@ function Tplink() {
                 router_id: selectedRouterId ? Number(selectedRouterId) : null,
                 mac_address: macAddress,
                 ip_address: ipAddress,
+                radius_client_ip: radiusClientIp || null,
                 nas_identifier: nasIdentifier || null,
                 radius_secret: radiusSecret || null,
                 portal_url: portalUrl || null,
@@ -239,6 +243,7 @@ function Tplink() {
         setDeviceName(d.device_name || "");
         setMacAddress(d.mac_address || "");
         setIpAddress(d.ip_address || "");
+        setRadiusClientIp(d.radius_client_ip || "");
         setNasIdentifier(d.nas_identifier || "");
         setRadiusSecret(d.radius_secret || "");
         setPortalUrl(d.portal_url || "");
@@ -290,6 +295,11 @@ function Tplink() {
                         <div style={{ marginBottom: 10 }}>
                             <label style={{ display: "block", fontSize: "0.65rem", textTransform: "uppercase", color: "#808080" }}>IP Address</label>
                             <input required value={ipAddress} onChange={(e) => setIpAddress(e.target.value)} style={{ width: "100%", padding: 8, background: "#000", color: "#fff", border: "1px solid #1f1f1f" }} />
+                        </div>
+                        <div style={{ marginBottom: 10 }}>
+                            <label style={{ display: "block", fontSize: "0.65rem", textTransform: "uppercase", color: "#808080" }}>RADIUS Client Source IP</label>
+                            <input value={radiusClientIp} onChange={(e) => setRadiusClientIp(e.target.value)} placeholder="Public IP seen by the VPS (optional)" style={{ width: "100%", padding: 8, background: "#000", color: "#fff", border: "1px solid #1f1f1f" }} />
+                            <small style={{ color: "#808080" }}>Set this to the public IP FreeRADIUS sees from the access point. Leave blank for the device IP.</small>
                         </div>
                         <div style={{ marginBottom: 10 }}>
                             <label style={{ display: "block", fontSize: "0.65rem", textTransform: "uppercase", color: "#808080" }}>NAS ID</label>

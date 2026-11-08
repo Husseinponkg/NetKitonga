@@ -144,10 +144,15 @@ async def get_freeradius_clients(tenant_id: Optional[int] = Query(None)):
     try:
         async with conn.cursor() as cursor:
             query = """
-                SELECT router_name, ip_address, nas_identifier, radius_secret, driver_type
+                SELECT
+                    router_name,
+                    COALESCE(radius_client_ip, ip_address) AS radius_client_ip,
+                    nas_identifier,
+                    radius_secret,
+                    driver_type
                 FROM routers
                 WHERE driver_type IN ('mikrotik_radius', 'tplink_radius', 'radius_aaa')
-                  AND ip_address IS NOT NULL
+                  AND COALESCE(radius_client_ip, ip_address) IS NOT NULL
                   AND NULLIF(TRIM(radius_secret), '') IS NOT NULL
             """
             params: List[Any] = []

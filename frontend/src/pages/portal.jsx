@@ -824,7 +824,7 @@ const gatewayPort =
                             )
                             : isTplinkGateway
                                 ? submitOmadaLogin(
-                                    routerIp,
+                                    effectiveGatewayIp,
                                     buyerMac,
                                     radiusServerIp,
                                     payment.auth_token
@@ -1188,7 +1188,7 @@ const gatewayPort =
                         )
                         : isTplinkGateway
                             ? submitOmadaLogin(
-                                routerIp,
+                                effectiveGatewayIp,
                                 buyerMac,
                                 radiusServerIp,
                                 result.auth_token

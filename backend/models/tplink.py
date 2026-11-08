@@ -11,6 +11,10 @@ class TplinkRegister(BaseModel):
     device_name: str = Field(..., max_length=100, json_schema_extra={"example": "Lobby EAP225"})
     mac_address: str = Field(..., max_length=50, json_schema_extra={"example": "AA:BB:CC:11:22:33"})
     ip_address: IPv4Address | IPv6Address = Field(..., description="The physical device IP address")
+    radius_client_ip: Optional[IPv4Address | IPv6Address] = Field(
+        None,
+        description="Public source IP FreeRADIUS sees for this device's RADIUS traffic",
+    )
     nas_identifier: Optional[str] = Field(None, max_length=100, description="NAS ID used for RADIUS")
     radius_secret: Optional[str] = Field(None, max_length=100, description="Shared secret for RADIUS")
     portal_url: Optional[str] = Field(None, max_length=255, description="External captive portal URL")
@@ -29,6 +33,7 @@ class TplinkUpdate(BaseModel):
     router_id: Optional[int] = None
     mac_address: Optional[str] = Field(None, max_length=50)
     ip_address: Optional[IPv4Address | IPv6Address] = None
+    radius_client_ip: Optional[IPv4Address | IPv6Address] = None
     nas_identifier: Optional[str] = Field(None, max_length=100)
     radius_secret: Optional[str] = Field(None, max_length=100)
     portal_url: Optional[str] = Field(None, max_length=255)

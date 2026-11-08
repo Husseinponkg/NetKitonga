@@ -6,6 +6,9 @@
 ALTER TABLE routers
     ADD COLUMN IF NOT EXISTS ip_address INET;
 
+ALTER TABLE routers
+    ADD COLUMN IF NOT EXISTS radius_client_ip INET NULL;
+
 UPDATE routers
 SET ip_address = '0.0.0.0'
 WHERE ip_address IS NULL;

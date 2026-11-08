@@ -62,6 +62,7 @@ CREATE TABLE routers (
     -- Shared Network Telemetry & Licensing
     mac_address VARCHAR(50) NOT NULL UNIQUE,
     ip_address INET NOT NULL,                 -- Physical router management address
+    radius_client_ip INET NULL,               -- Source IP FreeRADIUS sees for RADIUS requests
     is_licensed BOOLEAN DEFAULT TRUE,        -- Enforces router addition limits
     status VARCHAR(20) DEFAULT 'offline',    -- 'online', 'offline'
     last_heartbeat_at TIMESTAMP NULL,        -- Dynamic monitoring update window
@@ -72,6 +73,7 @@ CREATE TABLE routers (
 -- Run these if your database was created from an older schema:
 -- ALTER TABLE routers ADD COLUMN IF NOT EXISTS branch_id INT REFERENCES branches(id) ON DELETE CASCADE;
 -- ALTER TABLE routers ADD COLUMN IF NOT EXISTS ip_address INET;
+-- ALTER TABLE routers ADD COLUMN IF NOT EXISTS radius_client_ip INET;
 -- ALTER TABLE routers ADD COLUMN IF NOT EXISTS is_licensed BOOLEAN DEFAULT TRUE;
 -- ALTER TABLE routers ADD COLUMN IF NOT EXISTS last_heartbeat_at TIMESTAMP NULL;
 

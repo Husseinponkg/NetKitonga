@@ -8,6 +8,7 @@ if str(ROOT) not in sys.path:
     sys.path.insert(0, str(ROOT))
 
 from services.freeradius import FreeRADIUSService
+from routes import radius as radius_route
 
 
 def make_connection(cursor):
@@ -74,6 +75,29 @@ class FreeRadiusHeartbeatTests(unittest.IsolatedAsyncioTestCase):
 
         self.assertIn("client tplink", config)
         self.assertIn("nas_type = other", config)
+
+    async def test_clients_config_uses_radius_source_ip_when_configured(self):
+        cursor = AsyncMock()
+        cursor.fetchall.return_value = [
+            (
+                "Outdoor EAP",
+                "197.186.53.5",
+                "10-5A-95-51-D4-E4",
+                "configured-secret",
+                "tplink_radius",
+            )
+        ]
+        conn = make_connection(cursor)
+
+        with patch(
+            "routes.radius.connection",
+            new=AsyncMock(return_value=conn),
+        ):
+            result = await radius_route.get_freeradius_clients(tenant_id=2)
+
+        self.assertIn("COALESCE(radius_client_ip, ip_address)", cursor.execute.await_args.args[0])
+        self.assertIn("ipaddr = 197.186.53.5", result["config"])
+        conn.close.assert_awaited_once()
 
 
 if __name__ == "__main__":
