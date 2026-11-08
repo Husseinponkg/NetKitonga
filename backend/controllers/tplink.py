@@ -1,4 +1,5 @@
 
+import logging
 from ipaddress import ip_address as parse_ip_address
 from typing import Dict, Any, Optional
 
@@ -13,6 +14,8 @@ from models.tplink import (
 )
 from services.tplink import TplinkService
 from utils.mac import normalize_mac
+
+logger = logging.getLogger(__name__)
 
 
 class TplinkController:
@@ -63,8 +66,14 @@ class TplinkController:
                             r.router_name
                         FROM tplink t
                         JOIN routers r ON r.id = t.router_id
-                        WHERE REGEXP_REPLACE(
-                            UPPER(t.mac_address), '[^0-9A-F]', '', 'g'
+                        WHERE REPLACE(
+                            REPLACE(
+                                REPLACE(UPPER(TRIM(t.mac_address)), '-', ''),
+                                ':',
+                                ''
+                            ),
+                            '.',
+                            ''
                         ) = %s
                           AND t.tenant_id = r.tenant_id
                         ORDER BY t.id
@@ -108,6 +117,11 @@ class TplinkController:
                     "router_name": device[4],
                     "driver_type": "tplink_radius",
                 }
+        except HTTPException:
+            raise
+        except Exception:
+            logger.exception("TP-Link portal device lookup failed.")
+            raise
         finally:
             await conn.close()
 
