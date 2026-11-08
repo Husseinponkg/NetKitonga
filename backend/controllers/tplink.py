@@ -81,22 +81,10 @@ class TplinkController:
                             '',
                             'g'
                           ) = %s
-                      AND EXISTS (
-                          SELECT 1
-                          FROM tplink t
-                          WHERE t.router_id = p.router_id
-                            AND t.tenant_id = p.tenant_id
-                            AND regexp_replace(
-                                upper(coalesce(t.mac_address, '')),
-                                '[^0-9A-F]',
-                                '',
-                                'g'
-                            ) = %s
-                      )
                     ORDER BY s.expiration_time DESC
                     LIMIT 1;
                     """,
-                    (data.router_id, data.auth_token, client_mac, ap_mac),
+                    (data.router_id, data.auth_token, client_mac),
                 )
                 session = await cursor.fetchone()
         finally:
@@ -105,7 +93,7 @@ class TplinkController:
         if not session or not session[0] or session[0] <= 0:
             raise HTTPException(
                 status_code=403,
-                detail="No active, paid session matches this client and router.",
+                detail="No active paid or voucher session matches this client and router.",
             )
 
         try:

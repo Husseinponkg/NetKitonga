@@ -37,6 +37,22 @@ access URL. Use the hotspot operator's username and password. If the
 Controller's certificate is self-signed, install its CA certificate on the
 backend rather than disabling TLS verification.
 
+## Existing database setup
+
+If `/tplink/authorize` fails with `relation "tplink" does not exist`, apply
+the database migrations from the repository root using a PostgreSQL role
+allowed to create tables:
+
+```sh
+psql -h YOUR_DB_HOST -U YOUR_DB_ADMIN -d YOUR_DB_NAME \
+  -f backend/database/migrations/008_create_tplink.sql
+```
+
+The migration creates the TP-Link device registry and grants the application
+role `netkitonga_user` access when that role exists. Register the AP in
+NetKitonga after the migration succeeds. Do not send database credentials or
+payment secrets in chat or terminal output.
+
 Omada's redirect parameter `t` is a request timestamp in microseconds. The
 authorization API's `time` is the session's absolute expiration timestamp,
 also in microseconds. NetKitonga derives it from the matching active session;

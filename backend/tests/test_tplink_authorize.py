@@ -40,7 +40,7 @@ def make_payload():
 
 
 class TplinkAuthorizationTests(unittest.IsolatedAsyncioTestCase):
-    async def test_authorizes_only_matching_active_paid_session(self):
+    async def test_authorizes_matching_active_payment_without_registry_mac_dependency(self):
         cursor = AsyncMock()
         cursor.fetchone.return_value = (1_730_000_000_000_000,)
         conn = make_connection(cursor)
@@ -63,10 +63,12 @@ class TplinkAuthorizationTests(unittest.IsolatedAsyncioTestCase):
         self.assertIn("p.status = 'completed'", query)
         self.assertIn("s.status = 'active'", query)
         self.assertIn("s.expiration_time > NOW()", query)
-        self.assertIn("FROM tplink t", query)
+        self.assertIn("p.auth_token = %s", query)
+        self.assertIn("= %s", query)
+        self.assertNotIn("FROM tplink t", query)
         self.assertEqual(
             params,
-            (15, "paid-session-token", "AABBCCDDEEFF", "105A9551D4E4"),
+            (15, "paid-session-token", "AABBCCDDEEFF"),
         )
         self.assertEqual(to_thread.await_args.args[2], 1_730_000_000_000_000)
         conn.close.assert_awaited_once()
@@ -91,6 +93,7 @@ class TplinkAuthorizationTests(unittest.IsolatedAsyncioTestCase):
                 await controller.authorize_portal_client(make_payload())
 
         self.assertEqual(raised.exception.status_code, 403)
+        self.assertIn("paid or voucher", raised.exception.detail)
         to_thread.assert_not_awaited()
         conn.close.assert_awaited_once()
 
