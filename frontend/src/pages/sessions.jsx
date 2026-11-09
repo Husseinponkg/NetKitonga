@@ -74,7 +74,21 @@ function Sessions() {
                 headers: { "Content-Type": "application/json" },
                 body: JSON.stringify({ tenant_id: tenantId, session_id: sessionId }),
             });
-            const result = await response.json();
+            const responseText = await response.text();
+            let result;
+            try {
+                result = responseText ? JSON.parse(responseText) : {};
+            } catch {
+                const preview = responseText
+                    .replace(/<[^>]*>/g, " ")
+                    .replace(/\s+/g, " ")
+                    .trim()
+                    .slice(0, 200);
+                throw new Error(
+                    `Server returned a non-JSON response (HTTP ${response.status})` +
+                    (preview ? `: ${preview}` : ".")
+                );
+            }
             if (!response.ok) {
                 const detail = typeof result.detail === 'string' ? result.detail : JSON.stringify(result.detail || result.message || {});
                 throw new Error(detail || "Could not terminate session.");
