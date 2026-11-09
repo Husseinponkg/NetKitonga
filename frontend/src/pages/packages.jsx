@@ -72,9 +72,19 @@ function PackagesDashboard() {
         e.preventDefault();
         setUiMessage("");
 
-        const calculatedSeconds = durationUnit === "days" 
-            ? parseInt(durationValue) * 86400 
-            : parseInt(durationValue) * 3600;
+        const durationValueNumber = Number(durationValue);
+        const durationUnitSeconds = {
+            minutes: 60,
+            hours: 3600,
+            days: 86400,
+        };
+        if (!Number.isFinite(durationValueNumber) || durationValueNumber <= 0) {
+            setUiMessage("Access duration must be greater than zero.");
+            return;
+        }
+        const calculatedSeconds = Math.round(
+            durationValueNumber * durationUnitSeconds[durationUnit]
+        );
 
         const calculatedBytes = parseFloat(dataQuotaGb) * 1024 * 1024 * 1024;
         const tenantId = getSessionTenantId();
@@ -153,8 +163,16 @@ function PackagesDashboard() {
         setPackageName(pkg.package_name);
         setDescription(pkg.description || "");
         setPrice(pkg.price);
-        setDurationValue(pkg.duration_seconds >= 86400 ? pkg.duration_seconds / 86400 : pkg.duration_seconds / 3600);
-        setDurationUnit(pkg.duration_seconds >= 86400 ? "days" : "hours");
+        if (pkg.duration_seconds >= 86400 && pkg.duration_seconds % 86400 === 0) {
+            setDurationValue(pkg.duration_seconds / 86400);
+            setDurationUnit("days");
+        } else if (pkg.duration_seconds >= 3600 && pkg.duration_seconds % 3600 === 0) {
+            setDurationValue(pkg.duration_seconds / 3600);
+            setDurationUnit("hours");
+        } else {
+            setDurationValue(pkg.duration_seconds / 60);
+            setDurationUnit("minutes");
+        }
         setDataQuotaGb((pkg.data_quota_bytes / (1024 ** 3)).toString());
         setMikrotikRateLimit(pkg.mikrotik_rate_limit || "5M/2M");
         setStatusToggle(pkg.status);
@@ -183,8 +201,12 @@ function PackagesDashboard() {
             const days = seconds / 86400;
             return `${days} Day${days > 1 ? 's' : ''}`;
         }
-        const hours = seconds / 3600;
-        return `${hours} Hour${hours > 1 ? 's' : ''}`;
+        if (seconds >= 3600) {
+            const hours = seconds / 3600;
+            return `${hours} Hour${hours > 1 ? 's' : ''}`;
+        }
+        const minutes = seconds / 60;
+        return `${minutes} Minute${minutes > 1 ? 's' : ''}`;
     };
 
     return (
@@ -1160,6 +1182,8 @@ function PackagesDashboard() {
                                     <input
                                         type="number"
                                         required
+                                        min="1"
+                                        step="any"
                                         value={durationValue}
                                         onChange={(e) => setDurationValue(e.target.value)}
                                         placeholder="1"
@@ -1168,6 +1192,7 @@ function PackagesDashboard() {
                                         value={durationUnit}
                                         onChange={(e) => setDurationUnit(e.target.value)}
                                     >
+                                        <option value="minutes">Minutes</option>
                                         <option value="hours">Hours</option>
                                         <option value="days">Days</option>
                                     </select>
