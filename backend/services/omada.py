@@ -12,6 +12,8 @@ from utils.mac import normalize_mac
 
 load_dotenv(Path(__file__).resolve().parent.parent / ".env")
 
+DEAUTHORIZATION_TIMEOUT_SECONDS = 20
+
 
 class OmadaConfigurationError(RuntimeError):
     pass
@@ -158,6 +160,7 @@ class OmadaService:
             verify_tls,
         ) = self._configuration()
         api_base = f"{base_url}/{quote(controller_id, safe='')}/api/v2/hotspot"
+        deadline = time.monotonic() + DEAUTHORIZATION_TIMEOUT_SECONDS
 
         session = requests.Session()
         try:
@@ -166,7 +169,7 @@ class OmadaService:
                 f"{api_base}/login",
                 username,
                 password,
-                timeout,
+                self._remaining_timeout(deadline, timeout),
                 verify_tls,
             )
 
@@ -181,6 +184,7 @@ class OmadaService:
                     csrf_token,
                     timeout,
                     verify_tls,
+                    deadline,
                 )
                 if self._matches_grant(client, client_mac, ssid_name)
             ]
@@ -208,7 +212,7 @@ class OmadaService:
                 response = session.post(
                     disconnect_url,
                     headers={"Accept": "application/json", "Csrf-Token": csrf_token},
-                    timeout=timeout,
+                    timeout=self._remaining_timeout(deadline, timeout),
                     verify=verify_tls,
                 )
                 response.raise_for_status()
@@ -227,13 +231,14 @@ class OmadaService:
                 )
 
             for _ in range(3):
-                time.sleep(0.25)
+                time.sleep(min(0.25, self._remaining_timeout(deadline, timeout)))
                 remaining_clients = self._hotspot_clients(
                     session,
                     clients_url,
                     csrf_token,
                     timeout,
                     verify_tls,
+                    deadline,
                 )
                 if not any(
                     self._matches_grant(client, client_mac, ssid_name)
@@ -253,17 +258,19 @@ class OmadaService:
         csrf_token: str,
         timeout: float,
         verify_tls: bool,
+        deadline: float,
     ) -> list[Dict[str, Any]]:
         rows: list[Dict[str, Any]] = []
         seen_ids: set[str] = set()
         expected_total = None
         for page in range(1, 101):
+            request_timeout = OmadaService._remaining_timeout(deadline, timeout)
             try:
                 response = session.get(
                     clients_url,
                     params={"currentPage": page, "currentPageSize": 100},
                     headers={"Accept": "application/json", "Csrf-Token": csrf_token},
-                    timeout=timeout,
+                    timeout=request_timeout,
                     verify=verify_tls,
                 )
                 response.raise_for_status()
@@ -331,6 +338,17 @@ class OmadaService:
         raise OmadaControllerError(
             "Omada Hotspot Manager client list exceeded the page limit."
         )
+
+    @staticmethod
+    def _remaining_timeout(deadline: float, request_timeout: float) -> float:
+        remaining = deadline - time.monotonic()
+        if remaining <= 0:
+            raise OmadaControllerError(
+                "Omada client disconnection exceeded the 20-second time limit. "
+                "The saved context is retained; retry termination or disconnect "
+                "the client manually in Hotspot Manager."
+            )
+        return min(request_timeout, remaining)
 
     @staticmethod
     def _matches_grant(

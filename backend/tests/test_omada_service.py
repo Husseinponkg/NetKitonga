@@ -163,6 +163,22 @@ class OmadaServiceTests(unittest.TestCase):
         self.assertEqual(self.session.get.call_count, 2)
         self.session.close.assert_called_once()
 
+    def test_hotspot_client_lookup_stops_after_deauthorization_deadline(self):
+        with self.assertRaisesRegex(
+            OmadaControllerError,
+            "exceeded the 20-second time limit",
+        ):
+            OmadaService._hotspot_clients(
+                self.session,
+                "https://controller.example/clients",
+                "csrf-token",
+                timeout=10,
+                verify_tls=True,
+                deadline=0,
+            )
+
+        self.session.get.assert_not_called()
+
     @patch.dict(
         "os.environ",
         {
