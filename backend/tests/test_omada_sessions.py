@@ -8,7 +8,7 @@ if str(ROOT) not in sys.path:
     sys.path.insert(0, str(ROOT))
 
 from services.omada import OmadaControllerError
-from services.omada_sessions import terminate_session
+from services.omada_sessions import expire_due_sessions, terminate_session
 
 
 def make_connection(cursor):
@@ -25,6 +25,54 @@ def make_connection(cursor):
 
 
 class OmadaSessionTerminationTests(unittest.IsolatedAsyncioTestCase):
+    async def test_expiry_sweep_marks_due_sessions_and_processes_them(self):
+        cursor = AsyncMock()
+        cursor.fetchall.return_value = [("session-expired",)]
+        conn = make_connection(cursor)
+
+        with (
+            patch(
+                "services.omada_sessions.connection",
+                new=AsyncMock(return_value=conn),
+            ),
+            patch(
+                "services.omada_sessions.terminate_session",
+                new=AsyncMock(return_value=True),
+            ) as terminate,
+        ):
+            count = await expire_due_sessions()
+
+        self.assertEqual(count, 1)
+        query, params = cursor.execute.await_args.args
+        self.assertIn("s.expiration_time <= NOW()", query)
+        self.assertIn("omada_client_sessions", query)
+        self.assertEqual(params, (10,))
+        terminate.assert_awaited_once_with("session-expired")
+        conn.commit.assert_awaited_once()
+        conn.close.assert_awaited_once()
+
+    async def test_expiry_sweep_logs_revocation_failure_and_keeps_running(self):
+        cursor = AsyncMock()
+        cursor.fetchall.return_value = [("session-expired",)]
+        conn = make_connection(cursor)
+
+        with (
+            patch(
+                "services.omada_sessions.connection",
+                new=AsyncMock(return_value=conn),
+            ),
+            patch(
+                "services.omada_sessions.terminate_session",
+                new=AsyncMock(
+                    side_effect=OmadaControllerError("Controller unavailable")
+                ),
+            ),
+            self.assertLogs("services.omada_sessions", level="ERROR"),
+        ):
+            count = await expire_due_sessions()
+
+        self.assertEqual(count, 1)
+
     async def test_terminating_session_disconnects_and_clears_omada_context(self):
         cursor = AsyncMock()
         cursor.fetchone.side_effect = [

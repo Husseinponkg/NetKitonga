@@ -1,8 +1,11 @@
 import asyncio
+import logging
 from typing import Optional
 
 from config.db import connection
 from services.omada import OmadaControllerError, OmadaService
+
+logger = logging.getLogger(__name__)
 
 
 async def terminate_session(
@@ -93,3 +96,60 @@ async def terminate_session(
             await conn.close()
 
     return True
+
+
+async def expire_due_sessions(batch_size: int = 10) -> int:
+    conn = await connection()
+    try:
+        async with conn.cursor() as cursor:
+            await cursor.execute(
+                """
+                WITH due_sessions AS (
+                    SELECT s.session_id
+                    FROM active_sessions AS s
+                    WHERE (
+                        s.status = 'active'
+                        AND s.expiration_time <= NOW()
+                    ) OR (
+                        s.status = 'terminated'
+                        AND EXISTS (
+                            SELECT 1
+                            FROM omada_client_sessions AS context
+                            WHERE context.session_id = s.session_id
+                        )
+                    )
+                    ORDER BY s.expiration_time
+                    LIMIT %s
+                    FOR UPDATE OF s SKIP LOCKED
+                )
+                UPDATE active_sessions AS s
+                SET status = 'terminated'
+                FROM due_sessions AS due
+                WHERE s.session_id = due.session_id
+                RETURNING s.session_id;
+                """,
+                (batch_size,),
+            )
+            sessions = await cursor.fetchall()
+            await conn.commit()
+    except Exception:
+        await conn.rollback()
+        raise
+    finally:
+        await conn.close()
+
+    for (session_id,) in sessions:
+        try:
+            await terminate_session(session_id)
+        except OmadaControllerError:
+            logger.exception(
+                "Could not revoke expired Omada session %s; it will be retried.",
+                session_id,
+            )
+        except Exception:
+            logger.exception(
+                "Could not process expired session %s; it will be retried.",
+                session_id,
+            )
+
+    return len(sessions)

@@ -72,7 +72,11 @@ site, SSID, and client MAC are retained so session termination can invoke
 Hotspot Manager's **Unauthorize** action. The hotspot operator needs permission
 to manage clients on the relevant Omada site. If deauthorization fails,
 NetKitonga reports the failure and keeps the context so terminating the
-session can be retried. WiFiDog and MikroTik login flows are unchanged.
+session can be retried. NetKitonga also checks for expired sessions every
+15 seconds as a fallback and retries failed Omada disconnects. Omada's
+authorization duration remains the primary cutoff, returning clients to the
+Omada sign-in portal when their package time runs out. WiFiDog and MikroTik
+login flows are unchanged.
 
 Apply the session-context migration to an existing database before deploying
 this flow:

@@ -74,7 +74,8 @@ class OmadaServiceTests(unittest.TestCase):
     ):
         session_factory.return_value = self.session
 
-        OmadaService().authorize_client(self.portal, 900_000)
+        with patch("services.omada.time.monotonic", side_effect=[10.0, 10.25]):
+            OmadaService().authorize_client(self.portal, 900_000)
 
         self.assertEqual(self.session.post.call_count, 2)
         login_call, auth_call = self.session.post.call_args_list
@@ -99,7 +100,7 @@ class OmadaServiceTests(unittest.TestCase):
                 "ssidName": "Guest WiFi",
                 "radioId": 1,
                 "site": "Rchuganet",
-                "time": 900_000,
+                "time": 899_750,
                 "authType": 4,
             },
         )

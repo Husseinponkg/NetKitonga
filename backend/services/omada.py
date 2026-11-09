@@ -83,6 +83,7 @@ class OmadaService:
         portal: TplinkAuthorizeRequest,
         duration_milliseconds: int,
     ) -> None:
+        duration_started = time.monotonic()
         (
             base_url,
             controller_id,
@@ -106,13 +107,22 @@ class OmadaService:
                 verify_tls,
             )
 
+            remaining_milliseconds = int(
+                duration_milliseconds
+                - (time.monotonic() - duration_started) * 1000
+            )
+            if remaining_milliseconds <= 0:
+                raise OmadaControllerError(
+                    "The paid session expired before Omada authorization completed."
+                )
+
             payload: Dict[str, Any] = {
                 "clientMac": portal.buyer_mac,
                 "apMac": portal.ap_mac,
                 "ssidName": portal.ssid_name,
                 "radioId": portal.radio_id,
                 "site": portal.site,
-                "time": duration_milliseconds,
+                "time": remaining_milliseconds,
                 "authType": 4,
             }
 

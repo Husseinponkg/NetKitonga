@@ -14,6 +14,7 @@ if str(BACKEND_DIR) not in sys.path:
 
 import uvicorn
 import asyncio
+import logging
 from fastapi import FastAPI, Request
 from fastapi.middleware.cors import CORSMiddleware
 from fastapi.responses import FileResponse
@@ -33,10 +34,12 @@ from backend.routes.withdrawals import router as withdrawals_router
 from backend.routes.vouchers import router as vouchers_router
 from backend.routes.radius import radius_endpoints
 from backend.controllers.payments import PaymentController
+from backend.services.omada_sessions import expire_due_sessions
 
 app = FastAPI()
 
 payment_retention_controller = PaymentController()
+logger = logging.getLogger(__name__)
 
 
 async def payment_retention_loop():
@@ -52,6 +55,22 @@ async def payment_retention_loop():
 @app.on_event("startup")
 async def start_payment_retention_loop():
     asyncio.create_task(payment_retention_loop())
+
+
+async def session_expiration_loop():
+    """Revoke expired router sessions and retry failed Omada disconnects."""
+    while True:
+        await asyncio.sleep(15)
+        try:
+            await expire_due_sessions()
+        except Exception:
+            logger.exception("Could not process expired internet sessions.")
+
+
+@app.on_event("startup")
+async def start_session_expiration_loop():
+    asyncio.create_task(session_expiration_loop())
+
 
 # CORS Configuration - Fixed to allow hotspot clients
 app.add_middleware(
