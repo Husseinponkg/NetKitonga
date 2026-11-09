@@ -434,7 +434,15 @@ class PaymentController:
                         duration_query = "SELECT duration_seconds FROM packages WHERE id = %s;"
                         await cursor.execute(duration_query, (p_package_id,))
                         duration_row = await cursor.fetchone()
-                        duration_seconds = duration_row[0] if duration_row else 86400
+                        if (
+                            not duration_row
+                            or not isinstance(duration_row[0], int)
+                            or duration_row[0] <= 0
+                        ):
+                            raise ValueError(
+                                "The purchased package has no valid access duration."
+                            )
+                        duration_seconds = duration_row[0]
 
                         session_query = """
                             INSERT INTO active_sessions (

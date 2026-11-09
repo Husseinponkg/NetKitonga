@@ -8,7 +8,7 @@ class PackageRegister(BaseModel):
     package_name: str = Field(..., max_length=100)
     description: Optional[str] = Field(None, max_length=100)
     price: Decimal = Field(..., description="Cost required by client checkouts")
-    duration_seconds: int = Field(..., description="Access lifespan window in seconds")
+    duration_seconds: int = Field(..., gt=0, description="Access lifespan window in seconds")
     data_quota_bytes: int = Field(default=0, description="0 means completely unlimited data")
     mikrotik_rate_limit: Optional[str] = Field(None, max_length=50)
     wifidog_max_down_bandwidth: Optional[int] = Field(None)
@@ -21,7 +21,7 @@ class PackageUpdate(BaseModel):
     package_name: Optional[str] = None
     description: Optional[str] = None
     price: Optional[Decimal] = None
-    duration_seconds: Optional[int] = None
+    duration_seconds: Optional[int] = Field(None, gt=0)
     data_quota_bytes: Optional[int] = None
     mikrotik_rate_limit: Optional[str] = None
     wifidog_max_down_bandwidth: Optional[int] = None

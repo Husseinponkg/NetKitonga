@@ -39,6 +39,7 @@ class _Connection:
     def __init__(self, rows):
         self.test_cursor = _Cursor(rows)
         self.commit = AsyncMock()
+        self.rollback = AsyncMock()
         self.close = AsyncMock()
 
     def cursor(self):
@@ -46,6 +47,51 @@ class _Connection:
 
 
 class PaymentCallbackReferenceTests(TestCase):
+    def test_successful_payment_does_not_get_a_default_duration_when_package_is_invalid(self):
+        connection = _Connection([
+            (1, 2, 1000, "pending", "AzamPay"),
+            (2, 3, 4, 5, 6),
+            (0,),
+        ])
+        private_key = rsa.generate_private_key(public_exponent=65537, key_size=2048)
+        public_key_pem = private_key.public_key().public_bytes(
+            serialization.Encoding.PEM,
+            serialization.PublicFormat.SubjectPublicKeyInfo,
+        ).decode()
+        signed_message = (
+            "NETKITONGA-MERCHANT-REFERENCE"
+            "AZAM-PAY-PROVIDER-REFERENCE"
+            "success"
+        )
+        signature = base64.b64encode(
+            private_key.sign(
+                signed_message.encode(),
+                padding.PKCS1v15(),
+                hashes.SHA256(),
+            )
+        ).decode()
+
+        with (
+            patch("controllers.payments.get_callback_public_key", return_value=public_key_pem),
+            patch("controllers.payments.connection", AsyncMock(return_value=connection)),
+        ):
+            acknowledged = asyncio.run(
+                PaymentController().process_asynchronous_callback(
+                    external_id="NETKITONGA-MERCHANT-REFERENCE",
+                    is_successful=True,
+                    signature=signature,
+                    external_reference="AZAM-PAY-PROVIDER-REFERENCE",
+                )
+            )
+
+        self.assertFalse(acknowledged)
+        self.assertFalse(
+            any("INSERT INTO active_sessions" in query for query, _ in connection.test_cursor.executed)
+        )
+        connection.commit.assert_not_awaited()
+        connection.rollback.assert_awaited_once()
+        connection.close.assert_awaited_once()
+
     def test_successful_callback_completes_pending_payment_by_utility_reference(self):
         connection = _Connection([
             (1, 2, 1000, "pending", "AzamPay"),

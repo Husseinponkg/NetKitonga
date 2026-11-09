@@ -49,8 +49,14 @@ class VoucherController:
                 if expires_at and expires_at < datetime.utcnow():
                     raise HTTPException(status_code=400, detail="Voucher has expired.")
 
-                if not duration_seconds or duration_seconds <= 0:
-                    duration_seconds = 86400
+                if (
+                    not isinstance(duration_seconds, int)
+                    or duration_seconds <= 0
+                ):
+                    raise HTTPException(
+                        status_code=409,
+                        detail="The voucher package has no valid access duration.",
+                    )
 
                 package_price_row = await cursor.execute(
                     "SELECT price FROM packages WHERE id = %s;",
