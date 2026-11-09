@@ -55,10 +55,14 @@ class TplinkController:
             async with conn.cursor() as cursor:
                 await cursor.execute(
                     """
-                    SELECT FLOOR(
-                        EXTRACT(EPOCH FROM s.expiration_time::timestamptz)
-                        * 1000000
-                    )::bigint
+                    SELECT s.session_id,
+                           GREATEST(
+                               0,
+                               FLOOR(
+                                   EXTRACT(EPOCH FROM (s.expiration_time - NOW()))
+                                   * 1000
+                               )
+                           )::bigint
                     FROM payments p
                     JOIN buyers b
                       ON b.id = p.buyer_id
@@ -87,10 +91,29 @@ class TplinkController:
                     (data.router_id, data.auth_token, client_mac),
                 )
                 session = await cursor.fetchone()
+                if session and session[1] > 0:
+                    await cursor.execute(
+                        """
+                        INSERT INTO omada_client_sessions (
+                            session_id, client_mac, site, ssid_name
+                        ) VALUES (%s, %s, %s, %s)
+                        ON CONFLICT (session_id) DO UPDATE SET
+                            client_mac = EXCLUDED.client_mac,
+                            site = EXCLUDED.site,
+                            ssid_name = EXCLUDED.ssid_name;
+                        """,
+                        (
+                            session[0],
+                            normalize_mac(data.buyer_mac),
+                            data.site,
+                            data.ssid_name,
+                        ),
+                    )
+                    await conn.commit()
         finally:
             await conn.close()
 
-        if not session or not session[0] or session[0] <= 0:
+        if not session or not session[1] or session[1] <= 0:
             raise HTTPException(
                 status_code=403,
                 detail="No active paid or voucher session matches this client and router.",
@@ -100,12 +123,58 @@ class TplinkController:
             await asyncio.to_thread(
                 self.omada_service.authorize_client,
                 data,
-                session[0],
+                session[1],
             )
         except OmadaConfigurationError as exc:
             raise HTTPException(status_code=503, detail=str(exc)) from exc
         except OmadaControllerError as exc:
             raise HTTPException(status_code=502, detail=str(exc)) from exc
+
+        conn = await connection()
+        try:
+            async with conn.cursor() as cursor:
+                await cursor.execute(
+                    """
+                    SELECT 1
+                    FROM active_sessions
+                    WHERE session_id = %s
+                      AND status = 'active'
+                      AND expiration_time > NOW();
+                    """,
+                    (session[0],),
+                )
+                still_active = await cursor.fetchone()
+        finally:
+            await conn.close()
+
+        if not still_active:
+            try:
+                await asyncio.to_thread(
+                    self.omada_service.deauthorize_client,
+                    normalize_mac(data.buyer_mac),
+                    data.site,
+                    data.ssid_name,
+                )
+            except OmadaConfigurationError as exc:
+                raise HTTPException(
+                    status_code=503,
+                    detail=(
+                        "The session is no longer active, but Omada access "
+                        f"could not be revoked: {exc}"
+                    ),
+                ) from exc
+            except OmadaControllerError as exc:
+                raise HTTPException(
+                    status_code=502,
+                    detail=(
+                        "The session is no longer active, but Omada access "
+                        f"could not be revoked: {exc}"
+                    ),
+                ) from exc
+            raise HTTPException(
+                status_code=403,
+                detail="The paid session expired or was terminated during authorization.",
+            )
 
         return {"authorized": True}
 

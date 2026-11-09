@@ -68,13 +68,13 @@ class OmadaServiceTests(unittest.TestCase):
         clear=False,
     )
     @patch("services.omada.requests.Session")
-    def test_login_then_authorize_uses_cookie_csrf_and_expiration_timestamp(
+    def test_login_then_authorize_uses_cookie_csrf_and_duration_milliseconds(
         self,
         session_factory,
     ):
         session_factory.return_value = self.session
 
-        OmadaService().authorize_client(self.portal, 1_730_000_000_000_000)
+        OmadaService().authorize_client(self.portal, 900_000)
 
         self.assertEqual(self.session.post.call_count, 2)
         login_call, auth_call = self.session.post.call_args_list
@@ -99,10 +99,68 @@ class OmadaServiceTests(unittest.TestCase):
                 "ssidName": "Guest WiFi",
                 "radioId": 1,
                 "site": "Rchuganet",
-                "time": 1_730_000_000_000_000,
+                "time": 900_000,
                 "authType": 4,
             },
         )
+        self.session.close.assert_called_once()
+
+    @patch.dict(
+        "os.environ",
+        {
+            "OMADA_BASE_URL": "https://controller.example:8043",
+            "OMADA_CONTROLLER_ID": "controller-id",
+            "OMADA_OPERATOR_USERNAME": "portal-operator",
+            "OMADA_OPERATOR_PASSWORD": "operator-secret",
+        },
+        clear=False,
+    )
+    @patch("services.omada.requests.Session")
+    def test_deauthorizes_matching_external_portal_grant(self, session_factory):
+        active_clients = MagicMock()
+        active_clients.raise_for_status.return_value = None
+        active_clients.json.return_value = {
+            "errorCode": 0,
+            "result": {
+                "data": [
+                    {
+                        "id": "record-123",
+                        "mac": "AA:BB:CC:DD:EE:FF",
+                        "ssid": "Guest WiFi",
+                        "authType": 4,
+                        "valid": True,
+                    }
+                ],
+                "totalRows": 1,
+            },
+        }
+        inactive_clients = MagicMock()
+        inactive_clients.raise_for_status.return_value = None
+        inactive_clients.json.return_value = {
+            "errorCode": 0,
+            "result": {"data": [], "totalRows": 0},
+        }
+        disconnected = MagicMock()
+        disconnected.raise_for_status.return_value = None
+        disconnected.json.return_value = {"errorCode": 0}
+        self.session.post.side_effect = [self.login_response, disconnected]
+        self.session.get.side_effect = [active_clients, inactive_clients]
+        session_factory.return_value = self.session
+
+        with patch("services.omada.time.sleep"):
+            OmadaService().deauthorize_client(
+                "AA:BB:CC:DD:EE:FF",
+                "Rchuganet",
+                "Guest WiFi",
+            )
+
+        self.assertEqual(self.session.post.call_count, 2)
+        self.assertEqual(
+            self.session.post.call_args_list[1].args[0],
+            "https://controller.example:8043/controller-id/api/v2/hotspot/"
+            "sites/Rchuganet/cmd/clients/record-123/disconnect",
+        )
+        self.assertEqual(self.session.get.call_count, 2)
         self.session.close.assert_called_once()
 
     @patch.dict(

@@ -11,6 +11,8 @@ from services.disbursements import (
     DisbursementRejected,
     DisbursementService,
 )
+from services.omada import OmadaConfigurationError, OmadaControllerError
+from services.omada_sessions import terminate_session as terminate_active_session
 
 
 class AdminController:
@@ -777,22 +779,18 @@ class AdminController:
             await conn.close()
 
     async def terminate_session(self, session_id: str) -> Dict[str, Any]:
-        conn = await connection()
         try:
-            async with conn.cursor() as cursor:
-                await cursor.execute(
-                    "UPDATE active_sessions SET status = 'terminated' WHERE session_id = %s RETURNING session_id;",
-                    (session_id,),
-                )
-                terminated = await cursor.fetchone()
-                if not terminated:
-                    raise HTTPException(status_code=404, detail="Session not found.")
-                await conn.commit()
-                return {"message": "Session terminated successfully."}
-        except HTTPException:
-            raise
+            terminated = await terminate_active_session(session_id)
+        except (OmadaConfigurationError, OmadaControllerError) as exc:
+            raise HTTPException(
+                status_code=502,
+                detail=(
+                    "The session was terminated in NetKitonga, but Omada could "
+                    f"not disconnect the client: {exc}"
+                ),
+            ) from exc
         except Exception as e:
-            await conn.rollback()
             raise HTTPException(status_code=500, detail=f"Database error: {str(e)}")
-        finally:
-            await conn.close()
+        if not terminated:
+            raise HTTPException(status_code=404, detail="Session not found.")
+        return {"message": "Session terminated successfully."}

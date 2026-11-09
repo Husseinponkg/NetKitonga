@@ -1,4 +1,5 @@
 import os
+import time
 from pathlib import Path
 from typing import Any, Dict
 from urllib.parse import quote, urlsplit
@@ -7,6 +8,7 @@ import requests
 from dotenv import load_dotenv
 
 from models.tplink import TplinkAuthorizeRequest
+from utils.mac import normalize_mac
 
 load_dotenv(Path(__file__).resolve().parent.parent / ".env")
 
@@ -32,11 +34,8 @@ class OmadaService:
             )
         return "Omada returned an invalid response."
 
-    def authorize_client(
-        self,
-        portal: TplinkAuthorizeRequest,
-        expiration_time_microseconds: int,
-    ) -> None:
+    @staticmethod
+    def _configuration() -> tuple[str, str, str, str, float, bool]:
         base_url = os.getenv("OMADA_BASE_URL", "").strip().rstrip("/")
         controller_id = os.getenv("OMADA_CONTROLLER_ID", "").strip()
         username = os.getenv("OMADA_OPERATOR_USERNAME", "").strip()
@@ -75,45 +74,35 @@ class OmadaService:
             os.getenv("OMADA_VERIFY_TLS", "true").strip().lower()
             not in {"0", "false", "no", "off"}
         )
+        return base_url, controller_id, username, password, timeout, verify_tls
+
+    def authorize_client(
+        self,
+        portal: TplinkAuthorizeRequest,
+        duration_milliseconds: int,
+    ) -> None:
+        (
+            base_url,
+            controller_id,
+            username,
+            password,
+            timeout,
+            verify_tls,
+        ) = self._configuration()
         api_base = f"{base_url}/{quote(controller_id, safe='')}/api/v2/hotspot"
         login_url = f"{api_base}/login"
         authorize_url = f"{api_base}/extPortal/auth"
 
         session = requests.Session()
         try:
-            try:
-                login_response = session.post(
-                    login_url,
-                    json={"name": username, "password": password},
-                    headers={
-                        "Accept": "application/json",
-                        "Content-Type": "application/json",
-                    },
-                    timeout=timeout,
-                    verify=verify_tls,
-                )
-                login_response.raise_for_status()
-                login_data = login_response.json()
-            except (requests.RequestException, ValueError) as exc:
-                raise OmadaControllerError(
-                    "Could not log in to the Omada Controller."
-                ) from exc
-
-            if not isinstance(login_data, dict) or str(login_data.get("errorCode")) != "0":
-                raise OmadaControllerError(
-                    f"Omada operator login failed: {self._error_message(login_data)}"
-                )
-
-            login_result = login_data.get("result")
-            csrf_token = (
-                login_result.get("token")
-                if isinstance(login_result, dict)
-                else None
+            csrf_token = self._login(
+                session,
+                login_url,
+                username,
+                password,
+                timeout,
+                verify_tls,
             )
-            if not csrf_token:
-                raise OmadaControllerError(
-                    "Omada login succeeded without returning a CSRF token."
-                )
 
             payload: Dict[str, Any] = {
                 "clientMac": portal.buyer_mac,
@@ -121,7 +110,7 @@ class OmadaService:
                 "ssidName": portal.ssid_name,
                 "radioId": portal.radio_id,
                 "site": portal.site,
-                "time": expiration_time_microseconds,
+                "time": duration_milliseconds,
                 "authType": 4,
             }
 
@@ -153,3 +142,250 @@ class OmadaService:
                 )
         finally:
             session.close()
+
+    def deauthorize_client(
+        self,
+        client_mac: str,
+        site: str,
+        ssid_name: str,
+    ) -> None:
+        (
+            base_url,
+            controller_id,
+            username,
+            password,
+            timeout,
+            verify_tls,
+        ) = self._configuration()
+        api_base = f"{base_url}/{quote(controller_id, safe='')}/api/v2/hotspot"
+
+        session = requests.Session()
+        try:
+            csrf_token = self._login(
+                session,
+                f"{api_base}/login",
+                username,
+                password,
+                timeout,
+                verify_tls,
+            )
+
+            clients_url = (
+                f"{api_base}/sites/{quote(site, safe='')}/clients"
+            )
+            matching_clients = [
+                client
+                for client in self._hotspot_clients(
+                    session,
+                    clients_url,
+                    csrf_token,
+                    timeout,
+                    verify_tls,
+                )
+                if self._matches_grant(client, client_mac, ssid_name)
+            ]
+
+            if not matching_clients:
+                return
+            if len(matching_clients) != 1:
+                raise OmadaControllerError(
+                    "Cannot uniquely identify the active Omada client to disconnect."
+                )
+
+            client_id = matching_clients[0].get("id")
+            if isinstance(client_id, bool) or not isinstance(
+                client_id, (str, int)
+            ) or not str(client_id):
+                raise OmadaControllerError(
+                    "Omada returned an invalid Hotspot Manager client identifier."
+                )
+
+            disconnect_url = (
+                f"{api_base}/sites/{quote(site, safe='')}/cmd/clients/"
+                f"{quote(str(client_id), safe='')}/disconnect"
+            )
+            try:
+                response = session.post(
+                    disconnect_url,
+                    headers={"Accept": "application/json", "Csrf-Token": csrf_token},
+                    timeout=timeout,
+                    verify=verify_tls,
+                )
+                response.raise_for_status()
+                disconnect_data = response.json()
+            except (requests.RequestException, ValueError) as exc:
+                raise OmadaControllerError(
+                    "Could not disconnect the client through Omada."
+                ) from exc
+
+            if (
+                not isinstance(disconnect_data, dict)
+                or str(disconnect_data.get("errorCode")) != "0"
+            ):
+                raise OmadaControllerError(
+                    f"Omada rejected client disconnection: {self._error_message(disconnect_data)}"
+                )
+
+            for _ in range(3):
+                time.sleep(0.25)
+                remaining_clients = self._hotspot_clients(
+                    session,
+                    clients_url,
+                    csrf_token,
+                    timeout,
+                    verify_tls,
+                )
+                if not any(
+                    self._matches_grant(client, client_mac, ssid_name)
+                    for client in remaining_clients
+                ):
+                    return
+            raise OmadaControllerError(
+                "Omada accepted client disconnection but still reports an active grant."
+            )
+        finally:
+            session.close()
+
+    @staticmethod
+    def _hotspot_clients(
+        session: requests.Session,
+        clients_url: str,
+        csrf_token: str,
+        timeout: float,
+        verify_tls: bool,
+    ) -> list[Dict[str, Any]]:
+        rows: list[Dict[str, Any]] = []
+        seen_ids: set[str] = set()
+        expected_total = None
+        for page in range(1, 101):
+            try:
+                response = session.get(
+                    clients_url,
+                    params={"currentPage": page, "currentPageSize": 100},
+                    headers={"Accept": "application/json", "Csrf-Token": csrf_token},
+                    timeout=timeout,
+                    verify=verify_tls,
+                )
+                response.raise_for_status()
+                client_data = response.json()
+            except (requests.RequestException, ValueError) as exc:
+                raise OmadaControllerError(
+                    "Could not read Omada Hotspot Manager clients."
+                ) from exc
+
+            if (
+                not isinstance(client_data, dict)
+                or str(client_data.get("errorCode")) != "0"
+            ):
+                raise OmadaControllerError(
+                    "Omada returned an invalid Hotspot Manager client list."
+                )
+
+            result = client_data.get("result")
+            if not isinstance(result, dict) or not isinstance(
+                result.get("data"), list
+            ):
+                raise OmadaControllerError(
+                    "Omada returned an invalid Hotspot Manager client list."
+                )
+
+            total = result.get("totalRows")
+            batch = result["data"]
+            if (
+                type(total) is not int
+                or total < 0
+                or total > 10000
+                or (expected_total is not None and total != expected_total)
+                or len(rows) + len(batch) > total
+            ):
+                raise OmadaControllerError(
+                    "Omada returned an invalid Hotspot Manager client count."
+                )
+            expected_total = total
+
+            for client in batch:
+                if (
+                    not isinstance(client, dict)
+                    or isinstance(client.get("id"), bool)
+                    or not isinstance(client.get("id"), (str, int))
+                    or not str(client["id"])
+                    or type(client.get("valid")) is not bool
+                ):
+                    raise OmadaControllerError(
+                        "Omada returned an invalid Hotspot Manager client record."
+                    )
+                client_id = str(client["id"])
+                if client_id in seen_ids:
+                    raise OmadaControllerError(
+                        "Omada returned duplicate Hotspot Manager client records."
+                    )
+                seen_ids.add(client_id)
+                rows.append(client)
+
+            if len(rows) == total:
+                return rows
+            if not batch:
+                raise OmadaControllerError(
+                    "Omada returned an incomplete Hotspot Manager client list."
+                )
+        raise OmadaControllerError(
+            "Omada Hotspot Manager client list exceeded the page limit."
+        )
+
+    @staticmethod
+    def _matches_grant(
+        client: Dict[str, Any],
+        client_mac: str,
+        ssid_name: str,
+    ) -> bool:
+        return (
+            client.get("valid") is True
+            and client.get("authType") == 4
+            and normalize_mac(str(client.get("mac", "")))
+            == normalize_mac(client_mac)
+            and client.get("ssid") == ssid_name
+        )
+
+    @staticmethod
+    def _login(
+        session: requests.Session,
+        login_url: str,
+        username: str,
+        password: str,
+        timeout: float,
+        verify_tls: bool,
+    ) -> str:
+        try:
+            response = session.post(
+                login_url,
+                json={"name": username, "password": password},
+                headers={
+                    "Accept": "application/json",
+                    "Content-Type": "application/json",
+                },
+                timeout=timeout,
+                verify=verify_tls,
+            )
+            response.raise_for_status()
+            login_data = response.json()
+        except (requests.RequestException, ValueError) as exc:
+            raise OmadaControllerError(
+                "Could not log in to the Omada Controller."
+            ) from exc
+
+        if not isinstance(login_data, dict) or str(login_data.get("errorCode")) != "0":
+            raise OmadaControllerError(
+                f"Omada operator login failed: {OmadaService._error_message(login_data)}"
+            )
+
+        login_result = login_data.get("result")
+        csrf_token = (
+            login_result.get("token")
+            if isinstance(login_result, dict)
+            else None
+        )
+        if not isinstance(csrf_token, str) or not csrf_token:
+            raise OmadaControllerError(
+                "Omada login succeeded without returning a CSRF token."
+            )
+        return csrf_token

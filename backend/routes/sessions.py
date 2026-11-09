@@ -2,6 +2,8 @@ from typing import Dict, Any, List
 from fastapi import APIRouter, Depends, HTTPException
 from config.db import connection
 from models.sessions import SessionResponse, SessionTerminate
+from services.omada import OmadaConfigurationError, OmadaControllerError
+from services.omada_sessions import terminate_session as terminate_active_session
 from utils.subscription_access import require_active_subscription
 
 session_endpoints = APIRouter(
@@ -34,21 +36,20 @@ async def list_active_sessions(tenant_id: int):
 
 @session_endpoints.post("/terminate", response_model=Dict[str, str])
 async def terminate_session(payload: SessionTerminate):
-    conn = await connection()
     try:
-        async with conn.cursor() as cursor:
-            await cursor.execute("""
-                UPDATE active_sessions
-                SET status = 'terminated'
-                WHERE tenant_id = %s AND session_id = %s AND status = 'active'
-                RETURNING session_id
-            """, (payload.tenant_id, payload.session_id))
-            if not await cursor.fetchone():
-                raise HTTPException(status_code=404, detail="Active session not found.")
-            await conn.commit()
-            return {"message": "Session terminated successfully."}
-    except Exception:
-        await conn.rollback()
-        raise
-    finally:
-        await conn.close()
+        terminated = await terminate_active_session(
+            payload.session_id,
+            tenant_id=payload.tenant_id,
+        )
+    except (OmadaConfigurationError, OmadaControllerError) as exc:
+        raise HTTPException(
+            status_code=502,
+            detail=(
+                "The session was terminated in NetKitonga, but Omada could not "
+                f"disconnect the client: {exc}"
+            ),
+        ) from exc
+
+    if not terminated:
+        raise HTTPException(status_code=404, detail="Active session not found.")
+    return {"message": "Session terminated successfully."}

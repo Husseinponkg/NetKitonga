@@ -54,9 +54,10 @@ NetKitonga after the migration succeeds. Do not send database credentials or
 payment secrets in chat or terminal output.
 
 Omada's redirect parameter `t` is a request timestamp in microseconds. The
-authorization API's `time` is the session's absolute expiration timestamp,
-also in microseconds. NetKitonga derives it from the matching active session;
-it does not reuse the redirect `t` value.
+authorization API's `time` is a duration in milliseconds, not an absolute
+timestamp. NetKitonga calculates the remaining time from the matching active
+session and sends that duration, so Omada expires the grant with the paid
+session.
 
 ## Authorization flow
 
@@ -66,8 +67,23 @@ CSRF token, then calls
 `/{CONTROLLER_ID}/api/v2/hotspot/extPortal/auth` with `authType: 4` and the
 Omada client/AP context. The portal sends the payment token, client MAC, and
 router ID to `POST /tplink/authorize`; the backend requires a completed
-payment and a matching active session before contacting Omada. WiFiDog and
-MikroTik login flows are unchanged.
+payment and a matching active session before contacting Omada. The session's
+site, SSID, and client MAC are retained so session termination can invoke
+Hotspot Manager's **Unauthorize** action. The hotspot operator needs permission
+to manage clients on the relevant Omada site. If deauthorization fails,
+NetKitonga reports the failure and keeps the context so terminating the
+session can be retried. WiFiDog and MikroTik login flows are unchanged.
+
+Apply the session-context migration to an existing database before deploying
+this flow:
+
+```sh
+psql -h YOUR_DB_HOST -U YOUR_DB_ADMIN -d YOUR_DB_NAME \
+  -f backend/database/migrations/009_omada_session_context.sql
+```
+
+Clients authorized before this fix keep their existing Omada grant. Disconnect
+those clients from Omada Hotspot Manager once after deploying the fix.
 
 Client MAC, AP MAC, client IP, SSID, radio, site, and landing-page URL are
 read from Omada's captive-portal redirect at request time; they are not
