@@ -80,6 +80,14 @@ async def handle_portal_payment_status(
     )
 
 
+@payment_endpoints.get("/payments/active-session")
+async def handle_active_portal_session(
+    router_id: int = Query(...),
+    buyer_mac: str = Query(...),
+) -> Dict[str, Any]:
+    return await controller.get_active_portal_session(router_id, buyer_mac)
+
+
 @payment_endpoints.get(
     "/payments/history",
     response_model=List[PaymentHistoryResponse],

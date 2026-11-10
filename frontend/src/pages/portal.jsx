@@ -396,6 +396,8 @@ function Portal() {
     // Remembers which catalog URL is already on screen so the effect that
     // re-runs after a gateway resolution does not fetch it twice.
     const loadedCatalogUrlRef = useRef(null);
+    const activeSessionChecksRef = useRef(new Map());
+    const wifidogLoginStartedRef = useRef(new Set());
 
     const API_BASE_URL = API_ROOT;
 
@@ -822,6 +824,94 @@ const gatewayPort =
         effectiveRouterId,
         routerIp,
         resolvedRouter,
+    ]);
+
+    useEffect(() => {
+        if (
+            !isWifidogGateway ||
+            !effectiveRouterId ||
+            !buyerMac ||
+            buyerMac === "unknown-device"
+        ) {
+            return;
+        }
+
+        const normalizedBuyerMac = normalizeMac(buyerMac);
+        const sessionKey = `${effectiveRouterId}:${normalizedBuyerMac}`;
+        let cancelled = false;
+        let sessionCheck = activeSessionChecksRef.current.get(sessionKey);
+
+        if (!sessionCheck) {
+            const params = new URLSearchParams({
+                router_id: String(effectiveRouterId),
+                buyer_mac: normalizedBuyerMac,
+            });
+            sessionCheck = fetch(
+                `${API_BASE_URL}/payments/active-session?${params}`
+            ).then(async (response) => {
+                const result = await response.json().catch(() => ({}));
+                if (!response.ok) {
+                    throw new Error(
+                        extractApiErrorMessage(result) ||
+                        `Server returned ${response.status}`
+                    );
+                }
+                return result;
+            });
+            activeSessionChecksRef.current.set(sessionKey, sessionCheck);
+        }
+
+        sessionCheck
+            .then((session) => {
+                if (
+                    cancelled ||
+                    !session.active ||
+                    wifidogLoginStartedRef.current.has(sessionKey)
+                ) {
+                    return;
+                }
+                if (!session.auth_token) {
+                    throw new Error(
+                        "The active WiFi session has no authorization token."
+                    );
+                }
+
+                wifidogLoginStartedRef.current.add(sessionKey);
+                const loginStarted = submitWifidogLogin(
+                    effectiveGatewayIp,
+                    gatewayPort,
+                    session.auth_token,
+                    destination
+                );
+                if (!loginStarted) {
+                    setUiMessage(
+                        "Your paid session is still active, but automatic WiFi reconnection could not start. Please reconnect to the hotspot and try again."
+                    );
+                }
+            })
+            .catch((error) => {
+                if (!cancelled) {
+                    console.error(
+                        "Could not check for an active WiFiDog session:",
+                        error
+                    );
+                    setUiMessage(
+                        `Could not check your existing WiFi access: ${error.message}`
+                    );
+                }
+            });
+
+        return () => {
+            cancelled = true;
+        };
+    }, [
+        isWifidogGateway,
+        effectiveRouterId,
+        buyerMac,
+        effectiveGatewayIp,
+        gatewayPort,
+        destination,
+        API_BASE_URL,
     ]);
 
     // ================================================================

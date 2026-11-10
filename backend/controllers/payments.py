@@ -211,6 +211,45 @@ class PaymentController:
         finally:
             await conn.close()
 
+    async def get_active_portal_session(
+        self,
+        router_id: int,
+        buyer_mac: str,
+    ) -> Dict[str, Any]:
+        normalized_mac = normalize_mac(buyer_mac)
+        if not normalized_mac:
+            raise HTTPException(status_code=400, detail="Invalid buyer MAC address.")
+
+        conn = await connection()
+        try:
+            async with conn.cursor() as cursor:
+                await cursor.execute(
+                    """
+                    SELECT p.auth_token
+                    FROM active_sessions AS s
+                    JOIN payments AS p ON p.id = s.payment_id
+                    JOIN buyers AS b ON b.id = s.buyer_id
+                    WHERE s.router_id = %s
+                      AND UPPER(b.buyer_mac) = UPPER(%s)
+                      AND s.status = 'active'
+                      AND s.expiration_time > NOW()
+                      AND p.status = 'completed'
+                    ORDER BY s.expiration_time DESC
+                    LIMIT 1;
+                    """,
+                    (router_id, normalized_mac),
+                )
+                session = await cursor.fetchone()
+                if not session:
+                    return {"active": False}
+
+                return {
+                    "active": True,
+                    "auth_token": session[0],
+                }
+        finally:
+            await conn.close()
+
     async def get_income_stats(self, tenant_id: int) -> Dict[str, Any]:
         conn = await connection()
         try:
