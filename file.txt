@@ -107,12 +107,12 @@ Heartbeat endpoint. Returns plain text: Pong
 GET  /wifidog/auth
 Checks whether a client is authorized to access the internet.
 Query params: gw_id, mac, ip, url
-Returns plain text: Auth: 1 or Auth: 0
+Returns plain text: Auth: 1 with Timeout: <remaining seconds>, or Auth: 0
 Logic:
   - Looks up router by gw_id
   - Looks up buyer by MAC
   - Looks up active, non-expired active_sessions by router + buyer (+ IP if provided)
-  - If found -> Auth: 1, otherwise Auth: 0
+  - If found -> Auth: 1 and the remaining session time, otherwise Auth: 0
 
 GET  /wifidog/login
 Redirects the client to the captive portal.

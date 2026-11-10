@@ -19,6 +19,11 @@ controller = RouterController()
 
 wifidog_router = APIRouter()
 
+
+def _wifidog_authorized_response(remaining_seconds: int) -> PlainTextResponse:
+    return PlainTextResponse(f"Auth: 1\nTimeout: {remaining_seconds}\n")
+
+
 @router.get("/lookup", response_model=Dict[str, Any])
 async def handle_router_lookup(ip_address: str = Query(..., description="Router IP address for automatic lookup")):
     return await controller.lookup_router_by_ip(ip_address)
@@ -153,7 +158,10 @@ async def wifidog_auth(
                 normalized_mac = normalize_mac(mac) if mac else None
                 await cursor.execute(
                     """
-                    SELECT s.id
+                    SELECT GREATEST(
+                        CEIL(EXTRACT(EPOCH FROM (s.expiration_time - NOW())))::integer,
+                        1
+                    )
                     FROM active_sessions AS s
                     JOIN payments AS p ON p.id = s.payment_id
                     JOIN routers AS r ON r.id = s.router_id
@@ -168,6 +176,7 @@ async def wifidog_auth(
                           OR s.assigned_ip = %s
                           OR s.assigned_ip = '0.0.0.0'
                       )
+                    ORDER BY s.expiration_time DESC
                     LIMIT 1;
                     """,
                     (
@@ -179,8 +188,9 @@ async def wifidog_auth(
                         ip,
                     ),
                 )
-                if await cursor.fetchone():
-                    return PlainTextResponse("Auth: 1")
+                session_row = await cursor.fetchone()
+                if session_row:
+                    return _wifidog_authorized_response(session_row[0])
                 return PlainTextResponse("Auth: 0")
 
             # Standard WiFiDog status check by gateway ID and client MAC.
@@ -226,36 +236,46 @@ async def wifidog_auth(
             if ip:
                 await cursor.execute(
                     """
-                    SELECT id
+                    SELECT GREATEST(
+                        CEIL(EXTRACT(EPOCH FROM (expiration_time - NOW())))::integer,
+                        1
+                    )
                     FROM active_sessions
                     WHERE router_id = %s
                       AND buyer_id = %s
                       AND assigned_ip = %s
                       AND status = 'active'
                       AND expiration_time > NOW()
+                    ORDER BY expiration_time DESC
                     LIMIT 1;
                     """,
                     (router_id, buyer_id, ip),
                 )
-                if await cursor.fetchone():
-                    return PlainTextResponse("Auth: 1")
+                session_row = await cursor.fetchone()
+                if session_row:
+                    return _wifidog_authorized_response(session_row[0])
 
             # Some captive gateways report an IP that differs from the
             # assigned IP, so retain the active-session MAC fallback.
             await cursor.execute(
                 """
-                SELECT id
+                SELECT GREATEST(
+                    CEIL(EXTRACT(EPOCH FROM (expiration_time - NOW())))::integer,
+                    1
+                )
                 FROM active_sessions
                 WHERE router_id = %s
                   AND buyer_id = %s
                   AND status = 'active'
                   AND expiration_time > NOW()
+                ORDER BY expiration_time DESC
                 LIMIT 1;
                 """,
                 (router_id, buyer_id),
             )
-            if await cursor.fetchone():
-                return PlainTextResponse("Auth: 1")
+            session_row = await cursor.fetchone()
+            if session_row:
+                return _wifidog_authorized_response(session_row[0])
 
             return PlainTextResponse("Auth: 0")
     finally:
