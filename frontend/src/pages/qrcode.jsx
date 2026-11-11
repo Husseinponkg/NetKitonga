@@ -1,5 +1,5 @@
-import React, { useState, useEffect } from "react";
-import { API_BASE_URL } from "../api";
+import React, { useState, useEffect, useCallback } from "react";
+import QRCode from "qrcode";
 import { getStoredTenantUser, getTenantId } from "../session";
 
 const WIFI_ICON = (
@@ -27,7 +27,7 @@ const REFRESH_ICON = (
 );
 
 export default function QrCodePage() {
-  const [qrImageUrl, setQrImageUrl] = useState("");
+  const [qrDataUrl, setQrDataUrl] = useState("");
   const [error, setError] = useState("");
   const [loading, setLoading] = useState(true);
 
@@ -37,36 +37,32 @@ export default function QrCodePage() {
   const basePortalUrl = `${window.location.origin}/portal`;
   const portalUrl = tenantId ? `${basePortalUrl}/${tenantId}` : basePortalUrl;
 
-  const qrApiUrl = `${API_BASE_URL}/qrcode/qrcode?tenant_id=${tenantId || ""}&t=${Date.now()}`;
-
-  const fetchQr = async () => {
+  const generateQr = useCallback(async () => {
     setLoading(true);
     setError("");
     try {
-      // Preflight check that the image loads
-      await new Promise((resolve, reject) => {
-        const img = new Image();
-        img.onload = () => resolve(img);
-        img.onerror = () => reject(new Error("Image failed to load"));
-        img.src = qrApiUrl;
+      const dataUrl = await QRCode.toDataURL(portalUrl, {
+        width: 512,
+        margin: 2,
+        color: { dark: "#000000", light: "#ffffff" },
       });
-      setQrImageUrl(qrApiUrl);
+      setQrDataUrl(dataUrl);
     } catch (err) {
-      setError(err.message || "Could not load QR code image from server.");
+      setError(err.message || "Could not generate QR code.");
       console.error(err);
     } finally {
       setLoading(false);
     }
-  };
+  }, [portalUrl]);
 
   useEffect(() => {
-    fetchQr();
-  }, [qrApiUrl]);
+    generateQr();
+  }, [generateQr]);
 
   const downloadQr = () => {
-    if (!qrImageUrl) return;
+    if (!qrDataUrl) return;
     const link = document.createElement("a");
-    link.href = qrImageUrl;
+    link.href = qrDataUrl;
     link.download = `noma-portal-tenant-${tenantId || "general"}.png`;
     document.body.appendChild(link);
     link.click();
@@ -88,7 +84,7 @@ export default function QrCodePage() {
               onClick={() => {
                 setError("");
                 setLoading(true);
-                fetchQr();
+                generateQr();
               }}
               style={{ padding: "8px 16px", background: "#e50914", border: "none", color: "#fff", borderRadius: 6, cursor: "pointer", fontWeight: 600 }}
             >
@@ -101,16 +97,15 @@ export default function QrCodePage() {
               Scan to connect to the <strong style={{ color: "#fff" }}>noma</strong> captive portal
             </p>
             <div style={{ display: "flex", justifyContent: "center", marginBottom: 20 }}>
-              {qrImageUrl ? (
+              {qrDataUrl ? (
                 <img
-                  src={qrImageUrl}
+                  src={qrDataUrl}
                   alt="Wi-Fi Portal QR Code"
                   style={{ width: 320, height: 320, borderRadius: 10, border: "2px solid #e50914", objectFit: "contain", background: "#fff" }}
-                  onError={() => setError("Failed to load QR code image. Make sure the backend is running.")}
                 />
               ) : (
                 <div style={{ display: "flex", alignItems: "center", justifyContent: "center", height: 320, background: "#1a1a1a", borderRadius: 10, border: "1px dashed #333", color: "#666", fontSize: "0.85rem" }}>
-                  Loading QR code...
+                  Generating QR code...
                 </div>
               )}
             </div>
@@ -126,14 +121,14 @@ export default function QrCodePage() {
             <div style={{ display: "flex", gap: 8, justifyContent: "center" }}>
               <button
                 onClick={downloadQr}
-                disabled={!qrImageUrl}
+                disabled={!qrDataUrl}
                 style={{
                   padding: "10px 18px",
-                  background: qrImageUrl ? "#e50914" : "#333",
+                  background: qrDataUrl ? "#e50914" : "#333",
                   border: "none",
                   color: "#fff",
                   borderRadius: 6,
-                  cursor: qrImageUrl ? "pointer" : "not-allowed",
+                  cursor: qrDataUrl ? "pointer" : "not-allowed",
                   fontWeight: 600,
                 }}
               >
@@ -143,7 +138,7 @@ export default function QrCodePage() {
                 onClick={() => {
                   setError("");
                   setLoading(true);
-                  fetchQr();
+                  generateQr();
                 }}
                 style={{
                   padding: "10px 18px",
