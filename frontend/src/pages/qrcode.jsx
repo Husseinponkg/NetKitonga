@@ -29,12 +29,11 @@ const REFRESH_ICON = (
 export default function QrCodePage() {
   const [qrDataUrl, setQrDataUrl] = useState("");
   const [error, setError] = useState("");
-  const [loading, setLoading] = useState(true);
 
   const user = getStoredTenantUser();
   const tenantId = getTenantId();
 
-  // Use public URL so phones can scan from anywhere
+  // Public portal URL - scannable from any phone
   const PUBLIC_PORTAL_URL = "https://netkitonga.com/portal";
   const portalUrl = tenantId ? `${PUBLIC_PORTAL_URL}/${tenantId}` : PUBLIC_PORTAL_URL;
 
