@@ -35,7 +35,15 @@ export default function QrCodePage() {
 
   const basePortalUrl = `${window.location.origin}/portal`;
   const portalUrl = tenantId ? `${basePortalUrl}/${tenantId}` : basePortalUrl;
-  const qrImageUrl = `${API_BASE_URL}/qrcode/qrcode?tenant_id=${tenantId || ""}`;
+  const qrImageUrl = `${API_BASE_URL}/qrcode/qrcode?tenant_id=${tenantId || ""}&t=${Date.now()}`;
+
+  useEffect(() => {
+    // Preflight check that the image loads
+    const img = new Image();
+    img.onload = () => setQrLoaded(true);
+    img.onerror = () => setError("Failed to load QR code image from backend. Check that uvicorn is running on port 8000 and CORS allows this origin.");
+    img.src = qrImageUrl;
+  }, [qrImageUrl]);
 
   const downloadQr = () => {
     if (!qrImageUrl) return;
@@ -74,13 +82,18 @@ export default function QrCodePage() {
               Scan to connect to the <strong style={{ color: "#fff" }}>noma</strong> captive portal
             </p>
             <div style={{ display: "flex", justifyContent: "center", marginBottom: 20 }}>
-              <img
-                src={qrImageUrl}
-                alt="Wi-Fi Portal QR Code"
-                style={{ width: 320, height: 320, borderRadius: 10, border: "2px solid #e50914", objectFit: "contain", background: "#fff" }}
-                onLoad={() => setQrLoaded(true)}
-                onError={() => setError("Failed to load QR code image. Make sure the backend is running on port 8000.")}
-              />
+              {qrImageUrl ? (
+                <img
+                  src={qrImageUrl}
+                  alt="Wi-Fi Portal QR Code"
+                  style={{ width: 320, height: 320, borderRadius: 10, border: "2px solid #e50914", objectFit: "contain", background: "#fff" }}
+                  onError={() => setError("Failed to load QR code image from backend. Check that uvicorn is running on port 8000.")}
+                />
+              ) : (
+                <div style={{ display: "flex", alignItems: "center", justifyContent: "center", height: 320, background: "#1a1a1a", borderRadius: 10, border: "1px dashed #333", color: "#666", fontSize: "0.85rem" }}>
+                  Loading QR code...
+                </div>
+              )}
             </div>
             <p style={{ margin: "0 0 12", fontSize: "0.85rem", color: "#808080" }}>
               Portal URL:{' '}
