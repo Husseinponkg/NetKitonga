@@ -42,7 +42,7 @@ export default function QrCodePage() {
     setError("");
     try {
       const dataUrl = await QRCode.toDataURL(portalUrl, {
-        width: 400,
+        width: 512,
         margin: 2,
         color: { dark: "#000000", light: "#ffffff" },
       });
@@ -118,21 +118,41 @@ export default function QrCodePage() {
                 Tenant-specific: tenant ID {tenantId}
               </span>
             ) : null}
-            <button
-              onClick={downloadQr}
-              disabled={!qrDataUrl}
-              style={{
-                padding: "10px 18px",
-                background: qrDataUrl ? "#e50914" : "#333",
-                border: "none",
-                color: "#fff",
-                borderRadius: 6,
-                cursor: qrDataUrl ? "pointer" : "not-allowed",
-                fontWeight: 600,
-              }}
-            >
-              Download QR Code
-            </button>
+            <div style={{ display: "flex", gap: 8, justifyContent: "center" }}>
+              <button
+                onClick={downloadQr}
+                disabled={!qrDataUrl}
+                style={{
+                  padding: "10px 18px",
+                  background: qrDataUrl ? "#e50914" : "#333",
+                  border: "none",
+                  color: "#fff",
+                  borderRadius: 6,
+                  cursor: qrDataUrl ? "pointer" : "not-allowed",
+                  fontWeight: 600,
+                }}
+              >
+                {DOWNLOAD_ICON} Download QR Code
+              </button>
+              <button
+                onClick={() => {
+                  setError("");
+                  setLoading(true);
+                  generateQr();
+                }}
+                style={{
+                  padding: "10px 18px",
+                  background: "transparent",
+                  border: "1px solid #333",
+                  color: "#ccc",
+                  borderRadius: 6,
+                  cursor: "pointer",
+                  fontWeight: 600,
+                }}
+              >
+                {REFRESH_ICON} Refresh
+              </button>
+            </div>
           </div>
         )}
       </div>
