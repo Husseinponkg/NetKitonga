@@ -34,6 +34,7 @@ export default function QrCodePage() {
   const user = getStoredTenantUser();
   const tenantId = getTenantId();
 
+  // Public portal URL - scannable from any phone
   const PUBLIC_PORTAL_URL = "https://netkitonga.com/portal";
   const portalUrl = tenantId ? `${PUBLIC_PORTAL_URL}/${tenantId}` : PUBLIC_PORTAL_URL;
 
@@ -63,7 +64,7 @@ export default function QrCodePage() {
     if (!qrDataUrl) return;
     const link = document.createElement("a");
     link.href = qrDataUrl;
-    link.download = `noma-portal-tenant-${tenantId || "general"}.png`;
+    link.download = `noma-portal-router-${tenantId || "general"}.png`;
     document.body.appendChild(link);
     link.click();
     document.body.removeChild(link);
@@ -111,7 +112,7 @@ export default function QrCodePage() {
             </p>
             {tenantId ? (
               <span style={{ display: "block", marginBottom: 12, fontSize: "0.75rem", color: "#e50914" }}>
-                Tenant-specific: tenant ID {tenantId}
+                Router ID: {tenantId}
               </span>
             ) : null}
             <div style={{ display: "flex", gap: 8, justifyContent: "center" }}>
