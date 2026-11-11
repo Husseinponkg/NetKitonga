@@ -33,6 +33,7 @@ from backend.routes.settings import settings_endpoints
 from backend.routes.withdrawals import router as withdrawals_router
 from backend.routes.vouchers import router as vouchers_router
 from backend.routes.radius import radius_endpoints
+from backend.routes.qrcode import router as qrcode_router
 from backend.controllers.payments import PaymentController
 from backend.services.omada_sessions import expire_due_sessions
 
@@ -143,6 +144,7 @@ from backend.routes.captive import captive_router as captive_endpoints
 app.include_router(captive_endpoints, prefix="/captive", tags=["captive"])
 
 app.include_router(radius_endpoints, prefix="/radius", tags=["radius"])
+app.include_router(qrcode_router, prefix="/api/qrcode", tags=["qrcode"])
 
 
 @app.get("/assets/{path:path}")

@@ -20,6 +20,7 @@ import Sessions from "./pages/sessions";
 import Settings from "./pages/settings";
 import Vouchers from "./pages/vouchers";
 import Admin from "./pages/admin";
+import QrCodePage from "./pages/qrcode";
 import PrivacyPolicy from "./pages/PrivacyPolicy";
 import RefundPolicy from "./pages/RefundPolicy";
 import SupportDesk from "./pages/supportdesk";
@@ -158,6 +159,7 @@ function App() {
           <Route path="/withdrawals" element={<SubscriptionProtectedRoute><Withdrawals /></SubscriptionProtectedRoute>} />
           <Route path="/sessions" element={<SubscriptionProtectedRoute><Sessions /></SubscriptionProtectedRoute>} />
           <Route path="/settings" element={<SubscriptionProtectedRoute><Settings /></SubscriptionProtectedRoute>} />
+          <Route path="/qrcode" element={<ProtectedRoute><QrCodePage /></ProtectedRoute>} />
           <Route path="/admin" element={<AdminRoute><Admin /></AdminRoute>} />
           <Route path="*" element={<Login />} />
           <Route path="/support-desk" element={<SubscriptionProtectedRoute><SupportDesk /></SubscriptionProtectedRoute>} />
