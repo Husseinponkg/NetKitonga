@@ -1,4 +1,4 @@
-import React, { useState, useEffect } from "react";
+import React, { useState } from "react";
 import { API_BASE_URL } from "../api";
 import { getStoredTenantUser, getTenantId } from "../session";
 
@@ -28,22 +28,14 @@ const REFRESH_ICON = (
 
 export default function QrCodePage() {
   const [error, setError] = useState("");
-  const [qrLoaded, setQrLoaded] = useState(false);
 
-  const user = getStoredTenantUser();
+  getStoredTenantUser();
   const tenantId = getTenantId();
 
   const basePortalUrl = `${window.location.origin}/portal`;
   const portalUrl = tenantId ? `${basePortalUrl}/${tenantId}` : basePortalUrl;
-  const qrImageUrl = `${API_BASE_URL}/qrcode/qrcode?tenant_id=${tenantId || ""}&t=${Date.now()}`;
-
-  useEffect(() => {
-    // Preflight check that the image loads
-    const img = new Image();
-    img.onload = () => setQrLoaded(true);
-    img.onerror = () => setError("Failed to load QR code image from backend. Check that uvicorn is running on port 8000 and CORS allows this origin.");
-    img.src = qrImageUrl;
-  }, [qrImageUrl]);
+  const qrApiBaseUrl = import.meta.env.DEV ? "" : API_BASE_URL;
+  const qrImageUrl = `${qrApiBaseUrl}/qrcode/qrcode?tenant_id=${tenantId || ""}&t=${Date.now()}`;
 
   const downloadQr = () => {
     if (!qrImageUrl) return;
@@ -87,7 +79,7 @@ export default function QrCodePage() {
                   src={qrImageUrl}
                   alt="Wi-Fi Portal QR Code"
                   style={{ width: 320, height: 320, borderRadius: 10, border: "2px solid #e50914", objectFit: "contain", background: "#fff" }}
-                  onError={() => setError("Failed to load QR code image from backend. Check that uvicorn is running on port 8000.")}
+                  onError={() => setError("Could not load the QR code. Check that the backend is running, then retry.")}
                 />
               ) : (
                 <div style={{ display: "flex", alignItems: "center", justifyContent: "center", height: 320, background: "#1a1a1a", borderRadius: 10, border: "1px dashed #333", color: "#666", fontSize: "0.85rem" }}>

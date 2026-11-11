@@ -3,6 +3,7 @@ from fastapi.responses import StreamingResponse
 import io
 
 router = APIRouter()
+QR_API_PREFIX = "/qrcode"
 
 
 def _build_portal_url(tenant_id: int | None) -> str:
