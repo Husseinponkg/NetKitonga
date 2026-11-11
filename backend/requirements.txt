@@ -5,3 +5,4 @@ python-dotenv
 requests
 bcrypt
 pydantic[email]
+qrcode[pil]

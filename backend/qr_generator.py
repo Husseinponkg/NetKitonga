@@ -1,3 +1,5 @@
+"""Helpers to generate portal QR codes."""
+
 import qrcode
 from qrcode.image.styledpil import StyledPilImage
 from qrcode.image.styles.colormasks import SolidFillColorMask

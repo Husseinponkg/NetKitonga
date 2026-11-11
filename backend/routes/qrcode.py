@@ -1,31 +1,42 @@
-from fastapi import APIRouter, Query
-from fastapi.responses import FileResponse
-from pathlib import Path
+from io import BytesIO
+from urllib.parse import urlsplit
+
+import qrcode
+from fastapi import APIRouter, HTTPException, Query
+from fastapi.responses import Response
 
 router = APIRouter()
-
-BACKEND_DIR = Path(__file__).resolve().parent
-QR_IMAGE_PATH = BACKEND_DIR / "qrcode.jpeg"
 
 
 @router.get("/qrcode")
 async def get_qrcode(
     tenant_id: int | None = Query(None),
+    portal_url: str = Query(...),
 ):
-    """Serve the NetKitonga captive portal QR code image.
+    """Generate a QR code image for the requested captive portal URL."""
+    parsed_url = urlsplit(portal_url)
+    if parsed_url.scheme not in {"http", "https"} or not parsed_url.netloc:
+        raise HTTPException(status_code=400, detail="A valid HTTP(S) portal URL is required.")
 
-    If `tenant_id` is provided, it's included in the response metadata
-    so the frontend can display which tenant the QR code belongs to.
-    """
-    if not QR_IMAGE_PATH.exists():
-        return {"error": "QR code image not found on server."}
+    qr = qrcode.QRCode(
+        version=None,
+        error_correction=qrcode.constants.ERROR_CORRECT_H,
+        box_size=10,
+        border=4,
+    )
+    qr.add_data(portal_url)
+    qr.make(fit=True)
 
-    return FileResponse(
-        path=str(QR_IMAGE_PATH),
-        media_type="image/jpeg",
-        filename="qrcode.jpeg",
+    image = qr.make_image(fill_color="black", back_color="white")
+    image_data = BytesIO()
+    image.save(image_data, format="PNG")
+
+    return Response(
+        content=image_data.getvalue(),
+        media_type="image/png",
         headers={
-            "X-Portal-Url": f"https://netkitonga.com/portal/{tenant_id}" if tenant_id else "https://netkitonga.com/portal",
+            "Cache-Control": "no-store",
+            "X-Portal-Url": portal_url,
             "X-Tenant-Id": str(tenant_id) if tenant_id else "",
         },
     )
