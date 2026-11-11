@@ -182,8 +182,9 @@ export default function QrCodePage() {
   const user = getStoredTenantUser();
   const tenantId = getTenantId();
 
-  const basePortalUrl = `${window.location.origin}/portal`;
-  const portalUrl = tenantId ? `${basePortalUrl}/${tenantId}` : basePortalUrl;
+  // Use public URL for QR code so phones can scan it from anywhere
+  const PUBLIC_PORTAL_URL = "https://netkitonga.com/portal";
+  const portalUrl = tenantId ? `${PUBLIC_PORTAL_URL}/${tenantId}` : PUBLIC_PORTAL_URL;
 
   const generateQr = useCallback(async () => {
     setLoading(true);
