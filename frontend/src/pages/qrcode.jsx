@@ -49,7 +49,7 @@ export default function QrCodePage() {
     if (!qrImageUrl) return;
     const link = document.createElement("a");
     link.href = qrImageUrl;
-    link.download = `noma-portal-tenant-${tenantId || "general"}.jpg`;
+    link.download = `noma-portal-tenant-${tenantId || "general"}.png`;
     document.body.appendChild(link);
     link.click();
     document.body.removeChild(link);

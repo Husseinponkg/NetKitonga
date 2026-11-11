@@ -112,3 +112,4 @@ if __name__ == "__main__":
     url = sys.argv[1]
     out = sys.argv[2] if len(sys.argv) > 2 else "portal_qr.png"
     print(generate_portal_qr(url, out))
+"""Helpers for creating portal QR codes."""
