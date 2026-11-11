@@ -25,7 +25,24 @@ const REFRESH_ICON = (
   </svg>
 );
 
-// Tiny QR code encoder (version 1, error correction H) - no external dependencies
+const GF256 = [];
+const GF256_INV = [];
+function gfMul(a, b) {
+  if (a === 0 || b === 0) return 0;
+  return GF256[(GF256_INV[a] + GF256_INV[b]) % 255];
+}
+function initGF() {
+  let x = 1;
+  for (let i = 0; i < 255; i++) {
+    GF256[i] = x;
+    GF256_INV[x] = i;
+    x = x << 1;
+    if (x & 0x100) x = x ^ 0x11d;
+    x &= 0xff;
+  }
+}
+initGF();
+
 function getStringToBits(str) {
   const bytes = [];
   for (let i = 0; i < str.length; i++) bytes.push(str.charCodeAt(i));
@@ -50,24 +67,6 @@ function getPolynomial(degree) {
   }
   return g;
 }
-
-const GF256 = [];
-const GF256_INV = [];
-function gfMul(a, b) {
-  if (a === 0 || b === 0) return 0;
-  return GF256[(GF256_INV[a] + GF256_INV[b]) % 255];
-}
-function initGF() {
-  let x = 1;
-  for (let i = 0; i < 255; i++) {
-    GF256[i] = x;
-    GF256_INV[x] = i;
-    x = x << 1;
-    if (x & 0x100) x = x ^ 0x11d;
-    x &= 0xff;
-  }
-}
-initGF();
 
 function calculateEC(data, eccCount) {
   const gen = getPolynomial(eccCount);
@@ -100,7 +99,7 @@ function generateQR(text) {
   }
   const finalBytes = Math.min(targetBytes, bitBuffer.length / 8);
   bitBuffer.length = finalBytes * 8;
-  const ecCount = 17; // Version 1-H has 17 EC codewords per block
+  const ecCount = 17;
   const ec = calculateEC(bitBuffer, ecCount);
   const finalBits = [...bitBuffer, ...ec];
 
@@ -178,6 +177,7 @@ function generateQR(text) {
 export default function QrCodePage() {
   const [qrDataUrl, setQrDataUrl] = useState("");
   const [error, setError] = useState("");
+  const [loading, setLoading] = useState(true);
 
   const user = getStoredTenantUser();
   const tenantId = getTenantId();
@@ -224,6 +224,16 @@ export default function QrCodePage() {
         {error ? (
           <div style={{ background: "rgba(229,9,20,0.12)", border: "1px solid rgba(229,9,20,0.35)", color: "#ff6b6b", padding: 14, borderRadius: 8, marginBottom: 20 }}>
             <p style={{ margin: "0 0 10", fontSize: "0.9rem", color: "#ff6b6b" }}>{error}</p>
+            <button
+              onClick={() => {
+                setError("");
+                setLoading(true);
+                generateQr();
+              }}
+              style={{ padding: "8px 16px", background: "#e50914", border: "none", color: "#fff", borderRadius: 6, cursor: "pointer", fontWeight: 600 }}
+            >
+              Regenerate
+            </button>
           </div>
         ) : (
           <div style={{ background: "#121212", border: "1px solid #262626", borderRadius: 12, padding: 24, textAlign: "center" }}>
@@ -271,6 +281,7 @@ export default function QrCodePage() {
               <button
                 onClick={() => {
                   setError("");
+                  setLoading(true);
                   generateQr();
                 }}
                 style={{
