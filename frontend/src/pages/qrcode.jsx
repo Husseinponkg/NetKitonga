@@ -34,7 +34,7 @@ export default function QrCodePage() {
   const user = getStoredTenantUser();
   const tenantId = getTenantId();
 
-  // Public portal URL - scannable from any phone
+  // Public portal URL with router ID encoded in QR code (scannable)
   const PUBLIC_PORTAL_URL = "https://netkitonga.com/portal";
   const portalUrl = tenantId ? `${PUBLIC_PORTAL_URL}/${tenantId}` : PUBLIC_PORTAL_URL;
 
@@ -64,7 +64,7 @@ export default function QrCodePage() {
     if (!qrDataUrl) return;
     const link = document.createElement("a");
     link.href = qrDataUrl;
-    link.download = `noma-portal-router-${tenantId || "general"}.png`;
+    link.download = `noma-portal-qr-${tenantId || "general"}.png`;
     document.body.appendChild(link);
     link.click();
     document.body.removeChild(link);
@@ -108,9 +108,8 @@ export default function QrCodePage() {
             </div>
             <p style={{ margin: "0 0 12", fontSize: "0.85rem", color: "#808080" }}>
               Portal URL:{' '}
-              <code style={{ color: "#e50914", wordBreak: "break-all" }}>{portalUrl}</code>
+              <code style={{ color: "#e50914", wordBreak: "break-all" }}>{PUBLIC_PORTAL_URL}</code>
             </p>
-
             <div style={{ display: "flex", gap: 8, justifyContent: "center" }}>
               <button
                 onClick={downloadQr}
