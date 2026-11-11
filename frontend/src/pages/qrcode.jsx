@@ -110,11 +110,7 @@ export default function QrCodePage() {
               Portal URL:{' '}
               <code style={{ color: "#e50914", wordBreak: "break-all" }}>{portalUrl}</code>
             </p>
-            {tenantId ? (
-              <span style={{ display: "block", marginBottom: 12, fontSize: "0.75rem", color: "#e50914" }}>
-                Router ID: {tenantId}
-              </span>
-            ) : null}
+
             <div style={{ display: "flex", gap: 8, justifyContent: "center" }}>
               <button
                 onClick={downloadQr}
