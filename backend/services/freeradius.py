@@ -215,14 +215,22 @@ class FreeRADIUSService:
             await conn.close()
 
         # Mark the resolved router as online when RADIUS traffic is seen.
+        # Also auto-update the router's IP address if it changed (dynamic IP),
+        # so FreeRADIUS can keep working without manual config changes.
         if router_id is not None:
             try:
                 conn2 = await connection()
                 try:
                     async with conn2.cursor() as c2:
                         await c2.execute(
-                            "UPDATE routers SET status = 'online', last_heartbeat_at = NOW() WHERE id = %s;",
-                            (router_id,),
+                            """
+                            UPDATE routers
+                            SET status = 'online',
+                                last_heartbeat_at = NOW(),
+                                ip_address = COALESCE(NULLIF(%s, ''), ip_address)
+                            WHERE id = %s;
+                            """,
+                            (str(nas_ip_address).strip() if nas_ip_address else None, router_id),
                         )
                         await conn2.commit()
                 finally:
@@ -374,13 +382,20 @@ class FreeRADIUSService:
 
     @staticmethod
     def build_clients_config(routers: List[Dict[str, Any]]) -> str:
-        """Render clients.conf blocks. Keep shared secrets quoted and escape quotes."""
+        """Render clients.conf blocks. Keep shared secrets quoted and escape quotes.
+
+        Uses 0.0.0.0/0 for all clients so MikroTik/TP-Link devices work with
+        ANY public IP address. FreeRADIUS will accept RADIUS requests from any
+        source IP; authentication is enforced by shared secret + NAS-Identifier
+        + valid active session. No manual IP updates needed when a router's
+        public IP changes.
+        """
         blocks = []
         for index, router in enumerate(routers, start=1):
             name = re.sub(r"[^A-Za-z0-9_.-]", "_", str(router.get("router_name") or f"mikrotik_{index}"))
             ip_address = str(router.get("ip_address") or "").strip()
             secret = str(router.get("radius_secret") or "")
-            if not ip_address or not secret:
+            if not secret:
                 continue
             secret = secret.replace("\\", "\\\\").replace('"', '\\"')
             nas_identifier = str(router.get("nas_identifier") or name).replace('"', '\\"')
@@ -391,11 +406,12 @@ class FreeRADIUSService:
             )
             blocks.append(
                 f'client {name} {{\n'
-                f'    ipaddr = {ip_address}\n'
+                f'    ipaddr = 0.0.0.0/0\n'
                 f'    secret = "{secret}"\n'
                 f'    shortname = {name}\n'
                 f'    nas_type = {nas_type}\n'
                 f'    require_message_authenticator = no\n'
+                f'    # Accept RADIUS from any source IP (dynamic IP friendly)\n'
                 f'    # NAS-Identifier expected by NetKitonga: {nas_identifier}\n'
                 f'}}'
             )
