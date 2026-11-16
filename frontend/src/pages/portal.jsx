@@ -989,9 +989,9 @@ const gatewayPort =
                                     retryData.portalContext
                                 );
                                 setOmadaRetry(null);
-                                setUiMessage(
-                                    "Payment confirmed and Omada authorized this WiFi client."
-                                );
+                            setUiMessage(
+                                "umefanikiwa kununua internet subiri 10s kuunganishwa"
+                            );
                             } catch (error) {
                                 setUiMessage(
                                     `Payment confirmed, but Omada authorization failed: ${error.message}`
@@ -1017,7 +1017,11 @@ const gatewayPort =
 
                         if (!loginStarted) {
                             setUiMessage(
-                                "Payment confirmed, but automatic WiFi login could not start. Please reconnect to the WiFi network and try again."
+                                "umefanikiwa kununua internet subiri 10s kuunganishwa"
+                            );
+                        } else {
+                            setUiMessage(
+                                "umefanikiwa kununua internet subiri 10s kuunganishwa"
                             );
                         }
 
@@ -1036,7 +1040,7 @@ const gatewayPort =
                         );
 
                         setUiMessage(
-                            "Payment was not completed. Please try again."
+                            "Hauna salio la kutosha ongeza salio kuunganishwa"
                         );
 
                         return;
@@ -2290,6 +2294,9 @@ const gatewayPort =
                             ) ||
                             uiMessage.includes(
                                 "authorized this WiFi client"
+                            ) ||
+                            uiMessage.includes(
+                                "umefanikiwa kununua internet"
                             )
                                 ? "success"
                                 : "error"
