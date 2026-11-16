@@ -140,17 +140,16 @@ class DisbursementService:
             params={"pgReferenceId": pg_reference_id, "bankName": bank_name},
         )
 
-    def _generate_checksum(self, source_account: str, dest_account: str, currency: str, amount: float, external_reference: str) -> str:
-        import time, base64, hashlib
+    def _generate_checksum(self, source_account: str, dest_account: str, currency: str, amount: float, external_reference: str, epoch: int) -> str:
+        import base64, hashlib
         from cryptography.hazmat.primitives.asymmetric import padding as asym_padding
-        from cryptography.hazmat.primitives import serialization, hashes
+        from cryptography.hazmat.primitives import serialization
         from pathlib import Path
         # Load public key from file
         key_path = Path(__file__).resolve().parent.parent / "azampay_public.pem"
         if not key_path.exists():
             key_path = Path(os.getenv("AZAMPAY_PUBLIC_KEY_PATH", "azampay_public.pem"))
         public_key = serialization.load_pem_public_key(key_path.read_bytes())
-        epoch = int(time.time())
         input_string = f"{source_account}{dest_account}{currency}{int(amount)}{epoch}{external_reference}"
         sha512_hash = hashlib.sha512(input_string.encode("utf-8")).digest()
         encrypted = public_key.encrypt(sha512_hash, asym_padding.PKCS1v15())
@@ -159,6 +158,7 @@ class DisbursementService:
     def send(self, amount: float, phone_number: str, provider: str, reference: str) -> Dict[str, Any]:
         self._validate_configuration()
         token = self._get_bearer_token()
+        epoch = int(time.time())
         payload = {
             "source": {
                 "countryCode": self.source_country,
@@ -177,7 +177,7 @@ class DisbursementService:
             "transferDetails": {
                 "type": "mobile_money",
                 "amount": amount,
-                "dateInEpoch": int(time.time()),
+                "dateInEpoch": epoch,
             },
             "externalReferenceId": reference,
             "additionalProperties": {},
@@ -193,6 +193,7 @@ class DisbursementService:
                     "TZS",
                     amount,
                     reference,
+                    epoch,
                 )
             except (OSError, ValueError, TypeError) as error:
                 raise DisbursementPreflightError(
