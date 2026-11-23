@@ -132,7 +132,49 @@ async def buy_callback(request: Request):
         await conn.close()
 
 
-@router.post("/send", status_code=status.HTTP_200_OK, dependencies=[Depends(require_active_subscription)])
+@router.get("/purchase/status", status_code=status.HTTP_200_OK, dependencies=[Depends(require_active_subscription)])
+async def purchase_status(gateway_reference: str = Query(...), tenant_id: int = Query(...)):
+    from config.db import connection
+    conn = await connection()
+    try:
+        async with conn.cursor() as cursor:
+            await cursor.execute("SELECT tenant_id, sms_count, status FROM sms_purchases WHERE gateway_reference = %s;", (gateway_reference,))
+            row = await cursor.fetchone()
+            if not row:
+                raise HTTPException(status_code=404, detail="Purchase not found")
+            t_id, sms_count, cur_status = row
+            if cur_status == "completed":
+                return {"success": True, "status": "completed", "message": "Credits already added"}
+            # Try to verify with AzamPay
+            try:
+                import requests as _req
+                auth_url = os.getenv("AZAMPAY_AUTH_URL", "https://authenticator.azampay.co.tz/AppRegistration/GenerateToken")
+                app_name = os.getenv("AZAMPAY_APP_NAME", "Netkitonga")
+                client_id = os.getenv("AZAMPAY_CLIENT_ID", "")
+                client_secret = os.getenv("AZAMPAY_CLIENT_SECRET", "")
+                auth_resp = _req.post(auth_url, json={"appName": app_name, "clientId": client_id, "clientSecret": client_secret}, headers={"Content-Type": "application/json", "Accept": "application/json"}, timeout=15)
+                auth_body = auth_resp.json()
+                token = auth_body.get("token") or auth_body.get("accessToken")
+                if not token and isinstance(auth_body.get("data"), dict):
+                    token = auth_body["data"].get("token") or auth_body["data"].get("accessToken")
+                if token:
+                    status_url = os.getenv("AZAMPAY_TRANSACTION_STATUS_URL", "https://api-disbursement.azampay.co.tz/api/v1/azampay/transactionstatus")
+                    st_resp = _req.get(status_url, params={"pgReferenceId": gateway_reference, "bankName": "Azampesa"}, headers={"Authorization": f"Bearer {token}", "Accept": "application/json"}, timeout=15)
+                    st_body = st_resp.json() if st_resp.headers.get("content-type", "").startswith("application/json") else {}
+                    st_status = (st_body.get("status") or st_body.get("transactionStatus") or "").lower()
+                    if st_status in ("success", "completed", "paid", "pending"):
+                        await cursor.execute("UPDATE sms_purchases SET status = 'completed' WHERE gateway_reference = %s;", (gateway_reference,))
+                        await cursor.execute(
+                            "INSERT INTO sms_credits (tenant_id, balance) VALUES (%s, %s) ON CONFLICT (tenant_id) DO UPDATE SET balance = sms_credits.balance + %s, updated_at = NOW();",
+                            (t_id, sms_count, sms_count),
+                        )
+                        await conn.commit()
+                        return {"success": True, "status": "completed", "message": f"Added {sms_count} SMS credits"}
+            except Exception:
+                pass
+            return {"success": False, "status": cur_status, "message": "Payment not yet confirmed"}
+    finally:
+        await conn.close()
 async def send_sms(data: SendSMSRequest, tenant_id: int = Query(...)):
     if data.messages:
         return await controller.send_multi(tenant_id, data.messages, data.reference)

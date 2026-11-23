@@ -75,6 +75,27 @@ function SMS() {
             if (response.ok) {
                 setIsSuccess(true);
                 setUiMessage(`Payment initiated via AzamPay. ${buyCount} SMS credits will be added after payment confirmation.`);
+                // Poll for completion
+                const ref = data.gateway_reference;
+                let attempts = 0;
+                const poll = setInterval(async () => {
+                    attempts++;
+                    try {
+                        const stRes = await fetch(`${API_BASE_URL}/sms/purchase/status?gateway_reference=${ref}&tenant_id=${tenantId}`);
+                        const stData = await stRes.json();
+                        if (stData.status === "completed") {
+                            clearInterval(poll);
+                            setUiMessage(`Payment successful! ${stData.message}.`);
+                            fetchCredits();
+                        } else if (attempts >= 20) {
+                            clearInterval(poll);
+                            setUiMessage("Payment pending. Credits will be added once AzamPay confirms. Refresh later.");
+                            fetchCredits();
+                        }
+                    } catch {
+                        if (attempts >= 20) clearInterval(poll);
+                    }
+                }, 3000);
                 fetchCredits();
             } else {
                 setIsSuccess(false);
