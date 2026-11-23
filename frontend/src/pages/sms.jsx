@@ -12,6 +12,8 @@ function SMS() {
     const [balance, setBalance] = useState(null);
     const [credits, setCredits] = useState(null);
     const [buyCount, setBuyCount] = useState(10);
+    const [buyPhone, setBuyPhone] = useState("");
+    const [buyProvider, setBuyProvider] = useState("Mpesa");
     const [isBuying, setIsBuying] = useState(false);
 
     const getSessionTenantId = () => getTenantId();
@@ -23,8 +25,8 @@ function SMS() {
                 const data = await response.json();
                 setBalance(data);
             }
-        } catch (error) {
-            console.error("Failed to fetch SMS balance:", error);
+        } catch {
+            console.error("Failed to fetch SMS balance");
         }
     };
 
@@ -44,22 +46,26 @@ function SMS() {
 
     const handleBuyCredits = async () => {
         const tenantId = getSessionTenantId();
-        if (!tenantId) return;
+        if (!tenantId || !buyPhone.trim()) {
+            setIsSuccess(false);
+            setUiMessage("Enter your phone number to buy credits.");
+            return;
+        }
         setIsBuying(true);
         try {
             const response = await fetch(`${API_BASE_URL}/sms/buy?tenant_id=${tenantId}`, {
                 method: "POST",
                 headers: { "Content-Type": "application/json" },
-                body: JSON.stringify({ count: buyCount }),
+                body: JSON.stringify({ count: buyCount, phone_number: buyPhone.trim(), provider: buyProvider }),
             });
             const data = await response.json();
             if (response.ok) {
                 setIsSuccess(true);
-                setUiMessage(`Purchased ${buyCount} SMS credits. Balance: ${data.balance}`);
+                setUiMessage(`Payment initiated via AzamPay. ${buyCount} SMS credits will be added after payment confirmation.`);
                 fetchCredits();
             } else {
                 setIsSuccess(false);
-                setUiMessage(data.detail || "Failed to buy credits.");
+                setUiMessage(data.detail || "Failed to initiate purchase.");
             }
         } catch {
             setIsSuccess(false);
@@ -138,9 +144,10 @@ function SMS() {
             const data = await response.json();
             if (response.ok) {
                 setIsSuccess(true);
-                setUiMessage(`SMS sent to ${selectedNumbers.length} customer(s).`);
+                setUiMessage(`SMS sent to ${selectedNumbers.length} customer(s). Credits used: ${data.credits_used}.`);
                 setMessageText("");
                 setSelectedNumbers([]);
+                fetchCredits();
             } else {
                 setIsSuccess(false);
                 setUiMessage(data.detail || "Failed to send SMS.");
@@ -160,24 +167,36 @@ function SMS() {
         <div style={{ padding: "20px", color: "#fff", background: "#0f0f0f", minHeight: "100vh" }}>
             <h1 style={{ color: "#e50914" }}>Bulk SMS</h1>
             <p style={{ color: "#888" }}>Send mobile SMS to your customers. 20 TSH per SMS.</p>
-            {balance && (
-                <div style={{ padding: "8px 12px", marginBottom: "15px", background: "#1a1a1a", borderRadius: "6px", color: "#46d369", fontSize: "14px" }}>
-                    SMS Balance: {balance.sms_balance ?? balance.default_balance ?? "N/A"} {balance.display ? `(${balance.display})` : ""}
-                </div>
-            )}
-            {credits && (
-                <div style={{ padding: "8px 12px", marginBottom: "15px", background: "#1a1a1a", borderRadius: "6px", color: "#fff", fontSize: "14px", display: "flex", alignItems: "center", gap: "12px", flexWrap: "wrap" }}>
-                    <span>SMS Credits: <strong style={{ color: "#e50914" }}>{credits.balance}</strong> (cost: {credits.cost_per_sms} TSH/SMS)</span>
-                    <input type="number" min="1" value={buyCount} onChange={(e) => setBuyCount(parseInt(e.target.value) || 1)} style={{ width: "70px", padding: "4px 8px", background: "#0f0f0f", color: "#fff", border: "1px solid #333", borderRadius: "4px" }} />
-                    <button onClick={handleBuyCredits} disabled={isBuying} style={{ padding: "6px 12px", background: "#46d369", color: "#fff", border: "none", borderRadius: "4px", cursor: "pointer", fontWeight: 700 }}>
-                        {isBuying ? "Buying..." : `Buy ${buyCount} Credits (${buyCount * 20} TSH)`}
-                    </button>
-                </div>
-            )}
 
             {uiMessage && (
                 <div style={{ padding: "10px", marginBottom: "15px", borderRadius: "6px", background: isSuccess ? "rgba(70,211,105,0.1)" : "rgba(229,9,20,0.1)", borderLeft: `3px solid ${isSuccess ? "#46d369" : "#ff5252"}`, color: isSuccess ? "#46d369" : "#ff5252" }}>
                     {uiMessage}
+                </div>
+            )}
+
+            {balance && (
+                <div style={{ padding: "8px 12px", marginBottom: "15px", background: "#1a1a1a", borderRadius: "6px", color: "#46d369", fontSize: "14px" }}>
+                    NextSMS Balance: {balance.sms_balance ?? balance.default_balance ?? "N/A"} {balance.display ? `(${balance.display})` : ""}
+                </div>
+            )}
+
+            {credits && (
+                <div style={{ padding: "12px", marginBottom: "15px", background: "#1a1a1a", borderRadius: "6px", color: "#fff", fontSize: "14px" }}>
+                    <div style={{ marginBottom: "10px" }}>
+                        <span>SMS Credits: <strong style={{ color: "#e50914" }}>{credits.balance}</strong> (20 TSH/SMS)</span>
+                    </div>
+                    <div style={{ display: "flex", gap: "8px", alignItems: "center", flexWrap: "wrap" }}>
+                        <input type="number" min="1" value={buyCount} onChange={(e) => setBuyCount(parseInt(e.target.value) || 1)} style={{ width: "70px", padding: "6px 8px", background: "#0f0f0f", color: "#fff", border: "1px solid #333", borderRadius: "4px" }} />
+                        <input type="tel" placeholder="Phone number" value={buyPhone} onChange={(e) => setBuyPhone(e.target.value)} style={{ width: "160px", padding: "6px 8px", background: "#0f0f0f", color: "#fff", border: "1px solid #333", borderRadius: "4px" }} />
+                        <select value={buyProvider} onChange={(e) => setBuyProvider(e.target.value)} style={{ padding: "6px 8px", background: "#0f0f0f", color: "#fff", border: "1px solid #333", borderRadius: "4px" }}>
+                            <option value="Mpesa">M-Pesa</option>
+                            <option value="Tigo">Tigo Pesa</option>
+                            <option value="Airtel">Airtel Money</option>
+                        </select>
+                        <button onClick={handleBuyCredits} disabled={isBuying} style={{ padding: "6px 12px", background: "#46d369", color: "#fff", border: "none", borderRadius: "4px", cursor: "pointer", fontWeight: 700 }}>
+                            {isBuying ? "Processing..." : `Buy ${buyCount} Credits (${buyCount * 20} TSH)`}
+                        </button>
+                    </div>
                 </div>
             )}
 
@@ -214,7 +233,7 @@ function SMS() {
                             Characters: {messageText.length} | SMS parts: {Math.ceil(messageText.length / 160) || 1}
                         </div>
                         <div style={{ marginTop: "10px", color: "#888", fontSize: "13px" }}>
-                            Total cost: {totalCost} TSH
+                            Total cost: {totalCost} TSH ({selectedNumbers.length} SMS x 20 TSH)
                         </div>
                         <button type="submit" disabled={isLoading} style={{ marginTop: "15px", padding: "10px 20px", background: "#e50914", color: "#fff", border: "none", borderRadius: "6px", cursor: "pointer", fontWeight: 700 }}>
                             {isLoading ? "Sending..." : `Send to ${selectedNumbers.length} customer(s)`}
