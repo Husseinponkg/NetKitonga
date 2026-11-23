@@ -175,6 +175,7 @@ async def purchase_status(gateway_reference: str = Query(...), tenant_id: int = 
             return {"success": False, "status": cur_status, "message": "Payment not yet confirmed"}
     finally:
         await conn.close()
+@router.post("/send", status_code=status.HTTP_200_OK, dependencies=[Depends(require_active_subscription)])
 async def send_sms(data: SendSMSRequest, tenant_id: int = Query(...)):
     if data.messages:
         return await controller.send_multi(tenant_id, data.messages, data.reference)
