@@ -16,12 +16,27 @@ class SendSMSRequest(BaseModel):
     reference: str = ""
 
 
-@router.get("/balance", status_code=status.HTTP_200_OK, dependencies=[Depends(require_active_subscription)])
-async def sms_balance():
-    return await controller.check_balance()
+@router.get("/credits", status_code=status.HTTP_200_OK, dependencies=[Depends(require_active_subscription)])
+async def sms_credits(tenant_id: int = Query(...)):
+    return await controller.get_credits(tenant_id)
+
+
+class BuyCreditsRequest(BaseModel):
+    count: int
+
+
+@router.post("/buy", status_code=status.HTTP_200_OK, dependencies=[Depends(require_active_subscription)])
+async def buy_credits(data: BuyCreditsRequest, tenant_id: int = Query(...)):
+    return await controller.buy_credits(tenant_id, data.count)
+@router.post("/send", status_code=status.HTTP_200_OK, dependencies=[Depends(require_active_subscription)])
 async def send_sms(data: SendSMSRequest, tenant_id: int = Query(...)):
     if data.messages:
         return await controller.send_multi(tenant_id, data.messages, data.reference)
     if data.phone_numbers and data.text:
         return await controller.send_single(tenant_id, data.phone_numbers, data.text, data.reference)
     raise HTTPException(status_code=400, detail="Provide either phone_numbers+text or messages.")
+
+
+@router.get("/balance", status_code=status.HTTP_200_OK, dependencies=[Depends(require_active_subscription)])
+async def sms_balance():
+    return await controller.check_balance()

@@ -341,8 +341,27 @@ CREATE TABLE sms_logs (
     phone_number VARCHAR(30) NOT NULL,
     message TEXT NOT NULL,
     cost_per_sms NUMERIC(10,2) DEFAULT 16,
-    sell_price NUMERIC(10,2) DEFAULT 100,
+    sell_price NUMERIC(10,2) DEFAULT 20,
     status VARCHAR(20) DEFAULT 'sent',
     reference VARCHAR(100),
     sent_at TIMESTAMP DEFAULT CURRENT_TIMESTAMP
+);
+
+-- 26. SMS CREDITS (TENANT SMS BALANCE)
+CREATE TABLE sms_credits (
+    tenant_id INT PRIMARY KEY REFERENCES tenants(id) ON DELETE CASCADE,
+    balance INT NOT NULL DEFAULT 0,
+    updated_at TIMESTAMP DEFAULT CURRENT_TIMESTAMP
+);
+
+-- 27. SMS PURCHASES (AZAMPAY CHECKOUT TRACKING)
+CREATE TABLE sms_purchases (
+    id SERIAL PRIMARY KEY,
+    tenant_id INT NOT NULL REFERENCES tenants(id) ON DELETE CASCADE,
+    phone_number VARCHAR(30) NOT NULL,
+    amount NUMERIC(10,2) NOT NULL,
+    sms_count INT NOT NULL,
+    gateway_reference VARCHAR(150),
+    status VARCHAR(20) DEFAULT 'pending',
+    created_at TIMESTAMP DEFAULT CURRENT_TIMESTAMP
 );
