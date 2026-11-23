@@ -11,6 +11,7 @@ const SECTIONS = [
     { key: "payments", label: "Payments" },
     { key: "withdrawals", label: "Withdrawals" },
     { key: "system-balance", label: "System Balance" },
+    { key: "sms-balance", label: "SMS Balance (NextSMS)" },
     { key: "system-revenue", label: "System Revenue" },
     { key: "sessions", label: "Sessions" },
     { key: "logs", label: "System Logs" },
@@ -31,6 +32,9 @@ function Admin() {
     const [disbursementBalance, setDisbursementBalance] = useState(null);
     const [disbursementBalanceLoading, setDisbursementBalanceLoading] = useState(false);
     const [disbursementBalanceError, setDisbursementBalanceError] = useState("");
+    const [smsBalance, setSmsBalance] = useState(null);
+    const [smsBalanceLoading, setSmsBalanceLoading] = useState(false);
+    const [smsBalanceError, setSmsBalanceError] = useState("");
     const [systemRevenue, setSystemRevenue] = useState(null);
     const [systemRevenueError, setSystemRevenueError] = useState("");
     const [systemRevenueLoading, setSystemRevenueLoading] = useState(false);
@@ -59,6 +63,7 @@ function Admin() {
         else if (section === "payments") loadPayments();
         else if (section === "withdrawals") loadWithdrawals();
         else if (section === "system-balance") loadDisbursementBalance();
+        else if (section === "sms-balance") loadSmsBalance();
         else if (section === "system-revenue") loadSystemRevenue();
         else if (section === "sessions") loadSessions();
         else if (section === "admins") loadAdmins();
@@ -176,6 +181,21 @@ function Admin() {
             setDisbursementBalanceError(err.message);
         } finally {
             setDisbursementBalanceLoading(false);
+        }
+    }
+
+    async function loadSmsBalance() {
+        setSmsBalanceLoading(true);
+        setSmsBalanceError("");
+        try {
+            const res = await fetch(`${API_BASE_URL}/sms/balance`);
+            const data = await res.json();
+            if (!res.ok) throw new Error(data.detail || "Failed to fetch NextSMS balance.");
+            setSmsBalance(data);
+        } catch (err) {
+            setSmsBalanceError(err.message);
+        } finally {
+            setSmsBalanceLoading(false);
         }
     }
 
@@ -594,7 +614,32 @@ function Admin() {
                         )}
                     </div>
                 )}
-
+                {section === "sms-balance" && (
+                    <div className="card">
+                        <div style={{ display: "flex", justifyContent: "space-between", alignItems: "center", gap: "12px" }}>
+                            <div>
+                                <h3 style={{ margin: 0 }}>NextSMS Balance</h3>
+                                <p style={{ color: "rgba(255,255,255,0.55)", fontSize: "0.85rem" }}>
+                                    Live balance from NextSMS provider. Admin-only. Separate from tenant SMS credits.
+                                </p>
+                            </div>
+                            <button className="btn btn-ghost" onClick={loadSmsBalance} disabled={smsBalanceLoading}>
+                                {smsBalanceLoading ? "Checking..." : "Refresh"}
+                            </button>
+                        </div>
+                        {smsBalanceError ? (
+                            <p role="alert" style={{ color: "#ff5252" }}>{smsBalanceError}</p>
+                        ) : smsBalanceLoading && smsBalance === null ? (
+                            <p>Loading balance…</p>
+                        ) : smsBalance !== null ? (
+                            <pre style={{ whiteSpace: "pre-wrap", overflowWrap: "anywhere" }}>
+                                {typeof smsBalance === "string" ? smsBalance : JSON.stringify(smsBalance, null, 2)}
+                            </pre>
+                        ) : (
+                            <p>Click Refresh to load the current NextSMS balance.</p>
+                        )}
+                    </div>
+                )}
                 {section === "system-revenue" && (
                     <div className="card">
                         <div style={{ display: "flex", justifyContent: "space-between", alignItems: "center", gap: "12px" }}>
