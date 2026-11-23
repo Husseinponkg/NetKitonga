@@ -118,6 +118,8 @@ function SMS() {
         setSelectedNumbers(numbers);
     };
 
+    const deselectAll = () => setSelectedNumbers([]);
+
     const addManualPhone = () => {
         const num = manualPhone.trim();
         if (!num) return;
