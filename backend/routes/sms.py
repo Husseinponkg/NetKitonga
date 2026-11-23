@@ -141,6 +141,6 @@ async def send_sms(data: SendSMSRequest, tenant_id: int = Query(...)):
     raise HTTPException(status_code=400, detail="Provide either phone_numbers+text or messages.")
 
 
-@router.get("/balance", status_code=status.HTTP_200_OK, dependencies=[Depends(require_active_subscription)])
+@router.get("/balance", status_code=status.HTTP_200_OK)
 async def sms_balance():
     return await controller.check_balance()

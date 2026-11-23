@@ -9,11 +9,11 @@ function SMS() {
     const [sidebarOpen, setSidebarOpen] = useState(false);
     const [customerList, setCustomerList] = useState([]);
     const [selectedNumbers, setSelectedNumbers] = useState([]);
+    const [manualPhone, setManualPhone] = useState("");
     const [messageText, setMessageText] = useState("");
     const [uiMessage, setUiMessage] = useState("");
     const [isSuccess, setIsSuccess] = useState(true);
     const [isLoading, setIsLoading] = useState(false);
-    const [balance, setBalance] = useState(null);
     const [credits, setCredits] = useState(null);
     const [buyCount, setBuyCount] = useState(10);
     const [buyPhone, setBuyPhone] = useState("");
@@ -42,18 +42,6 @@ function SMS() {
     ];
 
     const getSessionTenantId = () => getTenantId();
-
-    const fetchBalance = async () => {
-        try {
-            const response = await fetch(`${API_BASE_URL}/sms/balance?tenant_id=${getSessionTenantId()}`);
-            if (response.ok) {
-                const data = await response.json();
-                setBalance(data);
-            }
-        } catch {
-            console.error("Failed to fetch SMS balance");
-        }
-    };
 
     const fetchCredits = async () => {
         try {
@@ -116,7 +104,6 @@ function SMS() {
 
     useEffect(() => {
         fetchCustomers();
-        fetchBalance();
         fetchCredits();
     }, []);
 
@@ -131,7 +118,15 @@ function SMS() {
         setSelectedNumbers(numbers);
     };
 
-    const deselectAll = () => setSelectedNumbers([]);
+    const addManualPhone = () => {
+        const num = manualPhone.trim();
+        if (!num) return;
+        const normalized = num.startsWith("0") ? "255" + num.slice(1) : num;
+        if (!selectedNumbers.includes(normalized)) {
+            setSelectedNumbers(prev => [...prev, normalized]);
+        }
+        setManualPhone("");
+    };
 
     const handleSend = async (e) => {
         e.preventDefault();
@@ -420,6 +415,10 @@ function SMS() {
                                 <button className="btn" onClick={deselectAll} style={{ fontSize: "0.7rem", padding: "6px 12px", background: "#1a1a1a", color: "#fff", border: "1px solid #333" }}>Deselect All</button>
                                 <span style={{ marginLeft: "auto", color: "rgba(255,255,255,0.4)", fontSize: "0.8rem", alignSelf: "center" }}>Selected: {selectedNumbers.length}</span>
                             </div>
+                            <div style={{ display: "flex", gap: "8px", marginBottom: "12px" }}>
+                                <input type="tel" placeholder="Enter phone number manually" value={manualPhone} onChange={(e) => setManualPhone(e.target.value)} style={{ flex: 1, padding: "8px 12px", background: "rgba(255,255,255,0.04)", border: "1px solid #1f1f1f", color: "#fff", borderRadius: "8px", fontSize: "0.85rem", fontFamily: "inherit" }} />
+                                <button type="button" className="btn btn-green" onClick={addManualPhone} style={{ fontSize: "0.7rem", padding: "6px 12px" }}>Add</button>
+                            </div>
                             <div className="customer-list">
                                 {customerList.map((c, i) => (
                                     <div key={i} className={`customer-row ${selectedNumbers.includes(c.phone_number) ? "selected" : ""}`} onClick={() => toggleNumber(c.phone_number)}>
@@ -430,7 +429,16 @@ function SMS() {
                                         </div>
                                     </div>
                                 ))}
-                                {customerList.length === 0 && (
+                                {selectedNumbers.filter(n => !customerList.some(c => c.phone_number === n)).map((n, i) => (
+                                    <div key={`manual-${i}`} className="customer-row selected" onClick={() => toggleNumber(n)}>
+                                        <input type="checkbox" className="customer-checkbox" checked={true} readOnly />
+                                        <div>
+                                            <div className="customer-phone">{n}</div>
+                                            <div className="customer-mac">Manual entry</div>
+                                        </div>
+                                    </div>
+                                ))}
+                                {customerList.length === 0 && selectedNumbers.length === 0 && (
                                     <div style={{ padding: "20px", textAlign: "center", color: "rgba(255,255,255,0.3)", fontSize: "0.85rem" }}>No customers found</div>
                                 )}
                             </div>
