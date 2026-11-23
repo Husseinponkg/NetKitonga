@@ -167,6 +167,33 @@ async def handle_azampay_gateway_callback(
     if str(external_id).startswith("NETKITONGA-SUB-"):
         return await SubscriptionController().callback(callback_data)
 
+    if str(external_id).startswith("SMS-"):
+        from config.db import connection
+        conn = await connection()
+        try:
+            async with conn.cursor() as cursor:
+                await cursor.execute("SELECT tenant_id, sms_count, status FROM sms_purchases WHERE gateway_reference = %s;", (external_id,))
+                row = await cursor.fetchone()
+                if not row:
+                    raise HTTPException(status_code=404, detail="SMS purchase not found")
+                tenant_id, sms_count, cur_status = row
+                if cur_status == "completed":
+                    return {"status": "acknowledged", "code": 200}
+                status_val = str(raw_status or "").lower()
+                if status_val in ("success", "successful", "completed", "paid"):
+                    await cursor.execute("UPDATE sms_purchases SET status = 'completed' WHERE gateway_reference = %s;", (external_id,))
+                    await cursor.execute(
+                        "INSERT INTO sms_credits (tenant_id, balance) VALUES (%s, %s) ON CONFLICT (tenant_id) DO UPDATE SET balance = sms_credits.balance + %s, updated_at = NOW();",
+                        (tenant_id, sms_count, sms_count),
+                    )
+                    await conn.commit()
+                else:
+                    await cursor.execute("UPDATE sms_purchases SET status = 'failed' WHERE gateway_reference = %s;", (external_id,))
+                    await conn.commit()
+                return {"status": "acknowledged", "code": 200}
+        finally:
+            await conn.close()
+
     if not isinstance(raw_status, str) or not raw_status.strip():
         raise HTTPException(
             status_code=status.HTTP_400_BAD_REQUEST,

@@ -183,6 +183,35 @@ async def send_sms(data: SendSMSRequest, tenant_id: int = Query(...)):
     raise HTTPException(status_code=400, detail="Provide either phone_numbers+text or messages.")
 
 
+@router.post("/purchase/confirm", status_code=status.HTTP_200_OK, dependencies=[Depends(require_active_subscription)])
+async def confirm_purchase(gateway_reference: str = Query(...), tenant_id: int = Query(...)):
+    conn = await connection()
+    try:
+        async with conn.cursor() as cursor:
+            await cursor.execute("SELECT tenant_id, sms_count, status FROM sms_purchases WHERE gateway_reference = %s;", (gateway_reference,))
+            row = await cursor.fetchone()
+            if not row:
+                raise HTTPException(status_code=404, detail="Purchase not found")
+            t_id, sms_count, cur_status = row
+            if cur_status == "completed":
+                await cursor.execute("SELECT balance FROM sms_credits WHERE tenant_id = %s;", (t_id,))
+                bal_row = await cursor.fetchone()
+                new_balance = int(bal_row[0]) if bal_row else sms_count
+                return {"success": True, "message": "Already processed", "balance": new_balance}
+            await cursor.execute("UPDATE sms_purchases SET status = 'completed' WHERE gateway_reference = %s;", (gateway_reference,))
+            await cursor.execute(
+                "INSERT INTO sms_credits (tenant_id, balance) VALUES (%s, %s) ON CONFLICT (tenant_id) DO UPDATE SET balance = sms_credits.balance + %s, updated_at = NOW();",
+                (t_id, sms_count, sms_count),
+            )
+            await conn.commit()
+            await cursor.execute("SELECT balance FROM sms_credits WHERE tenant_id = %s;", (t_id,))
+            bal_row = await cursor.fetchone()
+            new_balance = int(bal_row[0]) if bal_row else sms_count
+            return {"success": True, "message": f"Added {sms_count} SMS credits", "balance": new_balance}
+    finally:
+        await conn.close()
+
+
 @router.get("/balance", status_code=status.HTTP_200_OK)
 async def sms_balance():
     return await controller.check_balance()

@@ -19,6 +19,8 @@ function SMS() {
     const [buyPhone, setBuyPhone] = useState("");
     const [buyProvider, setBuyProvider] = useState("Mpesa");
     const [isBuying, setIsBuying] = useState(false);
+    const [lastRef, setLastRef] = useState("");
+    const [isConfirming, setIsConfirming] = useState(false);
     const user = getStoredTenantUser();
 
     const logout = () => {
@@ -97,6 +99,7 @@ function SMS() {
                     }
                 }, 3000);
                 fetchCredits();
+                setLastRef(ref);
             } else {
                 setIsSuccess(false);
                 setUiMessage(data.detail || "Failed to initiate purchase.");
@@ -106,6 +109,31 @@ function SMS() {
             setUiMessage("Network error buying credits.");
         } finally {
             setIsBuying(false);
+        }
+    };
+
+    const handleConfirmPayment = async () => {
+        if (!lastRef) return;
+        setIsConfirming(true);
+        setUiMessage("");
+        try {
+            const tenantId = getSessionTenantId();
+            const response = await fetch(`${API_BASE_URL}/sms/purchase/confirm?gateway_reference=${lastRef}&tenant_id=${tenantId}`, { method: "POST" });
+            const data = await response.json();
+            if (response.ok) {
+                setIsSuccess(true);
+                setUiMessage(data.message || "Credits added!");
+                setLastRef("");
+                fetchCredits();
+            } else {
+                setIsSuccess(false);
+                setUiMessage(data.detail || "Failed to confirm payment.");
+            }
+        } catch {
+            setIsSuccess(false);
+            setUiMessage("Network error confirming payment.");
+        } finally {
+            setIsConfirming(false);
         }
     };
 
