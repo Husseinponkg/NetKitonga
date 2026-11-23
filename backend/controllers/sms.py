@@ -15,3 +15,6 @@ class SMSController:
     async def send_multi(self, tenant_id: int, messages: List[Dict[str, str]], reference: str = "") -> Dict[str, Any]:
         result = self.service.send_multi(messages, reference or f"sms-{tenant_id}")
         return {"success": True, "result": result}
+
+    async def check_balance(self) -> Dict[str, Any]:
+        return self.service.check_balance()

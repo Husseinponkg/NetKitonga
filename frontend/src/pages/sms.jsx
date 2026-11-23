@@ -9,8 +9,21 @@ function SMS() {
     const [uiMessage, setUiMessage] = useState("");
     const [isSuccess, setIsSuccess] = useState(true);
     const [isLoading, setIsLoading] = useState(false);
+    const [balance, setBalance] = useState(null);
 
     const getSessionTenantId = () => getTenantId();
+
+    const fetchBalance = async () => {
+        try {
+            const response = await fetch(`${API_BASE_URL}/sms/balance?tenant_id=${getSessionTenantId()}`);
+            if (response.ok) {
+                const data = await response.json();
+                setBalance(data);
+            }
+        } catch (error) {
+            console.error("Failed to fetch SMS balance:", error);
+        }
+    };
 
     const fetchCustomers = async () => {
         try {
@@ -28,6 +41,7 @@ function SMS() {
 
     useEffect(() => {
         fetchCustomers();
+        fetchBalance();
     }, []);
 
     const toggleNumber = (phone) => {
@@ -103,6 +117,11 @@ function SMS() {
         <div style={{ padding: "20px", color: "#fff", background: "#0f0f0f", minHeight: "100vh" }}>
             <h1 style={{ color: "#e50914" }}>Bulk SMS</h1>
             <p style={{ color: "#888" }}>Send mobile SMS to your customers. Cost: {costPerSms} TSH/SMS, Sell: {sellPrice} TSH/SMS</p>
+            {balance && (
+                <div style={{ padding: "8px 12px", marginBottom: "15px", background: "#1a1a1a", borderRadius: "6px", color: "#46d369", fontSize: "14px" }}>
+                    SMS Balance: {balance.sms_balance ?? balance.default_balance ?? "N/A"} {balance.display ? `(${balance.display})` : ""}
+                </div>
+            )}
 
             {uiMessage && (
                 <div style={{ padding: "10px", marginBottom: "15px", borderRadius: "6px", background: isSuccess ? "rgba(70,211,105,0.1)" : "rgba(229,9,20,0.1)", borderLeft: `3px solid ${isSuccess ? "#46d369" : "#ff5252"}`, color: isSuccess ? "#46d369" : "#ff5252" }}>

@@ -17,6 +17,25 @@ class SMSService:
             "Authorization": f"Bearer {self.api_token}",
         }
 
+    def check_balance(self) -> Dict[str, Any]:
+        if not self.api_token:
+            raise HTTPException(status_code=500, detail="NextSMS API token not configured.")
+        url = f"{self.base_url}/api/v2/balance"
+        try:
+            response = requests.get(url, headers=self._headers(), timeout=15)
+        except requests.exceptions.RequestException as error:
+            raise HTTPException(status_code=502, detail=f"NextSMS connection failed: {error}")
+        try:
+            body = response.json()
+        except ValueError:
+            body = {"message": response.text}
+        if response.status_code >= 400:
+            raise HTTPException(
+                status_code=502,
+                detail=f"NextSMS rejected: {body.get('message', response.text)[:300]}",
+            )
+        return body
+
     def _normalize(self, num: str) -> str:
         n = str(num).strip().replace("+", "").replace(" ", "")
         if n.startswith("0"):

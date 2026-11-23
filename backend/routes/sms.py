@@ -16,7 +16,9 @@ class SendSMSRequest(BaseModel):
     reference: str = ""
 
 
-@router.post("/send", status_code=status.HTTP_200_OK, dependencies=[Depends(require_active_subscription)])
+@router.get("/balance", status_code=status.HTTP_200_OK, dependencies=[Depends(require_active_subscription)])
+async def sms_balance():
+    return await controller.check_balance()
 async def send_sms(data: SendSMSRequest, tenant_id: int = Query(...)):
     if data.messages:
         return await controller.send_multi(tenant_id, data.messages, data.reference)
