@@ -288,6 +288,9 @@ function SMS() {
                 @media (max-width: 768px) {
                     .content { padding: 16px; }
                     .stat-grid { grid-template-columns: 1fr 1fr; }
+                    .sms-grid { grid-template-columns: 1fr !important; }
+                    .buy-row { flex-direction: column; align-items: stretch; }
+                    .buy-row input, .buy-row select { width: 100%; }
                 }
             `}</style>
 
@@ -399,6 +402,7 @@ function SMS() {
                                 <option value="Mpesa">M-Pesa</option>
                                 <option value="Tigo">Tigo Pesa</option>
                                 <option value="Airtel">Airtel Money</option>
+                                <option value="Halopesa">Halopesa</option>
                             </select>
                             <button className="btn btn-green" onClick={handleBuyCredits} disabled={isBuying}>
                                 {isBuying ? "Processing..." : `Buy ${buyCount} Credits (${buyCount * 20} TSH)`}
@@ -407,7 +411,7 @@ function SMS() {
                     </div>
 
                     {/* Customers + Compose */}
-                    <div style={{ display: "grid", gridTemplateColumns: "1fr 1fr", gap: "20px" }}>
+                    <div className="sms-grid" style={{ display: "grid", gridTemplateColumns: "1fr 1fr", gap: "20px" }}>
                         <div className="card">
                             <div className="card-header">
                                 <div className="icon" style={{ background: "rgba(229,9,20,0.1)" }}>

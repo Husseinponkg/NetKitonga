@@ -32,6 +32,10 @@ async def sms_credits(tenant_id: int = Query(...)):
 @router.post("/buy", status_code=status.HTTP_200_OK, dependencies=[Depends(require_active_subscription)])
 async def buy_credits(data: BuyCreditsRequest, tenant_id: int = Query(...)):
     checkout_url = os.getenv("AZAMPAY_MNO", "https://checkout.azampay.co.tz/azampay/mno/checkout")
+    auth_url = os.getenv("AZAMPAY_AUTH_URL", "https://authenticator.azampay.co.tz/AppRegistration/GenerateToken")
+    app_name = os.getenv("AZAMPAY_APP_NAME", "Netkitonga")
+    client_id = os.getenv("AZAMPAY_CLIENT_ID", "")
+    client_secret = os.getenv("AZAMPAY_CLIENT_SECRET", "")
     api_key = os.getenv("AZAMPAY_TOKEN", "")
     amount = data.count * 20
     external_id = f"SMS-{secrets.token_hex(8).upper()}"
@@ -50,6 +54,24 @@ async def buy_credits(data: BuyCreditsRequest, tenant_id: int = Query(...)):
     finally:
         await conn.close()
 
+    # Get fresh AzamPay bearer token
+    try:
+        auth_response = requests.post(
+            auth_url,
+            json={"appName": app_name, "clientId": client_id, "clientSecret": client_secret},
+            headers={"Content-Type": "application/json", "Accept": "application/json"},
+            timeout=15,
+        )
+        auth_body = auth_response.json()
+        token = auth_body.get("token") or auth_body.get("accessToken")
+        if not token and isinstance(auth_body.get("data"), dict):
+            token = auth_body["data"].get("token") or auth_body["data"].get("accessToken")
+    except Exception as e:
+        raise HTTPException(status_code=502, detail=f"AzamPay auth failed: {str(e)[:200]}")
+
+    if not token:
+        raise HTTPException(status_code=502, detail="AzamPay returned no access token")
+
     payload = {
         "accountNumber": phone,
         "amount": str(amount),
@@ -57,9 +79,13 @@ async def buy_credits(data: BuyCreditsRequest, tenant_id: int = Query(...)):
         "externalId": external_id,
         "provider": data.provider,
     }
-    headers = {"Content-Type": "application/json", "Accept": "application/json"}
+    headers = {
+        "Content-Type": "application/json",
+        "Accept": "application/json",
+        "Authorization": f"Bearer {token}",
+    }
     if api_key:
-        headers["Authorization"] = f"Bearer {api_key}"
+        headers["X-API-Key"] = api_key
 
     try:
         response = requests.post(checkout_url, json=payload, headers=headers, timeout=30)
