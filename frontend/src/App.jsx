@@ -19,6 +19,7 @@ import CaptivePortal from "./pages/portal";
 import Sessions from "./pages/sessions";
 import Settings from "./pages/settings";
 import Vouchers from "./pages/vouchers";
+import SMS from "./pages/sms";
 import Admin from "./pages/admin";
 import QrCodePage from "./pages/qrcode";
 import PrivacyPolicy from "./pages/PrivacyPolicy";
@@ -153,6 +154,7 @@ function App() {
           <Route path="/subscription" element={<ProtectedRoute><Subscription /></ProtectedRoute>} />
           <Route path="/packages" element={<SubscriptionProtectedRoute><PackagesDashboard /></SubscriptionProtectedRoute>} />
           <Route path="/vouchers" element={<SubscriptionProtectedRoute><Vouchers /></SubscriptionProtectedRoute>} />
+<Route path="/sms" element={<SubscriptionProtectedRoute><SMS /></SubscriptionProtectedRoute>} />
           <Route path="/customers" element={<SubscriptionProtectedRoute><Customers /></SubscriptionProtectedRoute>} />
           <Route path="/payments" element={<SubscriptionProtectedRoute><Payments /></SubscriptionProtectedRoute>} />
           <Route path="/income" element={<SubscriptionProtectedRoute><Income /></SubscriptionProtectedRoute>} />

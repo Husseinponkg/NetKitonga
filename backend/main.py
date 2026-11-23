@@ -32,6 +32,7 @@ from backend.routes.sessions import session_endpoints
 from backend.routes.settings import settings_endpoints
 from backend.routes.withdrawals import router as withdrawals_router
 from backend.routes.vouchers import router as vouchers_router
+from backend.routes.sms import router as sms_router
 from backend.routes.radius import radius_endpoints
 from backend.routes.qrcode import QR_API_PREFIX, router as qrcode_router
 from backend.controllers.payments import PaymentController
@@ -139,6 +140,7 @@ app.include_router(session_endpoints)
 app.include_router(settings_endpoints)
 app.include_router(withdrawals_router, prefix="/withdrawals", tags=["withdrawals"])
 app.include_router(vouchers_router, prefix="/vouchers", tags=["vouchers"])
+app.include_router(sms_router, prefix="/sms", tags=["sms"])
 from backend.routes.captive import captive_router as captive_endpoints
 
 app.include_router(captive_endpoints, prefix="/captive", tags=["captive"])

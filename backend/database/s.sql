@@ -333,3 +333,16 @@ CREATE TABLE IF NOT EXISTS tplink (
 );
 CREATE INDEX IF NOT EXISTS idx_tplink_tenant_id ON tplink(tenant_id);
 CREATE INDEX IF NOT EXISTS idx_tplink_router_id ON tplink(router_id);
+
+-- 25. SMS LOG (TENANT BULK SMS HISTORY)
+CREATE TABLE sms_logs (
+    id SERIAL PRIMARY KEY,
+    tenant_id INT NOT NULL REFERENCES tenants(id) ON DELETE CASCADE,
+    phone_number VARCHAR(30) NOT NULL,
+    message TEXT NOT NULL,
+    cost_per_sms NUMERIC(10,2) DEFAULT 16,
+    sell_price NUMERIC(10,2) DEFAULT 100,
+    status VARCHAR(20) DEFAULT 'sent',
+    reference VARCHAR(100),
+    sent_at TIMESTAMP DEFAULT CURRENT_TIMESTAMP
+);
