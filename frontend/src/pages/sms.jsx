@@ -390,11 +390,7 @@ function SMS() {
                             </div>
                             <h3>Buy SMS Credits (AzamPay)</h3>
                         </div>
-                        {balance && (
-                            <div style={{ fontSize: "0.8rem", color: "rgba(255,255,255,0.4)", marginBottom: "12px" }}>
-                                NextSMS Balance: {balance.sms_balance ?? balance.default_balance ?? "N/A"} {balance.display ? `(${balance.display})` : ""}
-                            </div>
-                        )}
+
                         <div className="buy-row">
                             <input type="number" min="1" value={buyCount} onChange={(e) => setBuyCount(parseInt(e.target.value) || 1)} placeholder="Qty" />
                             <input type="tel" placeholder="Phone number" value={buyPhone} onChange={(e) => setBuyPhone(e.target.value)} />
