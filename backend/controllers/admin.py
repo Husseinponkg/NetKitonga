@@ -257,11 +257,16 @@ class AdminController:
                             FROM withdrawals
                             WHERE LOWER(status) IN ('approved', 'paid')
                         ), 0),
-                        COALESCE((
-                            SELECT SUM(amount)
-                            FROM subscription_payments
-                            WHERE status = 'completed'
-                        ), 0),
+                         COALESCE((
+                             SELECT SUM(amount)
+                             FROM subscription_payments
+                             WHERE status = 'completed'
+                         ), 0),
+                         COALESCE((
+                             SELECT SUM(amount)
+                             FROM sms_purchases
+                             WHERE status = 'completed'
+                         ), 0),
                         (
                             SELECT COUNT(*)
                             FROM withdrawals
@@ -280,13 +285,14 @@ class AdminController:
                     """
                 )
                 (
-                    commission_revenue, subscription_revenue, commission_count,
+                    commission_revenue, subscription_revenue, sms_revenue, commission_count,
                     subscription_count, cashouts_reserved,
                 ) = await cursor.fetchone()
                 commission_revenue = float(commission_revenue or 0)
                 subscription_revenue = float(subscription_revenue or 0)
+                sms_revenue = float(sms_revenue or 0)
                 cashouts_reserved = float(cashouts_reserved or 0)
-                total_revenue = commission_revenue + subscription_revenue
+                total_revenue = commission_revenue + subscription_revenue + sms_revenue
                 available_balance = max(0.0, total_revenue - cashouts_reserved)
                 await cursor.execute(
                     """
@@ -302,6 +308,7 @@ class AdminController:
                     "currency": "TZS",
                     "withdrawal_commissions": commission_revenue,
                     "subscription_payments": subscription_revenue,
+                    "sms_purchases": sms_revenue,
                     "total_recorded_revenue": total_revenue,
                     "cashouts_reserved": cashouts_reserved,
                     "available_balance": available_balance,
