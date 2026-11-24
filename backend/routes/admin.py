@@ -39,6 +39,10 @@ class LogCreateRequest(BaseModel):
 class AdminSendSMSRequest(BaseModel):
     phone_numbers: List[str]
     text: str
+
+class TenantUpdateRequest(BaseModel):
+    tenant_id: int
+    status: str
     tenant_id: int
     status: str
 
