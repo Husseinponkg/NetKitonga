@@ -104,15 +104,22 @@ class SMSService:
 
         normalized = [self._normalize(n) for n in phone_numbers]
 
-        url = f"{self.base_url}/api/sms/v2/text/single"
-        payload: Dict[str, Any] = {
-            "from": self.sender_id or "TANZANIATIP",
-            "to": ",".join(normalized),
-            "text": text,
-            "flash": 0,
-        }
-        if reference:
-            payload["reference"] = reference
+        if len(normalized) == 1:
+            url = f"{self.base_url}/api/sms/v2/text/single"
+            payload: Dict[str, Any] = {
+                "from": self.sender_id or "TANZANIATIP",
+                "to": normalized[0],
+                "text": text,
+                "flash": 0,
+            }
+            if reference:
+                payload["reference"] = reference
+        else:
+            url = f"{self.base_url}/api/sms/v2/text/multi"
+            messages = [{"from": self.sender_id or "TANZANIATIP", "to": n, "text": text} for n in normalized]
+            payload = {"messages": messages, "flash": 0}
+            if reference:
+                payload["reference"] = reference
 
         try:
             response = requests.post(url, json=payload, headers=self._headers(), timeout=30)

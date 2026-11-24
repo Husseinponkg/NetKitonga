@@ -669,8 +669,8 @@ function Admin() {
                                         <div>{systemRevenue.successful_subscriptions} completed payments</div>
                                     </div>
                                     <div className="stat-card">
-                                        <div className="stat-label">Total recorded revenue</div>
-                                        <div className="stat-value">{fmt(systemRevenue.total_recorded_revenue)}</div>
+                                        <div className="stat-label">SMS credit purchases</div>
+                                        <div className="stat-value">{fmt(systemRevenue.sms_purchases)}</div>
                                     </div>
                                     <div className="stat-card">
                                         <div className="stat-label">Pending/completed cashouts reserved</div>

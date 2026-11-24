@@ -11,7 +11,7 @@ from services.disbursements import (
     DisbursementRejected,
     DisbursementService,
 )
-from services.omada import OmadaConfigurationError, OmadaControllerError
+from services.sms import SMSService
 from services.omada_sessions import terminate_session as terminate_active_session
 
 
@@ -513,7 +513,10 @@ class AdminController:
         finally:
             await conn.close()
 
-    async def list_routers(self) -> List[Dict[str, Any]]:
+    async def admin_send_sms(self, phone_numbers: List[str], text: str) -> Dict[str, Any]:
+        service = SMSService()
+        result = service.send_single(phone_numbers, text, reference=f"admin-sms")
+        return {"success": True, "result": result}
         conn = await connection()
         try:
             async with conn.cursor() as cursor:

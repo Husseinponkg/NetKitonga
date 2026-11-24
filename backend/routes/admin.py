@@ -1,4 +1,4 @@
-from typing import Optional
+from typing import Optional, List
 import asyncio
 from decimal import Decimal
 from fastapi import APIRouter, Query
@@ -36,7 +36,9 @@ class LogCreateRequest(BaseModel):
     metadata: Optional[dict] = None
 
 
-class TenantUpdateRequest(BaseModel):
+class AdminSendSMSRequest(BaseModel):
+    phone_numbers: List[str]
+    text: str
     tenant_id: int
     status: str
 
@@ -143,7 +145,9 @@ async def list_tenants():
     return await admin_controller.list_tenants()
 
 
-@router.put("/tenants/status")
+@router.post("/sms/send")
+async def admin_send_sms(payload: AdminSendSMSRequest):
+    return await admin_controller.admin_send_sms(payload.phone_numbers, payload.text)
 async def update_tenant_status(payload: TenantUpdateRequest):
     return await admin_controller.update_tenant_status(payload.tenant_id, payload.status)
 
