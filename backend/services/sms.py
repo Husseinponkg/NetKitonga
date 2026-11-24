@@ -10,8 +10,8 @@ class SMSService:
         self.base_url = os.getenv("NEXTSMS_BASE_URL", "https://messaging-service.co.tz")
         self.api_token = os.getenv("NEXTSMS_API_TOKEN", "")
         self.sender_id = os.getenv("NEXTSMS_SENDER_ID", "")
-        self.cost_per_sms = int(os.getenv("NEXTSMS_COST_PER_SMS", "5"))
-        self.sell_price = int(os.getenv("NEXTSMS_SELL_PRICE", "20"))
+        self.cost_per_sms = int(os.getenv("NEXTSMS_COST_PER_SMS", "16"))
+        self.sell_price = int(os.getenv("NEXTSMS_SELL_PRICE", "50"))
 
     def _headers(self) -> Dict[str, str]:
         return {

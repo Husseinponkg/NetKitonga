@@ -416,7 +416,7 @@ function SMS() {
                         </div>
                         <div className="stat-card">
                             <div className="stat-label">Cost per SMS</div>
-                            <div className="stat-value">20 TSH</div>
+                            <div className="stat-value">50 TSH</div>
                         </div>
                         <div className="stat-card">
                             <div className="stat-label">Selected</div>
@@ -447,7 +447,7 @@ function SMS() {
                                 <option value="Halopesa">Halopesa</option>
                             </select>
                             <button className="btn btn-green" onClick={handleBuyCredits} disabled={isBuying}>
-                                {isBuying ? "Processing..." : `Buy ${buyCount} Credits (${buyCount * 20} TSH)`}
+                                {isBuying ? "Processing..." : `Buy ${buyCount} Credits (${buyCount * 50} TSH)`}
                             </button>
                         </div>
                     </div>

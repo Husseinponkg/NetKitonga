@@ -37,7 +37,7 @@ async def buy_credits(data: BuyCreditsRequest, tenant_id: int = Query(...)):
     client_id = os.getenv("AZAMPAY_CLIENT_ID", "")
     client_secret = os.getenv("AZAMPAY_CLIENT_SECRET", "")
     api_key = os.getenv("AZAMPAY_TOKEN", "")
-    amount = data.count * 20
+    amount = data.count * 50
     external_id = f"SMS-{secrets.token_hex(8).upper()}"
     phone = data.phone_number.strip().replace("+", "").replace(" ", "")
     if phone.startswith("0"):
