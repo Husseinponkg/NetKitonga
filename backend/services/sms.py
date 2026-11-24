@@ -104,13 +104,13 @@ class SMSService:
 
         normalized = [self._normalize(n) for n in phone_numbers]
 
-        url = f"{self.base_url}/api/mobile/v2/text/single"
+        url = f"{self.base_url}/api/sms/v2/text/single"
         payload: Dict[str, Any] = {
-            "to": normalized,
+            "from": self.sender_id or "TANZANIATIP",
+            "to": ",".join(normalized),
             "text": text,
+            "flash": 0,
         }
-        if self.sender_id:
-            payload["from"] = self.sender_id
         if reference:
             payload["reference"] = reference
 
@@ -140,13 +140,15 @@ class SMSService:
         normalized_messages = []
         for m in messages:
             normalized_messages.append({
+                "from": self.sender_id or "TANZANIATIP",
                 "to": self._normalize(m["to"]),
                 "text": m["text"],
             })
 
-        url = f"{self.base_url}/api/mobile/v2/text/multi"
+        url = f"{self.base_url}/api/sms/v2/text/multi"
         payload: Dict[str, Any] = {
             "messages": normalized_messages,
+            "flash": 0,
         }
         if reference:
             payload["reference"] = reference
