@@ -2,7 +2,7 @@ import React, { useState, useEffect, useRef } from "react";
 import { useLocation } from "react-router-dom";
 import { API_BASE_URL as API_ROOT } from "../api";
 import { getStoredTenantUser, getTenantId as getSessionTenantId } from "../session";
-
+ 
 // ====================================================================
 // PROVIDER LOGOS
 // --------------------------------------------------------------------
@@ -21,16 +21,17 @@ const PROVIDERS = [
   { id: "Halopesa", name: "Halopesa",     logo: "data:image/jpeg;base64,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" },
   { id: "Azampesa", name: "Azampesa",     logo: "data:image/jpeg;base64,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" },
 ];
+ 
 const PORTAL_CSS = `
 .kp-root, .kp-root * { box-sizing: border-box; }
-
+ 
 html, body {
     margin: 0;
     padding: 0;
     background: #09090b;
     min-height: 100%;
 }
-
+ 
 .kp-root {
     --kp-bg: #09090b;
     --kp-card: #111113;
@@ -44,7 +45,7 @@ html, body {
     --kp-red-soft: rgba(229,9,20,0.12);
     --kp-green: #46d369;
     --kp-gold: #f5d77b;
-
+ 
     min-height: 100vh;
     min-height: 100dvh;
     width: 100%;
@@ -60,7 +61,7 @@ html, body {
     -webkit-font-smoothing: antialiased;
     -webkit-text-size-adjust: 100%;
 }
-
+ 
 .kp-root::before {
     content: "";
     position: absolute;
@@ -71,7 +72,7 @@ html, body {
     background: radial-gradient(ellipse 70% 100% at 50% 0%, rgba(229,9,20,0.16), transparent 75%);
     pointer-events: none;
 }
-
+ 
 .kp-card {
     position: relative;
     width: 100%;
@@ -83,7 +84,7 @@ html, body {
     box-shadow: 0 20px 60px rgba(0,0,0,0.6);
     animation: kpEnter 0.4s ease-out both;
 }
-
+ 
 @keyframes kpEnter {
     from { opacity: 0; transform: translateY(10px); }
     to   { opacity: 1; transform: translateY(0); }
@@ -95,7 +96,7 @@ html, body {
 @keyframes kpSpin {
     to { transform: rotate(360deg); }
 }
-
+ 
 /* ---------- header ---------- */
 .kp-header {
     display: flex;
@@ -104,6 +105,7 @@ html, body {
     padding-bottom: 8px;
     margin-bottom: 8px;
     border-bottom: 1px solid var(--kp-line);
+    justify-content: center;
 }
 .kp-logo {
     flex-shrink: 0;
@@ -131,7 +133,7 @@ html, body {
     font-size: 0.7rem;
     color: var(--kp-muted);
 }
-
+ 
 /* ---------- message ---------- */
 .kp-message {
     display: flex;
@@ -172,7 +174,7 @@ html, body {
     color: #ffc9cc;
 }
 .kp-message.error::before { content: "!"; background: #ff5a60; }
-
+ 
 .kp-retry {
     width: 100%;
     min-height: 40px;
@@ -187,7 +189,7 @@ html, body {
     cursor: pointer;
 }
 .kp-retry:disabled { opacity: 0.5; cursor: not-allowed; }
-
+ 
 /* ---------- tabs ---------- */
 .kp-tabs {
     display: grid;
@@ -227,7 +229,7 @@ html, body {
     outline: 2px solid #fff;
     outline-offset: 2px;
 }
-
+ 
 /* ---------- sections and step labels ---------- */
 .kp-section { margin-bottom: 16px; }
 .kp-label {
@@ -254,7 +256,7 @@ html, body {
     font-size: 0.68rem;
     font-weight: 700;
 }
-
+ 
 /* ---------- packages (single row, compact) ---------- */
 .kp-packages {
     display: grid;
@@ -375,7 +377,7 @@ html, body {
 }
 .kp-ribbon.popular { background: var(--kp-green); }
 .kp-ribbon.best    { background: var(--kp-gold); }
-
+ 
 .kp-pkg.selected::after,
 .kp-provider.selected::after {
     content: "\\2713";
@@ -394,7 +396,7 @@ html, body {
     justify-content: center;
     box-shadow: 0 3px 10px rgba(229,9,20,0.45);
 }
-
+ 
 .kp-empty {
     padding: 26px 12px;
     text-align: center;
@@ -403,7 +405,7 @@ html, body {
     border: 1px dashed #3f3f46;
     border-radius: 14px;
 }
-
+ 
 /* ---------- providers ---------- */
 .kp-providers {
     display: grid;
@@ -466,7 +468,7 @@ html, body {
     color: var(--kp-muted);
 }
 .kp-provider.selected .kp-provider-name { color: #fff; }
-
+ 
 /* ---------- inputs ---------- */
 .kp-input {
     width: 100%;
@@ -492,7 +494,7 @@ html, body {
     font-weight: 700;
     text-align: center;
 }
-
+ 
 /* ---------- checkout bar (stays visible while scrolling) ---------- */
 .kp-checkout {
     position: sticky;
@@ -521,7 +523,7 @@ html, body {
     white-space: nowrap;
     font-variant-numeric: tabular-nums;
 }
-
+ 
 .kp-submit {
     width: 100%;
     min-height: 46px;
@@ -556,7 +558,7 @@ html, body {
     border-radius: 50%;
     animation: kpSpin 0.8s linear infinite;
 }
-
+ 
 /* ---------- footer area ---------- */
 .kp-support {
     margin-top: 8px;
@@ -590,7 +592,7 @@ html, body {
     font-size: 0.6rem;
     color: var(--kp-faint);
 }
-
+ 
 @media (min-width: 560px) {
     .kp-root { padding-top: 20px; }
     .kp-card { padding: 14px 18px 14px; }
@@ -617,17 +619,17 @@ html, body {
     .kp-pkg, .kp-provider, .kp-submit { transition: none; }
 }
 `;
-
+ 
 function normalizeMac(value) {
     const compact = String(value || "")
         .toUpperCase()
         .replace(/[^0-9A-F]/g, "");
-
+ 
     return compact.length === 12
         ? compact.match(/.{2}/g).join(":")
         : compact;
 }
-
+ 
 /**
  * Turn a FastAPI error body into a human readable sentence.
  *
@@ -640,58 +642,58 @@ function extractApiErrorMessage(errorData) {
     if (!errorData) {
         return "";
     }
-
+ 
     if (typeof errorData === "string") {
         return errorData.trim();
     }
-
+ 
     const detail = errorData.detail;
-
+ 
     if (typeof detail === "string") {
         return detail.trim();
     }
-
+ 
     if (Array.isArray(detail)) {
         const messages = detail
             .map((entry) => {
                 if (!entry) {
                     return "";
                 }
-
+ 
                 if (typeof entry === "string") {
                     return entry;
                 }
-
+ 
                 const location = Array.isArray(entry.loc)
                     ? entry.loc[entry.loc.length - 1]
                     : "";
-
+ 
                 const message = entry.msg || entry.message || "";
-
+ 
                 if (location && message) {
                     return `${location}: ${message}`;
                 }
-
+ 
                 return message;
             })
             .filter(Boolean);
-
+ 
         if (messages.length > 0) {
             return messages.join(", ");
         }
     }
-
+ 
     if (detail && typeof detail === "object") {
         return JSON.stringify(detail);
     }
-
+ 
     if (errorData.message) {
         return String(errorData.message);
     }
-
+ 
     return "";
 }
-
+ 
 /**
  * Build the MikroTik hotspot login URL.
  *
@@ -700,11 +702,11 @@ function extractApiErrorMessage(errorData) {
  */
 function buildHotspotLoginUrl(loginLink, routerIp) {
     const rawLink = String(loginLink || "").trim();
-
+ 
     if (rawLink) {
         try {
             const url = new URL(rawLink, window.location.origin);
-
+ 
             if (
                 url.protocol === "http:" ||
                 url.protocol === "https:"
@@ -715,16 +717,16 @@ function buildHotspotLoginUrl(loginLink, routerIp) {
             console.warn("Invalid MikroTik login URL:", rawLink);
         }
     }
-
+ 
     const rawRouterIp = String(routerIp || "")
         .trim()
         .replace(/^https?:\/\//i, "")
         .replace(/\/+$/, "");
-
+ 
     if (!rawRouterIp) {
         return null;
     }
-
+ 
     // Allow any valid IP/hostname provided by the backend (trusted source).
     try {
         return new URL(`http://${rawRouterIp}/login`);
@@ -733,7 +735,7 @@ function buildHotspotLoginUrl(loginLink, routerIp) {
         return null;
     }
 }
-
+ 
 /**
  * Automatically submit credentials to MikroTik Hotspot.
  */
@@ -748,9 +750,9 @@ function submitHotspotLogin(
         console.warn("Missing hotspot username/password.");
         return false;
     }
-
+ 
     const url = buildHotspotLoginUrl(loginLink, routerIp);
-
+ 
     if (!url) {
         console.warn(
             "Could not determine MikroTik hotspot login URL.",
@@ -761,7 +763,7 @@ function submitHotspotLogin(
         );
         return false;
     }
-
+ 
     if (
         url.protocol !== "http:" &&
         url.protocol !== "https:"
@@ -772,42 +774,42 @@ function submitHotspotLogin(
         );
         return false;
     }
-
+ 
     const form = document.createElement("form");
-
+ 
     form.method = "POST";
     form.action = url.href;
     form.style.display = "none";
-
+ 
     const fields = {
         username,
         password,
         dst: destination || "",
     };
-
+ 
     Object.entries(fields).forEach(([name, value]) => {
         const input = document.createElement("input");
-
+ 
         input.type = "hidden";
         input.name = name;
         input.value = value;
-
+ 
         form.appendChild(input);
     });
-
+ 
     document.body.appendChild(form);
-
+ 
     console.log("Submitting MikroTik hotspot login:", {
         url: url.href,
         username,
         destination,
     });
-
+ 
     form.submit();
-
+ 
     return true;
 }
-
+ 
 async function submitOmadaLogin(
     apiBaseUrl,
     routerId,
@@ -828,7 +830,7 @@ async function submitOmadaLogin(
             "Omada did not provide all required client, AP, SSID, radio, and site details."
         );
     }
-
+ 
     let destinationHref = null;
     if (portalContext.redirectUrl) {
         let destinationUrl;
@@ -842,7 +844,7 @@ async function submitOmadaLogin(
         }
         destinationHref = destinationUrl.href;
     }
-
+ 
     const response = await fetch(`${apiBaseUrl}/tplink/authorize`, {
         method: "POST",
         headers: { "Content-Type": "application/json" },
@@ -859,24 +861,24 @@ async function submitOmadaLogin(
             redirectUrl: portalContext.redirectUrl || null,
         }),
     });
-
+ 
     let result;
     try {
         result = await response.json();
     } catch {
         throw new Error("The authorization server returned an invalid response.");
     }
-
+ 
     if (!response.ok || result?.authorized !== true) {
         const detail = extractApiErrorMessage(result);
         throw new Error(detail || `Omada authorization failed (HTTP ${response.status}).`);
     }
-
+ 
     if (destinationHref) {
         window.location.assign(destinationHref);
     }
 }
-
+ 
 /**
  * Send the buyer back to the WiFiDog/OpenWrt gateway after a successful
  * payment or voucher redemption.
@@ -891,10 +893,10 @@ function submitWifidogLogin(
         .trim()
         .replace(/^https?:\/\//i, "")
         .replace(/\/+$/, "");
-
+ 
     const token = String(authToken || "").trim();
     const port = String(gatewayPort || "2060").trim();
-
+ 
     if (!rawGatewayIp || !token) {
         console.error(
             "Cannot start WiFiDog login: gateway IP or authentication token is missing.",
@@ -905,29 +907,29 @@ function submitWifidogLogin(
         );
         return false;
     }
-
+ 
     const hasExplicitPort = /:\d+$/.test(rawGatewayIp);
     const gatewayHost = hasExplicitPort || !port
         ? rawGatewayIp
         : `${rawGatewayIp}:${port}`;
-
+ 
     const params = new URLSearchParams({
         token,
     });
-
+ 
     if (destination) {
         params.set("url", destination);
     }
-
+ 
     const loginUrl =
         `http://${gatewayHost}/wifidog/auth?${params.toString()}`;
-
+ 
     console.log("Redirecting to WiFiDog token authentication:", loginUrl);
-
+ 
     window.location.href = loginUrl;
     return true;
 }
-
+ 
 function PkgIcon({ kind }) {
     const paths = {
         time: (
@@ -945,7 +947,7 @@ function PkgIcon({ kind }) {
         ),
         speed: <path d="M13 2 4 14h7l-1 8 9-12h-7z" />,
     };
-
+ 
     return (
         <svg
             viewBox="0 0 24 24"
@@ -960,17 +962,17 @@ function PkgIcon({ kind }) {
         </svg>
     );
 }
-
+ 
 function Portal() {
     const location = useLocation();
-
+ 
     const [packageCatalog, setPackageCatalog] = useState([]);
     const [selectedPackageId, setSelectedPackageId] = useState("");
     const [phoneNumber, setPhoneNumber] = useState("");
     const [mnoProvider, setProvider] = useState("Mpesa");
     const [activeTab, setActiveTab] = useState("pay");
     const [voucherCode, setVoucherCode] = useState("");
-
+ 
     const [uiMessage, setUiMessage] = useState("");
     const [isLoading, setIsLoading] = useState(false);
     const [imageErrors, setImageErrors] = useState({});
@@ -978,38 +980,38 @@ function Portal() {
         useState(null);
     const [omadaRetry, setOmadaRetry] = useState(null);
     const [isOmadaRetrying, setIsOmadaRetrying] = useState(false);
-
+ 
     const [resolvedRouter, setResolvedRouter] = useState(null);
-
+ 
     // Remembers which catalog URL is already on screen so the effect that
     // re-runs after a gateway resolution does not fetch it twice.
     const loadedCatalogUrlRef = useRef(null);
     const activeSessionChecksRef = useRef(new Map());
     const wifidogLoginStartedRef = useRef(new Set());
-
+ 
     const API_BASE_URL = API_ROOT;
-
+ 
     // ================================================================
     // CAPTIVE PORTAL PARAMETERS
     // ================================================================
-
+ 
     const queryParams = new URLSearchParams(location.search);
-
+ 
     const pathParts = location.pathname
         .split("/")
         .filter(Boolean);
-
+ 
     const pathTenantCandidate =
         pathParts[0] === "portal"
             ? pathParts[1] || null
             : null;
-
+ 
     // Accept tenant IDs only when they are numeric.
     const tenantIdCandidates = [
         queryParams.get("tenant_id"),
         pathTenantCandidate,
     ];
-
+ 
     const tenantId =
         tenantIdCandidates.find(
             (value) =>
@@ -1017,16 +1019,16 @@ function Portal() {
                 value !== undefined &&
                 /^\d+$/.test(String(value).trim())
         ) || null;
-
+ 
     const branchId = queryParams.get("branch_id");
-
+ 
     const routerId = queryParams.get("router_id");
-
+ 
     const buyerMac =
         queryParams.get("clientMac") ||
         queryParams.get("mac") ||
         "unknown-device";
-
+ 
     const tplinkApMac =
         queryParams.get("apMac") ||
         queryParams.get("ap_mac") ||
@@ -1046,7 +1048,7 @@ function Portal() {
     const omadaRedirectUrl =
         queryParams.get("redirectUrl") ||
         "";
-
+ 
     // WiFiDog / Ruijie parameters
     const gwId =
         queryParams.get("gw_id") ||
@@ -1059,35 +1061,35 @@ function Portal() {
         queryParams.get("router_ip") ||
         queryParams.get("gateway_ip") ||
         "";
-
+ 
     const gatewayPort =
         queryParams.get("gw_port") ||
         queryParams.get("gateway_port") ||
         "2060";
-
+ 
     const nasId =
         queryParams.get("nas_id") ||
         "";
-
+ 
     const isOmadaPortal =
         Boolean(
             queryParams.get("portal_type") === "tplink" ||
             tplinkApMac ||
             (queryParams.get("target") && queryParams.get("clientMac"))
         );
-
+ 
     const clientIp =
         queryParams.get("clientIp") ||
         queryParams.get("ip") ||
         "";
-
+ 
     // MikroTik login.html sends "link_login"; other names supported too.
     const linkLogin =
         queryParams.get("link_login") ||
         queryParams.get("link-login") ||
         queryParams.get("link-login-only") ||
         "";
-
+ 
     // WiFiDog passes the originally requested page as "url", while
     // MikroTik passes it as "dst" or "link-orig".
     const destination =
@@ -1096,25 +1098,25 @@ function Portal() {
         queryParams.get("link-orig") ||
         queryParams.get("url") ||
         "";
-
+ 
     // ================================================================
     // SESSION TENANT
     // ================================================================
-
+ 
     const getTenantId = () => {
         const user = getStoredTenantUser();
-
+ 
         return (
             user?.id ??
             getSessionTenantId() ??
             tenantId
         );
     };
-
+ 
     // ================================================================
     // RESOLVE ROUTER
     // ================================================================
-
+ 
     const resolveRouter = async (existingResolution = null) => {
         if (
             (!routerIp && !tplinkApMac && !nasId && !gwId) ||
@@ -1123,12 +1125,12 @@ function Portal() {
         ) {
             return existingResolution || null;
         }
-
+ 
         // Already resolved for this link: reuse it instead of querying again.
         if (existingResolution) {
             return existingResolution;
         }
-
+ 
         const lookup = isOmadaPortal
             ? [
                 tplinkApMac
@@ -1145,60 +1147,60 @@ function Portal() {
                 : nasId
                     ? `nas_id=${encodeURIComponent(nasId)}`
                     : `ip_address=${encodeURIComponent(routerIp)}`;
-
+ 
         const response = await fetch(
             `${API_BASE_URL}/${isOmadaPortal ? "tplink/resolve" : "routers/resolve"}?${lookup}`
         );
-
+ 
         if (!response.ok) {
             const errorData =
                 await response
                     .json()
                     .catch(() => ({}));
-
+ 
             throw new Error(
                 extractApiErrorMessage(errorData) ||
                 `Server returned ${response.status}`
             );
         }
-
+ 
         const data = await response.json();
-
+ 
         setResolvedRouter(data);
-
+ 
         return data;
     };
-
+ 
     const effectiveTenantId =
         tenantId ||
         resolvedRouter?.tenant_id;
-
+ 
     const effectiveBranchId =
         branchId ||
         resolvedRouter?.branch_id;
-
+ 
     const effectiveRouterId =
         routerId ||
         resolvedRouter?.router_id;
-
+ 
     const effectiveGatewayIp =
         routerIp ||
         resolvedRouter?.router_ip ||
         "";
-
+ 
     const effectiveGwId =
         gwId ||
         resolvedRouter?.gw_id ||
         "";
-
+ 
     const isWifidogGateway =
         resolvedRouter?.driver_type === "wifidog_http" ||
         Boolean(effectiveGwId);
-
+ 
     const isTplinkGateway =
         resolvedRouter?.driver_type === "tplink_radius" ||
         isOmadaPortal;
-
+ 
     const retryOmadaAuthorization = async () => {
         if (!omadaRetry) {
             return;
@@ -1220,22 +1222,22 @@ function Portal() {
             setIsOmadaRetrying(false);
         }
     };
-
+ 
     // ================================================================
     // FETCH PACKAGES
     // ================================================================
-
+ 
     const fetchActivePackages = async (
         existingResolution = null
     ) => {
         setUiMessage("");
-
+ 
         try {
             const loggedInTenantId = getTenantId();
-
+ 
             let routerResolution = null;
             let routerResolutionError = null;
-
+ 
             try {
                 routerResolution = await resolveRouter(
                     existingResolution
@@ -1246,7 +1248,7 @@ function Portal() {
                     "Failed to resolve router by gateway ID, NAS ID, IP, or TP-Link AP MAC:",
                     error
                 );
-
+ 
                 if (gwId) {
                     setUiMessage(
                         `This hotspot could not be identified (Gateway ID: ${gwId}). ` +
@@ -1257,7 +1259,7 @@ function Portal() {
                     return;
                 }
             }
-
+ 
             if (
                 isOmadaPortal &&
                 !routerId &&
@@ -1272,15 +1274,15 @@ function Portal() {
                 );
                 return;
             }
-
+ 
             const effectiveRouter =
                 routerId || routerResolution?.router_id || null;
-
+ 
             const effectiveRouterIp =
                 routerIp || routerResolution?.router_ip || "";
-
+ 
             let url;
-
+ 
             if (loggedInTenantId) {
                 url =
                     `${API_BASE_URL}/packages/catalog` +
@@ -1303,40 +1305,40 @@ function Portal() {
                     "reopen the payment page."
                 );
             }
-
+ 
             // This exact catalog is already displayed.
             if (loadedCatalogUrlRef.current === url) {
                 return;
             }
-
+ 
             const response = await fetch(url);
-
+ 
             if (!response.ok) {
                 const errorData =
                     await response
                         .json()
                         .catch(() => ({}));
-
+ 
                 throw new Error(
                     extractApiErrorMessage(errorData) ||
                     `Server returned ${response.status}`
                 );
             }
-
+ 
             const data = await response.json();
-
+ 
             const packages =
                 Array.isArray(data)
                     ? data
                     : [];
-
+ 
             loadedCatalogUrlRef.current = url;
-
+ 
             setPackageCatalog(packages);
-
+ 
             // Clear any stale error now that the catalog is available.
             setUiMessage("");
-
+ 
             if (packages.length > 0) {
                 setSelectedPackageId(
                     packages[0].id
@@ -1352,13 +1354,13 @@ function Portal() {
                 "Error retrieving packages catalog:",
                 error
             );
-
+ 
             setUiMessage(
                 `Could not retrieve packages: ${error.message}`
             );
         }
     };
-
+ 
     useEffect(() => {
         fetchActivePackages(resolvedRouter);
     }, [
@@ -1366,7 +1368,7 @@ function Portal() {
         routerIp,
         resolvedRouter,
     ]);
-
+ 
     useEffect(() => {
         if (
             !isWifidogGateway ||
@@ -1376,12 +1378,12 @@ function Portal() {
         ) {
             return;
         }
-
+ 
         const normalizedBuyerMac = normalizeMac(buyerMac);
         const sessionKey = `${effectiveRouterId}:${normalizedBuyerMac}`;
         let cancelled = false;
         let sessionCheck = activeSessionChecksRef.current.get(sessionKey);
-
+ 
         if (!sessionCheck) {
             const params = new URLSearchParams({
                 router_id: String(effectiveRouterId),
@@ -1401,7 +1403,7 @@ function Portal() {
             });
             activeSessionChecksRef.current.set(sessionKey, sessionCheck);
         }
-
+ 
         sessionCheck
             .then((session) => {
                 if (
@@ -1416,7 +1418,7 @@ function Portal() {
                         "The active WiFi session has no authorization token."
                     );
                 }
-
+ 
                 wifidogLoginStartedRef.current.add(sessionKey);
                 const loginStarted = submitWifidogLogin(
                     effectiveGatewayIp,
@@ -1441,7 +1443,7 @@ function Portal() {
                     );
                 }
             });
-
+ 
         return () => {
             cancelled = true;
         };
@@ -1454,11 +1456,11 @@ function Portal() {
         destination,
         API_BASE_URL,
     ]);
-
+ 
     // ================================================================
     // PAYMENT STATUS POLLING
     // ================================================================
-
+ 
     useEffect(() => {
         if (
             !pendingGatewayReference ||
@@ -1467,32 +1469,32 @@ function Portal() {
         ) {
             return;
         }
-
+ 
         let cancelled = false;
         let timer;
-
+ 
         const checkPayment = async () => {
             try {
                 const params =
                     new URLSearchParams({
                         gateway_reference:
                             pendingGatewayReference,
-
+ 
                         router_id:
                             String(effectiveRouterId),
-
+ 
                         buyer_mac:
                             normalizeMac(buyerMac),
                     });
-
+ 
                 const response = await fetch(
                     `${API_BASE_URL}/payments/status?${params}`
                 );
-
+ 
                 if (response.ok) {
                     const payment =
                         await response.json();
-
+ 
                     // PAYMENT COMPLETED
                     if (
                         payment.status === "completed" &&
@@ -1501,7 +1503,7 @@ function Portal() {
                         setPendingGatewayReference(
                             null
                         );
-
+ 
                         if (isTplinkGateway) {
                             const retryData = {
                                 routerId: effectiveRouterId,
@@ -1537,7 +1539,7 @@ function Portal() {
                             }
                             return;
                         }
-
+ 
                         const loginStarted = isWifidogGateway
                             ? submitWifidogLogin(
                                 effectiveGatewayIp,
@@ -1552,7 +1554,7 @@ function Portal() {
                                 payment.auth_token,
                                 destination
                             );
-
+ 
                         if (!loginStarted) {
                             setUiMessage(
                                 "Umefanikiwa kupata internet. Subiri sekunde 10 kuunganishwa."
@@ -1562,10 +1564,10 @@ function Portal() {
                                 "Umefanikiwa kupata internet. Subiri sekunde 10 kuunganishwa."
                             );
                         }
-
+ 
                         return;
                     }
-
+ 
                     // PAYMENT FAILED
                     if (
                         payment.status === "failed"
@@ -1573,11 +1575,11 @@ function Portal() {
                         setPendingGatewayReference(
                             null
                         );
-
+ 
                         setUiMessage(
                             "Hauna salio la kutosha. Ongeza salio kuunganishwa."
                         );
-
+ 
                         return;
                     }
                 }
@@ -1587,7 +1589,7 @@ function Portal() {
                     error
                 );
             }
-
+ 
             if (!cancelled) {
                 timer = setTimeout(
                     checkPayment,
@@ -1595,9 +1597,9 @@ function Portal() {
                 );
             }
         };
-
+ 
         checkPayment();
-
+ 
         return () => {
             cancelled = true;
             clearTimeout(timer);
@@ -1622,17 +1624,17 @@ function Portal() {
         omadaRedirectUrl,
         API_BASE_URL,
     ]);
-
+ 
     // ================================================================
     // PAY AND CONNECT
     // ================================================================
-
+ 
     const handlePayAndConnect = async (e) => {
         e.preventDefault();
-
+ 
         setUiMessage("");
         setIsLoading(true);
-
+ 
         if (
             !selectedPackageId ||
             !phoneNumber.trim()
@@ -1640,12 +1642,12 @@ function Portal() {
             setUiMessage(
                 "Please select a package and enter your mobile-money number."
             );
-
+ 
             setIsLoading(false);
-
+ 
             return;
         }
-
+ 
         if (
             !effectiveTenantId ||
             !effectiveBranchId ||
@@ -1654,12 +1656,12 @@ function Portal() {
             setUiMessage(
                 "This payment portal is missing the tenant, branch, or router configuration."
             );
-
+ 
             setIsLoading(false);
-
+ 
             return;
         }
-
+ 
         try {
             // REGISTER BUYER
             const buyerResponse =
@@ -1676,67 +1678,67 @@ function Portal() {
                                 Number(
                                     effectiveTenantId
                                 ),
-
+ 
                             buyer_mac:
                                 buyerMac,
-
+ 
                             phone_number:
                                 phoneNumber.trim(),
                         }),
-
+ 
                         signal:
                             AbortSignal.timeout(
                                 15000
                             ),
                     }
                 );
-
+ 
             const buyerResult =
                 await buyerResponse.json();
-
+ 
             if (!buyerResponse.ok) {
                 throw new Error(
                     extractApiErrorMessage(buyerResult) ||
                     `Could not register this device (HTTP ${buyerResponse.status}).`
                 );
             }
-
+ 
             // CHECKOUT
             const checkoutPayload = {
                 tenant_id:
                     Number(
                         effectiveTenantId
                     ),
-
+ 
                 branch_id:
                     Number(
                         effectiveBranchId
                     ),
-
+ 
                 router_id:
                     Number(
                         effectiveRouterId
                     ),
-
+ 
                 package_id:
                     parseInt(
                         selectedPackageId
                     ),
-
+ 
                 buyer_id:
                     buyerResult.buyer_id,
-
+ 
                 phone_number:
                     phoneNumber.trim(),
-
+ 
                 provider:
                     mnoProvider,
             };
-
+ 
             setUiMessage(
                 "Tafadhali subiri sekunde 10 kama malipo yamefanikiwa..."
             );
-
+ 
             const response =
                 await fetch(
                     `${API_BASE_URL}/payments/checkout`,
@@ -1746,22 +1748,22 @@ function Portal() {
                             "Content-Type":
                                 "application/json",
                         },
-
+ 
                         body:
                             JSON.stringify(
                                 checkoutPayload
                             ),
-
+ 
                         signal:
                             AbortSignal.timeout(
                                 100000
                             ),
                     }
                 );
-
+ 
             const contentType =
                 response.headers.get("content-type") || "";
-
+ 
             if (!contentType.includes("application/json")) {
                 const text = await response.text();
                 console.error("Non-JSON response from", response.url, ":", text.slice(0, 200));
@@ -1772,19 +1774,19 @@ function Portal() {
                 setIsLoading(false);
                 return;
             }
-
+ 
             const result =
                 await response.json();
-
+ 
             if (response.ok) {
                 const gatewayMessage =
                     result?.message ||
                     "AzamPay accepted the request. Please check your phone and enter your mobile money PIN to complete payment.";
-
+ 
                 setUiMessage(
                     ` ${gatewayMessage}`
                 );
-
+ 
                 if (
                     result?.gateway_reference
                 ) {
@@ -1802,7 +1804,7 @@ function Portal() {
                 const detail =
                     extractApiErrorMessage(result) ||
                     `HTTP ${response.status}`;
-
+ 
                 setUiMessage(
                     `Checkout rejected: ${detail}`
                 );
@@ -1811,7 +1813,7 @@ function Portal() {
             const message =
                 error.message ||
                 "Failed to establish communications with the billing server platform.";
-
+ 
             setUiMessage(
                 `Error: ${message}`
             );
@@ -1819,27 +1821,27 @@ function Portal() {
             setIsLoading(false);
         }
     };
-
+ 
     // ================================================================
     // VOUCHER ACTIVATION
     // ================================================================
-
+ 
     const handleVoucherActivation =
         async (e) => {
             e.preventDefault();
-
+ 
             setUiMessage(
                 "Validating your token code voucher..."
             );
-
+ 
             if (!voucherCode.trim()) {
                 setUiMessage(
                     "Please enter a voucher code."
                 );
-
+ 
                 return;
             }
-
+ 
             if (
                 !effectiveTenantId ||
                 !effectiveRouterId
@@ -1847,44 +1849,44 @@ function Portal() {
                 setUiMessage(
                     "Missing tenant or router configuration."
                 );
-
+ 
                 return;
             }
-
+ 
             try {
                 const response =
                     await fetch(
                         `${API_BASE_URL}/vouchers/redeem?tenant_id=${effectiveTenantId}`,
                         {
                             method: "POST",
-
+ 
                             headers: {
                                 "Content-Type":
                                     "application/json",
                             },
-
+ 
                             body: JSON.stringify({
                                 code:
                                     voucherCode.trim(),
-
+ 
                                 buyer_mac:
                                     buyerMac,
-
+ 
                                 router_id:
                                     Number(
                                         effectiveRouterId
                                     ),
-
+ 
                                 assigned_ip:
                                     clientIp ||
                                     null,
                             }),
                         }
                     );
-
+ 
                 const result =
                     await response.json();
-
+ 
                 if (response.ok) {
                     if (isTplinkGateway) {
                         const retryData = {
@@ -1922,7 +1924,7 @@ function Portal() {
                         setVoucherCode("");
                         return;
                     }
-
+ 
                     const loginStarted = isWifidogGateway
                         ? submitWifidogLogin(
                             effectiveGatewayIp,
@@ -1937,7 +1939,7 @@ function Portal() {
                             result.auth_token,
                             destination
                         );
-
+ 
                     if (loginStarted) {
                         setUiMessage(
                             "Voucher accepted. Connecting to the hotspot..."
@@ -1950,13 +1952,13 @@ function Portal() {
                             } seconds, but automatic WiFi login could not start. Please reconnect to the hotspot and try again.`
                         );
                     }
-
+ 
                     setVoucherCode("");
                 } else {
                     const detail =
                         extractApiErrorMessage(result) ||
                         `HTTP ${response.status}`;
-
+ 
                     setUiMessage(
                         `Voucher error: ${detail}`
                     );
@@ -1965,47 +1967,47 @@ function Portal() {
                 const message =
                     error.message ||
                     "Failed to validate voucher.";
-
+ 
                 setUiMessage(
                     `Error: ${message}`
                 );
             }
         };
-
+ 
     // ================================================================
     // FORMATTING
     // ================================================================
-
+ 
     const formatDurationText = (
         seconds
     ) => {
         if (seconds >= 86400) {
             const days =
                 seconds / 86400;
-
+ 
             return `${days} Day${
                 days > 1 ? "s" : ""
             }`;
         }
-
+ 
         const hours =
             seconds / 3600;
-
+ 
         return `${hours} Hour${
             hours > 1 ? "s" : ""
         }`;
     };
-
+ 
     const formatBytes = (
         bytes
     ) => {
         if (bytes === 0) {
             return "Unlimited";
         }
-
+ 
         const gb =
             bytes / (1024 ** 3);
-
+ 
         return gb >= 1
             ? `${gb.toFixed(1)} GB`
             : `${(
@@ -2013,14 +2015,14 @@ function Portal() {
                 (1024 ** 2)
             ).toFixed(1)} MB`;
     };
-
+ 
     const handlePackageSelect = (
         packageId
     ) => {
         setSelectedPackageId(
             packageId
         );
-
+ 
         if (
             uiMessage &&
             !uiMessage.includes("PIN")
@@ -2028,14 +2030,14 @@ function Portal() {
             setUiMessage("");
         }
     };
-
+ 
     const handleProviderSelect = (
         providerId
     ) => {
         setProvider(
             providerId
         );
-
+ 
         if (
             uiMessage &&
             !uiMessage.includes("PIN")
@@ -2043,7 +2045,7 @@ function Portal() {
             setUiMessage("");
         }
     };
-
+ 
     const handleImageError = (
         providerId
     ) => {
@@ -2054,7 +2056,7 @@ function Portal() {
             })
         );
     };
-
+ 
     const getSelectedPackage =
         () => {
             return packageCatalog.find(
@@ -2063,16 +2065,16 @@ function Portal() {
                     selectedPackageId
             );
         };
-
+ 
     const selectedPackage =
         getSelectedPackage();
-
+ 
     // ================================================================
     // UI
     // ================================================================
-
+ 
     const msg = uiMessage.toLowerCase();
-
+ 
     const isSuccessMessage =
         msg.includes("pin") ||
         msg.includes("sent") ||
@@ -2081,11 +2083,11 @@ function Portal() {
         msg.includes("payment confirmed and") ||
         msg.includes("authorized this wifi client") ||
         msg.includes("umefanikiwa kupata internet");
-
+ 
     return (
         <div className="kp-root">
             <style>{PORTAL_CSS}</style>
-
+ 
             <div className="kp-card">
                 <header className="kp-header">
                     <span className="kp-logo" aria-label="NetKitonga Wi-Fi">
@@ -2107,7 +2109,7 @@ function Portal() {
                             <path d="M12 20h.01" />
                         </svg>
                     </span>
-
+ 
                     <div>
                         <h1 className="kp-title">
                             Net <span className="brand">Kitonga</span>
@@ -2115,7 +2117,7 @@ function Portal() {
                         <p className="kp-tagline">Internet Supply Co.</p>
                     </div>
                 </header>
-
+ 
                 {uiMessage && (
                     <div
                         className={`kp-message ${isSuccessMessage ? "success" : "error"}`}
@@ -2125,7 +2127,7 @@ function Portal() {
                         {uiMessage}
                     </div>
                 )}
-
+ 
                 {omadaRetry && (
                     <button
                         type="button"
@@ -2138,7 +2140,7 @@ function Portal() {
                             : "Retry WiFi authorization"}
                     </button>
                 )}
-
+ 
                 <div className="kp-tabs" role="tablist">
                     <button
                         type="button"
@@ -2152,7 +2154,7 @@ function Portal() {
                     >
                         Purchase
                     </button>
-
+ 
                     <button
                         type="button"
                         role="tab"
@@ -2166,7 +2168,7 @@ function Portal() {
                         Voucher
                     </button>
                 </div>
-
+ 
                 {activeTab === "pay" ? (
                     <form onSubmit={handlePayAndConnect}>
                         <div className="kp-section">
@@ -2174,7 +2176,7 @@ function Portal() {
                                 <span className="kp-step">1</span>
                                 Select package<span className="req">*</span>
                             </span>
-
+ 
                             {packageCatalog.length === 0 ? (
                                 <div className="kp-empty">Loading packages...</div>
                             ) : (
@@ -2213,7 +2215,7 @@ function Portal() {
                                                         )}
                                                     </div>
                                                 )}
-
+ 
                                                 <div className="kp-pkg-head">
                                                     <div className="kp-pkg-name">{pkg.package_name}</div>
                                                     <div className="kp-pkg-price">
@@ -2221,7 +2223,7 @@ function Portal() {
                                                         {Number(pkg.price).toLocaleString()}
                                                     </div>
                                                 </div>
-
+ 
                                                 <ul className="kp-pkg-meta">
                                                     <li>
                                                         <PkgIcon kind="time" />
@@ -2244,13 +2246,13 @@ function Portal() {
                                 </>
                             )}
                         </div>
-
+ 
                         <div className="kp-section">
                             <span className="kp-label">
                                 <span className="kp-step">2</span>
                                 Payment provider<span className="req">*</span>
                             </span>
-
+ 
                             <div className="kp-providers">
                                 {PROVIDERS.map((provider) => (
                                     <div
@@ -2280,19 +2282,19 @@ function Portal() {
                                                 <span className="kp-logo-fallback">{provider.name}</span>
                                             )}
                                         </div>
-
+ 
                                         <div className="kp-provider-name">{provider.name}</div>
                                     </div>
                                 ))}
                             </div>
                         </div>
-
+ 
                         <div className="kp-section">
                             <label className="kp-label" htmlFor="kp-phone">
                                 <span className="kp-step">3</span>
                                 Phone number<span className="req">*</span>
                             </label>
-
+ 
                             <input
                                 id="kp-phone"
                                 type="tel"
@@ -2305,7 +2307,7 @@ function Portal() {
                                 className="kp-input"
                             />
                         </div>
-
+ 
                         <div className="kp-checkout">
                             {selectedPackage && (
                                 <div className="kp-total">
@@ -2341,7 +2343,7 @@ function Portal() {
                             <label className="kp-label" htmlFor="kp-voucher">
                                 Voucher code<span className="req">*</span>
                             </label>
-
+ 
                             <input
                                 id="kp-voucher"
                                 required
@@ -2353,7 +2355,7 @@ function Portal() {
                                 className="kp-input code"
                             />
                         </div>
-
+ 
                         <button type="submit" className="kp-submit">
                             <svg
                                 aria-hidden="true"
@@ -2376,7 +2378,7 @@ function Portal() {
                         </button>
                     </form>
                 )}
-
+ 
                 {resolvedRouter?.phone_number && (
                     <div className="kp-support">
                         Support:{" "}
@@ -2385,11 +2387,11 @@ function Portal() {
                         </a>
                     </div>
                 )}
-
+ 
                 <div className="kp-device">
                     <strong>Device:</strong> {buyerMac}
                 </div>
-
+ 
                 <div className="kp-footer">
                     © {new Date().getFullYear()} Net Kitonga — Secure Payment Gateway - Fontawandel
                 </div>
@@ -2397,5 +2399,6 @@ function Portal() {
         </div>
     );
 }
-
+ 
 export default Portal;
+ 
