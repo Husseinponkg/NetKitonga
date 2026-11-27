@@ -218,8 +218,10 @@ class TplinkController:
                             r.tenant_id,
                             r.branch_id,
                             r.ip_address,
-                            r.router_name
+                            r.router_name,
+                            t.phone_number
                         FROM routers r
+                        JOIN tenants t ON t.id = r.tenant_id
                         WHERE REPLACE(
                             REPLACE(
                                 REPLACE(UPPER(TRIM(r.mac_address)), '-', ''),
@@ -245,8 +247,10 @@ class TplinkController:
                             r.tenant_id,
                             r.branch_id,
                             r.ip_address,
-                            r.router_name
+                            r.router_name,
+                            t.phone_number
                         FROM routers r
+                        JOIN tenants t ON t.id = r.tenant_id
                         WHERE host(r.ip_address) = host(%s::inet)
                           AND r.driver_type = 'tplink_radius'
                         ORDER BY r.id
@@ -264,9 +268,11 @@ class TplinkController:
                             t.tenant_id,
                             t.branch_id,
                             t.ip_address,
-                            r.router_name
+                            r.router_name,
+                            tnt.phone_number
                         FROM tplink t
                         JOIN routers r ON r.id = t.router_id
+                        JOIN tenants tnt ON tnt.id = t.tenant_id
                         WHERE REPLACE(
                             REPLACE(
                                 REPLACE(UPPER(TRIM(t.mac_address)), '-', ''),
@@ -292,9 +298,11 @@ class TplinkController:
                             t.tenant_id,
                             t.branch_id,
                             t.ip_address,
-                            r.router_name
+                            r.router_name,
+                            tnt.phone_number
                         FROM tplink t
                         JOIN routers r ON r.id = t.router_id
+                        JOIN tenants tnt ON tnt.id = t.tenant_id
                         WHERE host(t.ip_address) = host(%s::inet)
                           AND t.tenant_id = r.tenant_id
                         ORDER BY t.id
@@ -316,6 +324,7 @@ class TplinkController:
                     "branch_id": device[2],
                     "router_ip": str(device[3]) if device[3] else None,
                     "router_name": device[4],
+                    "phone_number": device[5],
                     "driver_type": "tplink_radius",
                 }
         except HTTPException:

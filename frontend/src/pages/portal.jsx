@@ -2290,11 +2290,24 @@ const gatewayPort =
                                 "authorized this WiFi client"
                             ) ||
                             uiMessage.includes(
-                                "umefanikiwa kununua internet"
+                                "umefanikiwa kupata internet"
                             )
                                 ? "success"
                                 : "error"
                         }`}
+                        style={{
+                            animation: "fadeIn 0.4s ease-out, shimmer 2s ease-in-out infinite",
+                            borderWidth: "3px",
+                            borderStyle: "solid",
+                            borderRadius: "10px",
+                            padding: "14px 18px",
+                            fontSize: "0.95rem",
+                            fontWeight: 700,
+                            marginBottom: "16px",
+                            maxWidth: "560px",
+                            width: "100%",
+                            textAlign: "center",
+                        }}
                     >
                         {uiMessage}
                     </div>
