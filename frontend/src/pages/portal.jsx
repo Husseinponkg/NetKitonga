@@ -1551,7 +1551,9 @@ const gatewayPort =
         <div
             style={{
                 height: "100vh",
+                height: "100dvh",
                 maxHeight: "100vh",
+                maxHeight: "100dvh",
                 display: "flex",
                 flexDirection: "column",
                 justifyContent: "center",
@@ -1559,7 +1561,7 @@ const gatewayPort =
                 background: "#000000",
                 fontFamily:
                     "'Inter', -apple-system, BlinkMacSystemFont, 'Segoe UI', Roboto, sans-serif",
-                padding: "12px 16px",
+                padding: "env(safe-area-inset-top, 8px) env(safe-area-inset-right, 12px) env(safe-area-inset-bottom, 8px) env(safe-area-inset-left, 12px)",
                 margin: 0,
                 position: "relative",
                 overflow: "hidden",
@@ -1763,9 +1765,9 @@ const gatewayPort =
 
                 .package-grid {
                     display: grid;
-                    grid-template-columns: repeat(auto-fill, minmax(160px, 1fr));
-                    gap: 8px;
-                    margin-bottom: 10px;
+                    grid-template-columns: repeat(auto-fill, minmax(150px, 1fr));
+                    gap: 6px;
+                    margin-bottom: 8px;
                     padding: 1px;
                 }
 
@@ -1773,7 +1775,7 @@ const gatewayPort =
                     background: rgba(255,255,255,0.03);
                     border: 2px solid #1a1a1a;
                     border-radius: 8px;
-                    padding: 10px 8px;
+                    padding: 8px 6px;
                     cursor: pointer;
                     transition: all 0.3s cubic-bezier(0.4, 0, 0.2, 1);
                     position: relative;
@@ -1869,16 +1871,16 @@ const gatewayPort =
 
                 .provider-grid {
                     display: grid;
-                    grid-template-columns: repeat(auto-fill, minmax(88px, 1fr));
-                    gap: 6px;
+                    grid-template-columns: repeat(auto-fill, minmax(80px, 1fr));
+                    gap: 5px;
                 }
 
-                .provider-card {
+.provider-card {
                     background: rgba(255,255,255,0.03);
                     border: 2px solid #1a1a1a;
                     border-radius: 8px;
-                    padding: 8px 6px;
-                    cursor: pointer;
+                    padding: 6px 4px;
+                    cursor: pointer
                     transition: all 0.25s cubic-bezier(0.4, 0, 0.2, 1);
                     position: relative;
                     text-align: center;
@@ -1888,8 +1890,8 @@ const gatewayPort =
                     flex-direction: column;
                     align-items: center;
                     justify-content: center;
-                    gap: 6px;
-                    min-height: 88px;
+                    gap: 5px;
+                    min-height: 80px;
                 }
 
                 .provider-card:hover:not(.selected) {
@@ -1928,8 +1930,8 @@ const gatewayPort =
                 }
 
                 .provider-logo-slot {
-                    width: 60px;
-                    height: 38px;
+                    width: 54px;
+                    height: 34px;
                     border-radius: 6px;
                     background: rgba(255,255,255,0.04);
                     border: 1px solid #1f1f1f;
@@ -1938,7 +1940,7 @@ const gatewayPort =
                     justify-content: center;
                     flex-shrink: 0;
                     overflow: hidden;
-                    padding: 4px;
+                    padding: 3px;
                 }
 
                 .provider-logo-slot img {
@@ -1981,8 +1983,8 @@ const gatewayPort =
                     background: rgba(229, 9, 20, 0.04);
                     border: 1px solid rgba(229, 9, 20, 0.08);
                     border-radius: 8px;
-                    padding: 8px 12px;
-                    margin-bottom: 10px;
+                    padding: 6px 10px;
+                    margin-bottom: 8px;
                     display: flex;
                     justify-content: space-between;
                     align-items: center;
@@ -2012,35 +2014,35 @@ const gatewayPort =
 
                 @media (max-width: 600px) {
                     .package-grid {
-                        grid-template-columns: repeat(auto-fill, minmax(140px, 1fr));
-                        gap: 6px;
-                    }
-
-                    .package-card {
-                        padding: 8px 6px;
-                    }
-
-                    .package-card .pkg-price {
-                        font-size: 0.9rem;
-                    }
-
-                    .provider-grid {
-                        grid-template-columns: repeat(auto-fill, minmax(80px, 1fr));
+                        grid-template-columns: repeat(auto-fill, minmax(130px, 1fr));
                         gap: 5px;
                     }
 
+                    .package-card {
+                        padding: 6px 5px;
+                    }
+
+                    .package-card .pkg-price {
+                        font-size: 0.85rem;
+                    }
+
+                    .provider-grid {
+                        grid-template-columns: repeat(auto-fill, minmax(72px, 1fr));
+                        gap: 4px;
+                    }
+
                     .provider-card {
-                        min-height: 80px;
-                        padding: 6px 4px;
+                        min-height: 72px;
+                        padding: 5px 3px;
                     }
 
                     .provider-logo-slot {
-                        width: 52px;
-                        height: 34px;
+                        width: 48px;
+                        height: 30px;
                     }
 
                     .provider-name {
-                        font-size: 0.58rem;
+                        font-size: 0.55rem;
                     }
 
                     .selected-summary {
@@ -2052,23 +2054,23 @@ const gatewayPort =
                 @media (max-width: 400px) {
                     .package-grid {
                         grid-template-columns: 1fr 1fr;
-                        gap: 5px;
+                        gap: 4px;
                     }
 
                     .package-card {
-                        padding: 6px 4px;
+                        padding: 5px 3px;
                     }
 
                     .package-card .pkg-name {
-                        font-size: 0.7rem;
+                        font-size: 0.68rem;
                     }
 
                     .package-card .pkg-price {
-                        font-size: 0.8rem;
+                        font-size: 0.75rem;
                     }
 
                     .package-card .pkg-details {
-                        font-size: 0.5rem;
+                        font-size: 0.48rem;
                     }
 
                     .provider-grid {
@@ -2076,16 +2078,16 @@ const gatewayPort =
                     }
 
                     .provider-card {
-                        min-height: 72px;
+                        min-height: 66px;
                     }
 
                     .provider-logo-slot {
-                        width: 44px;
-                        height: 28px;
+                        width: 42px;
+                        height: 26px;
                     }
 
                     .provider-name {
-                        font-size: 0.5rem;
+                        font-size: 0.48rem;
                     }
                 }
 
@@ -2149,7 +2151,7 @@ const gatewayPort =
                         "blur(16px)",
                     borderRadius: "16px",
                     padding:
-                        "20px 20px 16px",
+                        "16px 16px 12px",
                     border:
                         "1px solid #1a1a1a",
                     boxShadow:
@@ -2158,6 +2160,8 @@ const gatewayPort =
                     display: "flex",
                     flexDirection: "column",
                     overflow: "hidden",
+                    flex: "1 1 auto",
+                    minHeight: 0,
                     animation:
                         "slideUp 0.5s ease-out",
                 }}
@@ -2166,7 +2170,7 @@ const gatewayPort =
                 <div
                     style={{
                         textAlign: "center",
-                        marginBottom: "12px",
+                        marginBottom: "8px",
                     }}
                 >
                     <div
@@ -2310,11 +2314,11 @@ const gatewayPort =
                 <div
                     style={{
                         display: "flex",
-                        gap: "4px",
-                        marginBottom: "10px",
+                        gap: "3px",
+                        marginBottom: "8px",
                         background:
                             "rgba(255,255,255,0.03)",
-                        padding: "3px",
+                        padding: "2px",
                         borderRadius:
                             "10px",
                         border:
@@ -2625,7 +2629,7 @@ const gatewayPort =
                         <div
                             style={{
                                 marginBottom:
-                                    "10px",
+                                    "8px",
                             }}
                         >
                             <label
@@ -2745,7 +2749,7 @@ const gatewayPort =
                         <div
                             style={{
                                 marginBottom:
-                                    "12px",
+                                    "10px",
                             }}
                         >
                             <label
@@ -2876,7 +2880,7 @@ const gatewayPort =
                         <div
                             style={{
                                 marginBottom:
-                                    "12px",
+                                    "10px",
                             }}
                         >
                             <label
@@ -2999,7 +3003,7 @@ const gatewayPort =
                     className="device-info"
                     style={{
                         marginTop:
-                            "10px",
+                            "8px",
                     }}
                 >
                     <span
@@ -3021,7 +3025,7 @@ const gatewayPort =
                 {resolvedRouter?.phone_number && (
                     <div
                         style={{
-                            marginTop: "8px",
+                            marginTop: "6px",
                             textAlign: "center",
                             fontSize: "0.7rem",
                             color: "rgba(255,255,255,0.6)",
@@ -3045,7 +3049,7 @@ const gatewayPort =
                 <div
                     style={{
                         marginTop:
-                            "8px",
+                            "6px",
                         textAlign:
                             "center",
                         fontSize:
