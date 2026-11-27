@@ -382,6 +382,7 @@ function Portal() {
     const [mnoProvider, setProvider] = useState("Mpesa");
     const [activeTab, setActiveTab] = useState("pay");
     const [voucherCode, setVoucherCode] = useState("");
+    const [showPaymentModal, setShowPaymentModal] = useState(false);
 
     const [uiMessage, setUiMessage] = useState("");
     const [isLoading, setIsLoading] = useState(false);
@@ -1503,6 +1504,8 @@ const gatewayPort =
         ) {
             setUiMessage("");
         }
+
+        setShowPaymentModal(true);
     };
 
     const handleProviderSelect = (
@@ -2625,248 +2628,7 @@ const gatewayPort =
                             )}
                         </div>
 
-                        {/* Provider */}
-                        <div
-                            style={{
-                                marginBottom:
-                                    "6px",
-                            }}
-                        >
-                            <label
-                                style={{
-                                    display:
-                                        "block",
-                                    fontSize:
-                                        "0.6rem",
-                                    fontWeight:
-                                        800,
-                                    color:
-                                        "rgba(255,255,255,0.5)",
-                                    marginBottom:
-                                        "6px",
-                                    letterSpacing:
-                                        "1.2px",
-                                    textTransform:
-                                        "uppercase",
-                                }}
-                            >
-                                Payment Provider{" "}
-                                <span
-                                    style={{
-                                        color:
-                                            "#e50914",
-                                    }}
-                                >
-                                    *
-                                </span>
-                            </label>
-
-                            <div className="provider-grid">
-                                {PROVIDERS.map(
-                                    (
-                                        provider
-                                    ) => (
-                                        <div
-                                            key={
-                                                provider.id
-                                            }
-                                            className={`provider-card ${
-                                                mnoProvider ===
-                                                provider.id
-                                                    ? "selected"
-                                                    : ""
-                                            }`}
-                                            onClick={() =>
-                                                handleProviderSelect(
-                                                    provider.id
-                                                )
-                                            }
-                                            role="button"
-                                            tabIndex={
-                                                0
-                                            }
-                                            onKeyDown={(
-                                                e
-                                            ) => {
-                                                if (
-                                                    e.key ===
-                                                        "Enter" ||
-                                                    e.key ===
-                                                        " "
-                                                ) {
-                                                    e.preventDefault();
-
-                                                    handleProviderSelect(
-                                                        provider.id
-                                                    );
-                                                }
-                                            }}
-                                            aria-selected={
-                                                mnoProvider ===
-                                                provider.id
-                                            }
-                                        >
-                                            <div className="provider-logo-slot">
-                                                {!imageErrors[
-                                                    provider
-                                                        .id
-                                                ] &&
-                                                provider.logo ? (
-                                                    <img
-                                                        src={
-                                                            provider.logo
-                                                        }
-                                                        alt={
-                                                            provider.name
-                                                        }
-                                                        onError={() =>
-                                                            handleImageError(
-                                                                provider.id
-                                                            )
-                                                        }
-                                                    />
-                                                ) : (
-                                                    <span className="provider-logo-fallback">
-                                                        {
-                                                            provider.name
-                                                        }
-                                                    </span>
-                                                )}
-                                            </div>
-
-                                            <div className="provider-name">
-                                                {
-                                                    provider.name
-                                                }
-                                            </div>
-                                        </div>
-                                    )
-                                )}
-                            </div>
-                        </div>
-
-                        {/* Phone */}
-                        <div
-                            style={{
-                                marginBottom:
-                                    "8px",
-                            }}
-                        >
-                            <label
-                                style={{
-                                    display:
-                                        "block",
-                                    fontSize:
-                                        "0.65rem",
-                                    fontWeight:
-                                        800,
-                                    color:
-                                        "rgba(255,255,255,0.5)",
-                                    marginBottom:
-                                        "6px",
-                                    letterSpacing:
-                                        "1.2px",
-                                    textTransform:
-                                        "uppercase",
-                                }}
-                            >
-                                Phone Number{" "}
-                                <span
-                                    style={{
-                                        color:
-                                            "#e50914",
-                                    }}
-                                >
-                                    *
-                                </span>
-                            </label>
-
-                            <input
-                                type="tel"
-                                required
-                                placeholder="e.g., 0712345678"
-                                value={
-                                    phoneNumber
-                                }
-                                onChange={(
-                                    e
-                                ) =>
-                                    setPhoneNumber(
-                                        e.target
-                                            .value
-                                    )
-                                }
-                                className="form-input"
-                                style={{
-                                    width: "100%",
-                                    padding:
-                                        "8px 12px",
-                                    borderRadius:
-                                        "8px",
-                                    fontSize:
-                                        "0.8rem",
-                                    fontFamily:
-                                        "inherit",
-                                }}
-                            />
-                        </div>
-
-                        <button
-                            type="submit"
-                            disabled={
-                                isLoading ||
-                                packageCatalog.length ===
-                                    0 ||
-                                !selectedPackageId
-                            }
-                            className="submit-btn"
-                            style={{
-                                width: "100%",
-                                padding:
-                                    "10px",
-                                borderRadius:
-                                    "8px",
-                                border: "none",
-                                fontSize:
-                                    "0.85rem",
-                                fontWeight: 700,
-                                fontFamily:
-                                    "inherit",
-                                color:
-                                    "#ffffff",
-                                cursor:
-                                    "pointer",
-                                position:
-                                    "relative",
-                                display:
-                                    "flex",
-                                alignItems:
-                                    "center",
-                                justifyContent:
-                                    "center",
-                                gap: "6px",
-                            }}
-                        >
-                            {isLoading ? (
-                                <>
-                                    <span
-                                        className="spinner"
-                                        style={{
-                                            width:
-                                                "18px",
-                                            height:
-                                                "18px",
-                                            display:
-                                                "inline-block",
-                                        }}
-                                    />
-
-                                    Processing...
-                                </>
-                            ) : (
-                                "Pay & Connect"
-                            )}
-                        </button>
+                        {/* Package selection complete - payment opens in modal */}
                     </form>
                 ) : (
                     /* =================================================
@@ -2996,6 +2758,219 @@ const gatewayPort =
                             Activate Voucher
                         </button>
                     </form>
+                )}
+
+                {/* Payment Modal */}
+                {showPaymentModal && (
+                    <div
+                        style={{
+                            position: "fixed",
+                            inset: 0,
+                            background: "rgba(0,0,0,0.85)",
+                            zIndex: 9999,
+                            display: "flex",
+                            alignItems: "center",
+                            justifyContent: "center",
+                            padding: "env(safe-area-inset-top, 16px) env(safe-area-inset-right, 16px) env(safe-area-inset-bottom, 16px) env(safe-area-inset-left, 16px)",
+                            overflowY: "auto",
+                            animation: "fadeIn 0.3s ease-out",
+                        }}
+                    >
+                        <div
+                            onClick={(e) => e.stopPropagation()}
+                            style={{
+                                width: "100%",
+                                maxWidth: "520px",
+                                background: "rgba(13, 13, 13, 0.98)",
+                                backdropFilter: "blur(20px)",
+                                WebkitBackdropFilter: "blur(20px)",
+                                borderRadius: "20px",
+                                padding: "20px 20px 16px",
+                                border: "1px solid rgba(229, 9, 20, 0.3)",
+                                boxShadow:
+                                    "0 30px 100px rgba(0,0,0,0.9)",
+                                animation: "slideUp 0.4s ease-out",
+                                display: "flex",
+                                flexDirection: "column",
+                                gap: "16px",
+                            }}
+                        >
+                            {/* Close header */}
+                            <div
+                                style={{
+                                    display: "flex",
+                                    alignItems: "center",
+                                    justifyContent: "space-between",
+                                    marginBottom: "4px",
+                                }}
+                            >
+                                <div style={{ fontSize: "1.25rem", fontWeight: 900, color: "#ffffff", letterSpacing: "-0.5px", textTransform: "uppercase" }}>
+                                    Pay & Connect <span className="brand-gradient">Kitonga</span>
+                                </div>
+                                <button
+                                    type="button"
+                                    onClick={() => {
+                                        setShowPaymentModal(false);
+                                        setUiMessage("");
+                                    }}
+                                    style={{
+                                        width: "32px",
+                                        height: "32px",
+                                        borderRadius: "8px",
+                                        border: "none",
+                                        background: "rgba(255,255,255,0.08)",
+                                        color: "#ffffff",
+                                        cursor: "pointer",
+                                        fontSize: "1.2rem",
+                                        display: "flex",
+                                        alignItems: "center",
+                                        justifyContent: "center",
+                                    }}
+                                >
+                                    ✕
+                                </button>
+                            </div>
+
+                            {/* Selected package */}
+                            <div
+                                style={{
+                                    background: "rgba(255,255,255,0.03)",
+                                    border: "1px solid #1a1a1a",
+                                    borderRadius: "12px",
+                                    padding: "12px 14px",
+                                    display: "flex",
+                                    flexDirection: "column",
+                                    gap: "8px",
+                                }}
+                            >
+                                <div style={{ fontSize: "0.65rem", fontWeight: 800, color: "rgba(255,255,255,0.4)", letterSpacing: "1px", textTransform: "uppercase" }}>
+                                    Selected Package
+                                </div>
+                                <div style={{ fontSize: "0.95rem", fontWeight: 700, color: "#ffffff" }}>{selectedPackage?.package_name || "Package"}</div>
+                                <div style={{ fontSize: "1.1rem", fontWeight: 800, color: "#e50914" }}>
+                                    TZS {Number(selectedPackage?.price || 0).toLocaleString()}
+                                </div>
+                                <div style={{ fontSize: "0.6rem", color: "rgba(255,255,255,0.35)", lineHeight: 1.3 }}>
+                                    {formatDurationText(selectedPackage?.duration_seconds || 0)} • {formatBytes(selectedPackage?.data_quota_bytes || 0)}
+                                </div>
+                            </div>
+
+                            {/* Payment provider */}
+                            <div>
+                                <label
+                                    style={{
+                                        display: "block",
+                                        fontSize: "0.6rem",
+                                        fontWeight: 800,
+                                        color: "rgba(255,255,255,0.5)",
+                                        marginBottom: "6px",
+                                        letterSpacing: "1.2px",
+                                        textTransform: "uppercase",
+                                    }}
+                                >
+                                    Payment Provider{" "}
+                                    <span style={{ color: "#e50914" }}>*</span>
+                                </label>
+                                <div className="provider-grid">
+                                    {PROVIDERS.map(
+                                        (provider) => (
+                                            <div
+                                                key={provider.id}
+                                                className={`provider-card ${
+                                                    mnoProvider === provider.id ? "selected" : ""
+                                                }`}
+                                                onClick={() => handleProviderSelect(provider.id)}
+                                                role="button"
+                                                tabIndex={0}
+                                                onKeyDown={(e) => {
+                                                    if (e.key === "Enter" || e.key === " ") {
+                                                        e.preventDefault();
+                                                        handleProviderSelect(provider.id);
+                                                    }
+                                                }}
+                                                aria-selected={mnoProvider === provider.id}
+                                            >
+                                                <div className="provider-logo-slot">
+                                                    {!imageErrors[provider.id] && provider.logo ? (
+                                                        <img src={provider.logo} alt={provider.name} onError={() => handleImageError(provider.id)} />
+                                                    ) : (
+                                                        <span className="provider-logo-fallback">{provider.name}</span>
+                                                    )}
+                                                </div>
+                                                <div className="provider-name">{provider.name}</div>
+                                            </div>
+                                        )
+                                    )}
+                                </div>
+                            </div>
+
+                            {/* Phone number */}
+                            <div>
+                                <label
+                                    style={{
+                                        display: "block",
+                                        fontSize: "0.6rem",
+                                        fontWeight: 800,
+                                        color: "rgba(255,255,255,0.5)",
+                                        marginBottom: "6px",
+                                        letterSpacing: "1.2px",
+                                        textTransform: "uppercase",
+                                    }}
+                                >
+                                    Phone Number{" "}
+                                    <span style={{ color: "#e50914" }}>*</span>
+                                </label>
+                                <input
+                                    type="tel"
+                                    required
+                                    placeholder="e.g., 0712345678"
+                                    value={phoneNumber}
+                                    onChange={(e) => setPhoneNumber(e.target.value)}
+                                    className="form-input"
+                                    style={{
+                                        width: "100%",
+                                        padding: "10px 14px",
+                                        borderRadius: "10px",
+                                        fontSize: "0.9rem",
+                                        fontFamily: "inherit",
+                                    }}
+                                />
+                            </div>
+
+                            {/* Pay button */}
+                            <button
+                                type="button"
+                                onClick={handlePayAndConnect}
+                                disabled={isLoading || !selectedPackageId || !phoneNumber.trim()}
+                                className="submit-btn"
+                                style={{
+                                    width: "100%",
+                                    padding: "14px",
+                                    borderRadius: "10px",
+                                    border: "none",
+                                    fontSize: "1rem",
+                                    fontWeight: 800,
+                                    fontFamily: "inherit",
+                                    color: "#ffffff",
+                                    cursor: "pointer",
+                                    position: "relative",
+                                    display: "flex",
+                                    alignItems: "center",
+                                    justifyContent: "center",
+                                    gap: "8px",
+                                }}
+                            >
+                                {isLoading ? (
+                                    <>
+                                        <span className="spinner" style={{ width: "20px", height: "20px", display: "inline-block" }} />
+                                        Processing...
+                                    </>
+                                ) : (
+                                    "Pay & Connect"
+                                )}
+                            </button>
+                        </div>
+                    </div>
                 )}
 
                 {/* Device Info */}
