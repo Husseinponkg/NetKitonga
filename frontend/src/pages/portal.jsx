@@ -27,20 +27,23 @@ const PORTAL_CSS = `
 html, body {
     margin: 0;
     padding: 0;
-    background: #000000;
+    background: #09090b;
     min-height: 100%;
 }
 
 .kp-root {
+    --kp-bg: #09090b;
+    --kp-card: #111113;
+    --kp-raise: #18181b;
+    --kp-line: #27272a;
+    --kp-text: #f4f4f5;
+    --kp-muted: #a1a1aa;
+    --kp-faint: #71717a;
     --kp-red: #e50914;
     --kp-red-dark: #c20812;
+    --kp-red-soft: rgba(229,9,20,0.12);
     --kp-green: #46d369;
     --kp-gold: #f5d77b;
-    --kp-card: #0d0d0d;
-    --kp-line: #1a1a1a;
-    --kp-text: #ffffff;
-    --kp-muted: rgba(255,255,255,0.5);
-    --kp-faint: rgba(255,255,255,0.3);
 
     min-height: 100vh;
     min-height: 100dvh;
@@ -49,42 +52,40 @@ html, body {
     flex-direction: column;
     align-items: center;
     justify-content: flex-start;
-    background: #000000;
+    background: var(--kp-bg);
     color: var(--kp-text);
-    font-family: 'Inter', -apple-system, BlinkMacSystemFont, 'Segoe UI', Roboto, sans-serif;
-    padding: 10px 10px calc(20px + env(safe-area-inset-bottom, 0px));
+    font-family: system-ui, -apple-system, 'Segoe UI', Roboto, 'Helvetica Neue', Arial, sans-serif;
+    padding: 12px 10px calc(16px + env(safe-area-inset-bottom, 0px));
     position: relative;
-    overflow-x: hidden;
     -webkit-font-smoothing: antialiased;
+    -webkit-text-size-adjust: 100%;
 }
 
-/* soft red glow, the only decorative element */
 .kp-root::before {
     content: "";
     position: absolute;
-    top: -140px;
-    left: 50%;
-    transform: translateX(-50%);
-    width: 520px;
-    height: 320px;
-    background: radial-gradient(ellipse at center, rgba(229,9,20,0.14), transparent 70%);
+    top: 0;
+    left: 0;
+    width: 100%;
+    height: 260px;
+    background: radial-gradient(ellipse 70% 100% at 50% 0%, rgba(229,9,20,0.16), transparent 75%);
     pointer-events: none;
 }
 
 .kp-card {
     position: relative;
     width: 100%;
-    max-width: 520px;
+    max-width: 480px;
     background: var(--kp-card);
     border: 1px solid var(--kp-line);
-    border-radius: 18px;
-    padding: 14px 14px 14px;
-    box-shadow: 0 24px 70px rgba(0,0,0,0.75);
-    animation: kpEnter 0.45s ease-out both;
+    border-radius: 20px;
+    padding: 16px 14px 14px;
+    box-shadow: 0 20px 60px rgba(0,0,0,0.6);
+    animation: kpEnter 0.4s ease-out both;
 }
 
 @keyframes kpEnter {
-    from { opacity: 0; transform: translateY(14px); }
+    from { opacity: 0; transform: translateY(10px); }
     to   { opacity: 1; transform: translateY(0); }
 }
 @keyframes kpFade {
@@ -94,91 +95,95 @@ html, body {
 @keyframes kpSpin {
     to { transform: rotate(360deg); }
 }
-@keyframes kpShimmer {
-    0%   { background-position: -200% center; }
-    100% { background-position: 200% center; }
-}
 
 /* ---------- header ---------- */
 .kp-header {
     display: flex;
-    flex-direction: column;
     align-items: center;
-    text-align: center;
-    padding-bottom: 10px;
-    margin-bottom: 12px;
+    gap: 12px;
+    padding-bottom: 14px;
+    margin-bottom: 14px;
     border-bottom: 1px solid var(--kp-line);
 }
 .kp-logo {
-    width: 38px;
-    height: 38px;
-    border-radius: 11px;
+    flex-shrink: 0;
+    width: 44px;
+    height: 44px;
+    border-radius: 13px;
     background: linear-gradient(135deg, #0ea5e9, #2563eb);
     display: flex;
     align-items: center;
     justify-content: center;
     color: #fff;
-    box-shadow: 0 8px 26px rgba(14,165,233,0.3);
-    margin-bottom: 6px;
+    box-shadow: 0 6px 20px rgba(14,165,233,0.28);
 }
 .kp-title {
     margin: 0;
-    font-size: 1.45rem;
-    line-height: 1.05;
-    font-weight: 900;
-    letter-spacing: -0.8px;
+    font-size: 1.4rem;
+    line-height: 1.1;
+    font-weight: 800;
+    letter-spacing: -0.5px;
+    color: #fff;
 }
-.kp-title .brand {
-    background: linear-gradient(135deg, #e50914, #ff0a1a, #e50914);
-    background-size: 200% auto;
-    -webkit-background-clip: text;
-    background-clip: text;
-    -webkit-text-fill-color: transparent;
-    animation: kpShimmer 3s linear infinite;
-}
+.kp-title .brand { color: var(--kp-red); }
 .kp-tagline {
-    margin: 3px 0 0;
-    font-size: 0.74rem;
-    font-weight: 600;
-    color: var(--kp-faint);
-    letter-spacing: 0.3px;
+    margin: 2px 0 0;
+    font-size: 0.8rem;
+    color: var(--kp-muted);
 }
 
 /* ---------- message ---------- */
 .kp-message {
-    border-left: 4px solid;
-    border-radius: 10px;
-    padding: 10px 12px;
-    margin-bottom: 12px;
-    font-size: 0.86rem;
+    display: flex;
+    align-items: flex-start;
+    gap: 10px;
+    margin-bottom: 14px;
+    padding: 11px 13px;
+    border: 1px solid;
+    border-radius: 12px;
+    font-size: 0.88rem;
     line-height: 1.45;
-    font-weight: 600;
-    text-align: left;
-    animation: kpFade 0.35s ease-out;
+    font-weight: 500;
     overflow-wrap: anywhere;
+    animation: kpFade 0.3s ease-out;
+}
+.kp-message::before {
+    flex-shrink: 0;
+    width: 20px;
+    height: 20px;
+    margin-top: 1px;
+    border-radius: 50%;
+    display: flex;
+    align-items: center;
+    justify-content: center;
+    font-size: 12px;
+    font-weight: 800;
+    color: #09090b;
 }
 .kp-message.success {
-    background: rgba(70,211,105,0.09);
-    border-color: var(--kp-green);
-    color: var(--kp-green);
+    background: rgba(70,211,105,0.08);
+    border-color: rgba(70,211,105,0.4);
+    color: #b7f0c4;
 }
+.kp-message.success::before { content: "\\2713"; background: var(--kp-green); }
 .kp-message.error {
-    background: rgba(229,9,20,0.1);
-    border-color: #ff5252;
-    color: #ff6b6b;
+    background: rgba(229,9,20,0.09);
+    border-color: rgba(229,9,20,0.45);
+    color: #ffc9cc;
 }
+.kp-message.error::before { content: "!"; background: #ff5a60; }
 
 .kp-retry {
     width: 100%;
-    margin-bottom: 16px;
     min-height: 46px;
-    border-radius: 12px;
+    margin-bottom: 14px;
     border: 1px solid var(--kp-red);
-    background: rgba(229,9,20,0.08);
+    border-radius: 12px;
+    background: var(--kp-red-soft);
     color: #fff;
     font: inherit;
-    font-weight: 700;
-    font-size: 0.9rem;
+    font-size: 0.92rem;
+    font-weight: 600;
     cursor: pointer;
 }
 .kp-retry:disabled { opacity: 0.5; cursor: not-allowed; }
@@ -189,47 +194,72 @@ html, body {
     grid-template-columns: 1fr 1fr;
     gap: 4px;
     padding: 4px;
-    margin-bottom: 12px;
-    background: rgba(255,255,255,0.03);
+    margin-bottom: 16px;
+    background: var(--kp-bg);
     border: 1px solid var(--kp-line);
     border-radius: 14px;
 }
 .kp-tab {
-    min-height: 40px;
-    border: 1px solid transparent;
+    min-height: 44px;
+    border: 0;
     border-radius: 10px;
     background: transparent;
-    color: var(--kp-faint);
+    color: var(--kp-muted);
     font: inherit;
-    font-size: 0.86rem;
-    font-weight: 700;
+    font-size: 0.92rem;
+    font-weight: 600;
     cursor: pointer;
-    transition: color 0.2s, background 0.2s, border-color 0.2s;
+    transition: background 0.2s, color 0.2s;
     -webkit-tap-highlight-color: transparent;
 }
-.kp-tab:hover:not(.active) { color: rgba(255,255,255,0.75); }
+.kp-tab:hover:not(.active) { color: #fff; }
 .kp-tab.active {
+    background: var(--kp-raise);
     color: #fff;
-    background: rgba(229,9,20,0.12);
-    border-color: var(--kp-red);
+    box-shadow: inset 0 -2px 0 var(--kp-red);
+}
+.kp-tab:focus-visible,
+.kp-pkg:focus-visible,
+.kp-provider:focus-visible,
+.kp-submit:focus-visible,
+.kp-retry:focus-visible,
+.kp-support a:focus-visible {
+    outline: 2px solid #fff;
+    outline-offset: 2px;
 }
 
-/* ---------- sections ---------- */
-.kp-section { margin-bottom: 20px; }
+/* ---------- sections and step labels ---------- */
+.kp-section { margin-bottom: 16px; }
 .kp-label {
-    display: block;
-    margin-bottom: 6px;
-    font-size: 0.8rem;
-    font-weight: 700;
-    color: var(--kp-muted);
+    display: flex;
+    align-items: center;
+    gap: 8px;
+    margin-bottom: 8px;
+    font-size: 0.9rem;
+    font-weight: 600;
+    color: var(--kp-text);
 }
-.kp-label .req { color: var(--kp-red); margin-left: 2px; }
+.kp-label .req { color: var(--kp-red); margin-left: -4px; }
+.kp-step {
+    flex-shrink: 0;
+    width: 22px;
+    height: 22px;
+    border-radius: 50%;
+    display: inline-flex;
+    align-items: center;
+    justify-content: center;
+    background: var(--kp-red-soft);
+    border: 1px solid rgba(229,9,20,0.5);
+    color: #fff;
+    font-size: 0.75rem;
+    font-weight: 700;
+}
 
 /* ---------- packages ---------- */
 .kp-packages {
     display: grid;
     grid-template-columns: repeat(3, minmax(0, 1fr));
-    gap: 6px;
+    gap: 8px;
 }
 @media (max-width: 330px) {
     .kp-packages { grid-template-columns: repeat(2, minmax(0, 1fr)); }
@@ -238,123 +268,93 @@ html, body {
     position: relative;
     display: flex;
     flex-direction: column;
-    gap: 2px;
-    padding: 8px 4px 7px;
+    justify-content: center;
+    gap: 3px;
+    min-height: 92px;
+    padding: 10px 6px 9px;
     text-align: center;
-    background: rgba(255,255,255,0.03);
+    background: var(--kp-raise);
     border: 2px solid var(--kp-line);
-    border-radius: 11px;
+    border-radius: 14px;
     cursor: pointer;
     user-select: none;
-    transition: border-color 0.2s, background 0.2s, box-shadow 0.2s;
+    transition: border-color 0.18s, background 0.18s, transform 0.12s;
     -webkit-tap-highlight-color: transparent;
 }
-.kp-pkg:hover:not(.selected) {
-    border-color: rgba(255,255,255,0.14);
-    background: rgba(255,255,255,0.05);
-}
+.kp-pkg:hover:not(.selected) { border-color: #3f3f46; }
+.kp-pkg:active { transform: scale(0.97); }
 .kp-pkg.selected {
     border-color: var(--kp-red);
-    background: rgba(229,9,20,0.07);
-    box-shadow: 0 0 24px rgba(229,9,20,0.12);
-}
-.kp-pkg:focus-visible,
-.kp-provider:focus-visible {
-    outline: 2px solid #fff;
-    outline-offset: 2px;
+    background: linear-gradient(180deg, rgba(229,9,20,0.16), rgba(229,9,20,0.05));
 }
 .kp-pkg-name {
-    font-size: 0.76rem;
-    font-weight: 700;
-    color: #fff;
+    font-size: 0.78rem;
+    font-weight: 600;
+    color: var(--kp-muted);
     line-height: 1.2;
 }
+.kp-pkg.selected .kp-pkg-name { color: #fff; }
 .kp-pkg-price {
-    font-size: 0.95rem;
+    font-size: 1rem;
     font-weight: 800;
-    color: var(--kp-red);
-    letter-spacing: -0.3px;
+    color: #fff;
+    letter-spacing: -0.2px;
+    font-variant-numeric: tabular-nums;
 }
 .kp-pkg-meta {
     display: flex;
     flex-direction: column;
-    gap: 0;
-    font-size: 0.64rem;
-    color: rgba(255,255,255,0.45);
+    font-size: 0.68rem;
     line-height: 1.35;
+    color: var(--kp-muted);
 }
 .kp-badge {
     align-self: center;
     margin-top: 3px;
-    padding: 1px 7px;
+    padding: 1px 8px;
     border-radius: 999px;
-    font-size: 0.58rem;
+    font-size: 0.62rem;
     font-weight: 700;
-    background: rgba(229,9,20,0.12);
-    color: var(--kp-red);
-    border: 1px solid rgba(229,9,20,0.15);
+    background: var(--kp-red-soft);
+    color: #ff9ea2;
 }
-.kp-badge.popular {
-    background: rgba(70,211,105,0.12);
-    color: var(--kp-green);
-    border-color: rgba(70,211,105,0.15);
-}
-.kp-badge.best {
-    background: rgba(212,175,55,0.12);
-    color: var(--kp-gold);
-    border-color: rgba(212,175,55,0.15);
-}
+.kp-badge.plain { display: none; }
+.kp-badge.popular { background: rgba(70,211,105,0.14); color: var(--kp-green); }
+.kp-badge.best    { background: rgba(245,215,123,0.14); color: var(--kp-gold); }
 
-/* selected tick (shared) */
 .kp-pkg.selected::after,
 .kp-provider.selected::after {
     content: "\\2713";
     position: absolute;
     top: -7px;
     right: -7px;
-    width: 18px;
-    height: 18px;
+    width: 20px;
+    height: 20px;
     border-radius: 50%;
     background: var(--kp-red);
     color: #fff;
-    font-size: 10px;
+    font-size: 11px;
     font-weight: 800;
     display: flex;
     align-items: center;
     justify-content: center;
-    box-shadow: 0 3px 12px rgba(229,9,20,0.45);
+    box-shadow: 0 3px 10px rgba(229,9,20,0.45);
 }
 
 .kp-empty {
-    padding: 28px 12px;
+    padding: 26px 12px;
     text-align: center;
     font-size: 0.9rem;
-    color: rgba(255,255,255,0.35);
-    border: 1px dashed var(--kp-line);
+    color: var(--kp-muted);
+    border: 1px dashed #3f3f46;
     border-radius: 14px;
 }
-
-.kp-summary {
-    display: flex;
-    justify-content: space-between;
-    align-items: center;
-    gap: 12px;
-    margin-top: 8px;
-    padding: 8px 12px;
-    background: rgba(229,9,20,0.05);
-    border: 1px solid rgba(229,9,20,0.15);
-    border-radius: 12px;
-    animation: kpFade 0.3s ease-out;
-}
-.kp-summary .s-label { font-size: 0.75rem; color: var(--kp-faint); }
-.kp-summary .s-name  { font-size: 0.9rem; font-weight: 700; color: #fff; }
-.kp-summary .s-price { font-size: 1.05rem; font-weight: 800; color: var(--kp-red); text-align: right; }
 
 /* ---------- providers ---------- */
 .kp-providers {
     display: grid;
-    grid-template-columns: repeat(auto-fit, minmax(58px, 1fr));
-    gap: 6px;
+    grid-template-columns: repeat(auto-fit, minmax(62px, 1fr));
+    gap: 8px;
 }
 .kp-provider {
     position: relative;
@@ -362,39 +362,34 @@ html, body {
     flex-direction: column;
     align-items: center;
     justify-content: center;
-    gap: 5px;
-    min-height: 66px;
-    padding: 7px 3px;
-    background: rgba(255,255,255,0.03);
+    gap: 6px;
+    min-height: 72px;
+    padding: 8px 4px;
+    background: var(--kp-raise);
     border: 2px solid var(--kp-line);
-    border-radius: 11px;
+    border-radius: 14px;
     cursor: pointer;
     user-select: none;
-    transition: border-color 0.2s, background 0.2s, box-shadow 0.2s;
+    transition: border-color 0.18s, background 0.18s, transform 0.12s;
     -webkit-tap-highlight-color: transparent;
 }
-.kp-provider:hover:not(.selected) {
-    border-color: rgba(255,255,255,0.14);
-    background: rgba(255,255,255,0.05);
-}
+.kp-provider:hover:not(.selected) { border-color: #3f3f46; }
+.kp-provider:active { transform: scale(0.97); }
 .kp-provider.selected {
     border-color: var(--kp-red);
-    background: rgba(229,9,20,0.08);
-    box-shadow: 0 0 24px rgba(229,9,20,0.14);
+    background: linear-gradient(180deg, rgba(229,9,20,0.16), rgba(229,9,20,0.05));
 }
 .kp-logo-slot {
-    width: 44px;
-    height: 28px;
+    width: 46px;
+    height: 30px;
     padding: 3px;
     display: flex;
     align-items: center;
     justify-content: center;
-    background: rgba(255,255,255,0.06);
-    border: 1px solid #1f1f1f;
+    background: #fff;
     border-radius: 8px;
     overflow: hidden;
 }
-.kp-provider.selected .kp-logo-slot { border-color: rgba(229,9,20,0.6); }
 .kp-logo-slot img {
     max-width: 100%;
     max-height: 100%;
@@ -402,41 +397,40 @@ html, body {
     display: block;
 }
 .kp-logo-fallback {
-    font-size: 0.6rem;
+    font-size: 0.58rem;
     font-weight: 800;
     text-align: center;
     line-height: 1.1;
-    color: rgba(255,255,255,0.4);
+    color: #3f3f46;
     word-break: break-word;
 }
 .kp-provider-name {
-    font-size: 0.64rem;
-    font-weight: 700;
-    color: rgba(255,255,255,0.7);
+    font-size: 0.68rem;
+    font-weight: 600;
     text-align: center;
     line-height: 1.15;
+    color: var(--kp-muted);
 }
 .kp-provider.selected .kp-provider-name { color: #fff; }
 
 /* ---------- inputs ---------- */
 .kp-input {
     width: 100%;
-    min-height: 46px;
-    padding: 10px 12px;
-    background: rgba(255,255,255,0.04);
-    border: 1px solid #262626;
+    min-height: 50px;
+    padding: 12px 14px;
+    background: var(--kp-bg);
+    border: 1px solid #3f3f46;
     border-radius: 12px;
     color: #fff;
     font: inherit;
     font-size: 16px; /* prevents iOS zoom on focus */
-    transition: border-color 0.2s, box-shadow 0.2s, background 0.2s;
+    transition: border-color 0.2s, box-shadow 0.2s;
 }
-.kp-input::placeholder { color: rgba(255,255,255,0.25); letter-spacing: 0; }
+.kp-input::placeholder { color: var(--kp-faint); }
 .kp-input:focus {
     outline: none;
     border-color: var(--kp-red);
-    background: rgba(255,255,255,0.06);
-    box-shadow: 0 0 0 3px rgba(229,9,20,0.12);
+    box-shadow: 0 0 0 3px rgba(229,9,20,0.2);
 }
 .kp-input.code {
     text-transform: uppercase;
@@ -445,38 +439,65 @@ html, body {
     text-align: center;
 }
 
-/* ---------- submit ---------- */
+/* ---------- checkout bar (stays visible while scrolling) ---------- */
+.kp-checkout {
+    position: sticky;
+    bottom: 0;
+    z-index: 5;
+    margin: 6px -14px -14px;
+    padding: 12px 14px calc(14px + env(safe-area-inset-bottom, 0px));
+    background: linear-gradient(to top, var(--kp-card) 80%, rgba(17,17,19,0));
+    border-radius: 0 0 20px 20px;
+}
+.kp-total {
+    display: flex;
+    justify-content: space-between;
+    align-items: baseline;
+    gap: 12px;
+    margin-bottom: 10px;
+    font-size: 0.85rem;
+    color: var(--kp-muted);
+    animation: kpFade 0.25s ease-out;
+}
+.kp-total .t-name { font-weight: 600; color: #fff; overflow-wrap: anywhere; }
+.kp-total .t-price {
+    font-size: 1.15rem;
+    font-weight: 800;
+    color: #fff;
+    white-space: nowrap;
+    font-variant-numeric: tabular-nums;
+}
+
 .kp-submit {
     width: 100%;
-    min-height: 48px;
+    min-height: 52px;
     display: flex;
     align-items: center;
     justify-content: center;
     gap: 10px;
-    border: none;
+    border: 0;
     border-radius: 14px;
     background: linear-gradient(135deg, #e50914, #c20812);
     color: #fff;
     font: inherit;
-    font-size: 0.98rem;
-    font-weight: 800;
-    letter-spacing: 0.2px;
+    font-size: 1rem;
+    font-weight: 700;
     cursor: pointer;
-    box-shadow: 0 10px 28px rgba(229,9,20,0.28);
-    transition: transform 0.15s, box-shadow 0.2s, filter 0.2s;
+    box-shadow: 0 8px 24px rgba(229,9,20,0.3);
+    transition: transform 0.12s, filter 0.2s;
     -webkit-tap-highlight-color: transparent;
 }
 .kp-submit:hover:not(:disabled) { filter: brightness(1.1); }
 .kp-submit:active:not(:disabled) { transform: scale(0.98); }
 .kp-submit:disabled {
-    opacity: 0.5;
+    opacity: 0.45;
     cursor: not-allowed;
     box-shadow: none;
 }
 .kp-spinner {
     width: 20px;
     height: 20px;
-    border: 2px solid rgba(255,255,255,0.25);
+    border: 2px solid rgba(255,255,255,0.3);
     border-top-color: #fff;
     border-radius: 50%;
     animation: kpSpin 0.8s linear infinite;
@@ -485,46 +506,46 @@ html, body {
 /* ---------- footer area ---------- */
 .kp-support {
     margin-top: 12px;
-    padding: 9px 12px;
+    padding: 11px 14px;
     text-align: center;
-    font-size: 0.82rem;
-    color: rgba(255,255,255,0.7);
-    background: rgba(229,9,20,0.08);
-    border: 1px solid rgba(229,9,20,0.2);
+    font-size: 0.86rem;
+    color: var(--kp-muted);
+    background: var(--kp-raise);
+    border: 1px solid var(--kp-line);
     border-radius: 12px;
 }
 .kp-support a {
-    color: var(--kp-red);
-    font-weight: 800;
-    text-decoration: none;
+    color: #fff;
+    font-weight: 700;
+    text-decoration: underline;
+    text-decoration-color: var(--kp-red);
+    text-underline-offset: 3px;
     white-space: nowrap;
 }
 .kp-device {
-    margin-top: 10px;
-    padding: 7px 10px;
+    margin-top: 12px;
     text-align: center;
-    font-size: 0.7rem;
-    color: rgba(255,255,255,0.35);
-    background: rgba(255,255,255,0.03);
-    border: 1px solid var(--kp-line);
-    border-radius: 10px;
+    font-size: 0.72rem;
+    color: var(--kp-faint);
     overflow-wrap: anywhere;
 }
-.kp-device strong { color: rgba(255,255,255,0.55); font-weight: 600; }
+.kp-device strong { color: var(--kp-muted); font-weight: 600; }
 .kp-footer {
-    margin-top: 8px;
+    margin-top: 6px;
     text-align: center;
-    font-size: 0.68rem;
-    color: rgba(255,255,255,0.22);
+    font-size: 0.66rem;
+    color: var(--kp-faint);
 }
 
 @media (min-width: 560px) {
-    .kp-root { padding-top: 32px; }
-    .kp-card { padding: 28px 26px 22px; }
+    .kp-root { padding-top: 28px; }
+    .kp-card { padding: 22px 22px 18px; }
+    .kp-checkout { margin: 6px -22px -18px; padding-left: 22px; padding-right: 22px; }
 }
 @media (prefers-reduced-motion: reduce) {
-    .kp-card, .kp-message, .kp-summary { animation: none; }
-    .kp-title .brand { animation: none; }
+    .kp-card, .kp-message, .kp-total { animation: none; }
+    .kp-spinner { animation-duration: 2s; }
+    .kp-pkg, .kp-provider, .kp-submit { transition: none; }
 }
 `;
 
@@ -1985,10 +2006,12 @@ function Portal() {
                         </svg>
                     </span>
 
-                    <h1 className="kp-title">
-                        Net <span className="brand">Kitonga</span>
-                    </h1>
-                    <p className="kp-tagline">Internet Supply Co.</p>
+                    <div>
+                        <h1 className="kp-title">
+                            Net <span className="brand">Kitonga</span>
+                        </h1>
+                        <p className="kp-tagline">Internet Supply Co.</p>
+                    </div>
                 </header>
 
                 {uiMessage && (
@@ -2046,6 +2069,7 @@ function Portal() {
                     <form onSubmit={handlePayAndConnect}>
                         <div className="kp-section">
                             <span className="kp-label">
+                                <span className="kp-step">1</span>
                                 Select package<span className="req">*</span>
                             </span>
 
@@ -2092,35 +2116,18 @@ function Portal() {
                                                     <span className="kp-badge best">Best value</span>
                                                 )}
                                                 {!pkg.is_popular && !pkg.is_best_value && (
-                                                    <span className="kp-badge">Available</span>
+                                                    <span className="kp-badge plain">Available</span>
                                                 )}
                                             </div>
                                         ))}
                                     </div>
-
-                                    {selectedPackage && (
-                                        <div className="kp-summary">
-                                            <div>
-                                                <div className="s-label">Selected package</div>
-                                                <div className="s-name">{selectedPackage.package_name}</div>
-                                            </div>
-
-                                            <div>
-                                                <div className="s-label" style={{ textAlign: "right" }}>
-                                                    Total
-                                                </div>
-                                                <div className="s-price">
-                                                    TZS {Number(selectedPackage.price).toLocaleString()}
-                                                </div>
-                                            </div>
-                                        </div>
-                                    )}
                                 </>
                             )}
                         </div>
 
                         <div className="kp-section">
                             <span className="kp-label">
+                                <span className="kp-step">2</span>
                                 Payment provider<span className="req">*</span>
                             </span>
 
@@ -2162,6 +2169,7 @@ function Portal() {
 
                         <div className="kp-section">
                             <label className="kp-label" htmlFor="kp-phone">
+                                <span className="kp-step">3</span>
                                 Phone number<span className="req">*</span>
                             </label>
 
@@ -2178,24 +2186,34 @@ function Portal() {
                             />
                         </div>
 
-                        <button
-                            type="submit"
-                            className="kp-submit"
-                            disabled={
-                                isLoading ||
-                                packageCatalog.length === 0 ||
-                                !selectedPackageId
-                            }
-                        >
-                            {isLoading ? (
-                                <>
-                                    <span className="kp-spinner" />
-                                    Processing...
-                                </>
-                            ) : (
-                                "Pay & Connect"
+                        <div className="kp-checkout">
+                            {selectedPackage && (
+                                <div className="kp-total">
+                                    <span className="t-name">{selectedPackage.package_name}</span>
+                                    <span className="t-price">
+                                        TZS {Number(selectedPackage.price).toLocaleString()}
+                                    </span>
+                                </div>
                             )}
-                        </button>
+                            <button
+                                type="submit"
+                                className="kp-submit"
+                                disabled={
+                                    isLoading ||
+                                    packageCatalog.length === 0 ||
+                                    !selectedPackageId
+                                }
+                            >
+                                {isLoading ? (
+                                    <>
+                                        <span className="kp-spinner" />
+                                        Processing...
+                                    </>
+                                ) : (
+                                    "Pay & Connect"
+                                )}
+                            </button>
+                        </div>
                     </form>
                 ) : (
                     <form onSubmit={handleVoucherActivation}>
