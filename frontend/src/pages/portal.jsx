@@ -991,11 +991,11 @@ const gatewayPort =
                                 );
                                 setOmadaRetry(null);
                             setUiMessage(
-                                "umefanikiwa kununua internet subiri 10s kuunganishwa"
+                                "Umefanikiwa kupata internet. Subiri sekunde 10 kuunganishwa."
                             );
                             } catch (error) {
                                 setUiMessage(
-                                    `Payment confirmed, but Omada authorization failed: ${error.message}`
+                                    `Malipo imetegemea, lakini Omada authorization imeshindwa: ${error.message}`
                                 );
                             }
                             return;
@@ -1018,11 +1018,11 @@ const gatewayPort =
 
                         if (!loginStarted) {
                             setUiMessage(
-                                "umefanikiwa kununua internet subiri 10s kuunganishwa"
+                                "Umefanikiwa kupata internet. Subiri sekunde 10 kuunganishwa."
                             );
                         } else {
                             setUiMessage(
-                                "umefanikiwa kununua internet subiri 10s kuunganishwa"
+                                "Umefanikiwa kupata internet. Subiri sekunde 10 kuunganishwa."
                             );
                         }
 
@@ -1041,7 +1041,7 @@ const gatewayPort =
                         );
 
                         setUiMessage(
-                            "Hauna salio la kutosha ongeza salio kuunganishwa"
+                            "Hauna salio la kutosha. Ongeza salio kuunganishwa."
                         );
 
                         return;
@@ -1206,7 +1206,7 @@ const gatewayPort =
             };
 
             setUiMessage(
-                "Contacting AzamPay..."
+                "Tafadhali subiri sekunde 10 kama malipo yamefanikiwa..."
             );
 
             const response =
@@ -2831,6 +2831,45 @@ const gatewayPort =
                                 </button>
                             </div>
 
+                            {/* Payment messages */}
+                {uiMessage && !showPaymentModal && (
+                                <div
+                                    className={`message-box ${
+                                        uiMessage.includes(
+                                            "PIN"
+                                        ) ||
+                                        uiMessage.includes(
+                                            "sent"
+                                        ) ||
+                                        uiMessage.includes(
+                                            "Validating"
+                                        ) ||
+                                        uiMessage.includes(
+                                            "Voucher accepted and"
+                                        ) ||
+                                        uiMessage.includes(
+                                            "Payment confirmed and"
+                                        ) ||
+                                        uiMessage.includes(
+                                            "authorized this WiFi client"
+                                        ) ||
+                                        uiMessage.includes(
+                                            "umefanikiwa kununua internet"
+                                        ) ||
+                                        uiMessage.includes(
+                                            "Hauna salio"
+                                        ) ||
+                                        uiMessage.includes(
+                                            "subiri"
+                                        )
+                                            ? "success"
+                                            : "error"
+                                    }`}
+                                >
+                                    {uiMessage}
+                                </div>
+                            )}
+
                             {/* Selected package */}
                             <div
                                 style={{
@@ -2973,6 +3012,35 @@ const gatewayPort =
                     </div>
                 )}
 
+                {/* Support Contact */}
+                {resolvedRouter?.phone_number && (
+                    <div
+                        style={{
+                            marginTop: "10px",
+                            textAlign: "center",
+                            fontSize: "0.75rem",
+                            color: "rgba(255,255,255,0.7)",
+                            letterSpacing: "0.3px",
+                            padding: "8px 12px",
+                            background: "rgba(229, 9, 20, 0.1)",
+                            borderRadius: "10px",
+                            border: "1px solid rgba(229, 9, 20, 0.2)",
+                        }}
+                    >
+                        Support:{" "}
+                        <a
+                            href={`tel:${resolvedRouter.phone_number}`}
+                            style={{
+                                color: "#e50914",
+                                fontWeight: 800,
+                                textDecoration: "none",
+                            }}
+                        >
+                            {resolvedRouter.phone_number}
+                        </a>
+                    </div>
+                )}
+
                 {/* Device Info */}
                 <div
                     className="device-info"
@@ -2997,30 +3065,6 @@ const gatewayPort =
                 </div>
 
                 {/* Footer */}
-                {resolvedRouter?.phone_number && (
-                    <div
-                        style={{
-                            marginTop: "4px",
-                            textAlign: "center",
-                            fontSize: "0.65rem",
-                            color: "rgba(255,255,255,0.6)",
-                            letterSpacing: "0.3px",
-                        }}
-                    >
-                        Contact support:{" "}
-                        <a
-                            href={`tel:${resolvedRouter.phone_number}`}
-                            style={{
-                                color: "#e50914",
-                                fontWeight: 700,
-                                textDecoration: "none",
-                            }}
-                        >
-                            {resolvedRouter.phone_number}
-                        </a>
-                    </div>
-                )}
-
                 <div
                     style={{
                         marginTop:
