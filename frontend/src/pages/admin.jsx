@@ -457,10 +457,10 @@ function Admin() {
                         {tenants.length === 0 ? <p style={{ color: "rgba(255,255,255,0.4)" }}>No tenants found.</p> : (
                             <div className="table-wrapper">
                                 <table>
-                                <thead><tr><th>ID</th><th>Business Name</th><th>System Name</th><th>Email</th><th>Status</th><th>Created At</th><th>Actions</th></tr></thead>
+                                <thead><tr><th>ID</th><th>Business Name</th><th>Email</th><th>Internet Balance</th><th>Internet Income</th><th>SMS Balance</th><th>SMS Income</th><th>Status</th><th>Created At</th><th>Actions</th></tr></thead>
                                 <tbody>
                                     {tenants.map((t) => (
-                                        <tr key={t.id}><td>{t.id}</td><td>{t.business_name}</td><td>{t.system_name}</td><td>{t.email}</td><td>{t.status || "pending"}</td><td>{new Date(t.created_at).toLocaleDateString()}</td>
+                                        <tr key={t.id}><td>{t.id}</td><td>{t.business_name}</td><td>{t.email}</td><td>TZS {Number(t.internet_balance || 0).toLocaleString()}</td><td>TZS {Number(t.internet_income || 0).toLocaleString()}</td><td>{t.sms_balance || 0}</td><td>TZS {Number(t.sms_income || 0).toLocaleString()}</td><td>{t.status || "pending"}</td><td>{new Date(t.created_at).toLocaleDateString()}</td>
                                         <td><button className="btn btn-ghost" onClick={() => handleAction(`/admin/tenants/status`, { method: "PUT", body: { tenant_id: t.id, status: "active" } }, { refresh: loadTenants })}>Activate</button> <button className="btn btn-ghost" onClick={() => handleAction(`/admin/tenants/status`, { method: "PUT", body: { tenant_id: t.id, status: "suspended" } }, { refresh: loadTenants })}>Suspend</button> <button className="btn btn-ghost" onClick={() => handleAction(`/admin/tenants/${t.id}`, { method: "DELETE" }, { refresh: loadTenants })}>Delete</button></td></tr>
                                     ))}
                                 </tbody>

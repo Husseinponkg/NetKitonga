@@ -503,9 +503,21 @@ class AdminController:
         try:
             async with conn.cursor() as cursor:
                 await cursor.execute("""
-                    SELECT id, business_name, system_name, email, status, created_at
-                    FROM tenants
-                    ORDER BY created_at DESC;
+                    SELECT t.id, t.business_name, t.system_name, t.email, t.status, t.created_at,
+                           COALESCE(tw.current_balance, 0) AS internet_balance,
+                           COALESCE(tw.total_earned, 0) + COALESCE((
+                               SELECT SUM(amount) FROM payments p
+                               WHERE p.tenant_id = t.id AND p.status = 'completed'
+                           ), 0) AS internet_income,
+                           COALESCE(sc.balance, 0) AS sms_balance,
+                           COALESCE((
+                               SELECT SUM(amount) FROM sms_purchases sp
+                               WHERE sp.tenant_id = t.id AND sp.status = 'completed'
+                           ), 0) AS sms_income
+                    FROM tenants t
+                    LEFT JOIN tenant_wallets tw ON tw.tenant_id = t.id
+                    LEFT JOIN sms_credits sc ON sc.tenant_id = t.id
+                    ORDER BY t.created_at DESC;
                 """)
                 rows = await cursor.fetchall()
                 cols = [d[0] for d in (cursor.description or [])]
